@@ -77,7 +77,8 @@ pub async fn fixture_observe(root: &Root, executable: &Path, page_url: &str) -> 
         ))
         .env("TEMP", root.path().join(".cache/tmp").to_string_lossy())
         .env("TMP", root.path().join(".cache/tmp").to_string_lossy())
-        .env("TMPDIR", root.path().join(".cache/tmp").to_string_lossy())
+        .env("TMPDIR", root.path().join(".cache").to_string_lossy())
+        .arg("--enable-logging=stderr")
         .build()
         .map_err(|_| invalid("Browser configuration failed."))?;
     let (mut browser, mut handler) = Browser::launch(config).await.map_err(|cause| {
