@@ -71,13 +71,12 @@ pub fn validate(kind: &str, payload: &Value) -> Result<Value> {
                 chrono::DateTime::parse_from_rfc3339(deadline)
                     .map_err(|_| invalid("due_at must be RFC3339."))?;
             }
-            if let Some(status) = payload.get("status") {
-                if !status
+            if let Some(status) = payload.get("status")
+                && !status
                     .as_str()
                     .is_some_and(|s| ["open", "done", "cancelled"].contains(&s))
-                {
-                    return Err(invalid("Task status must be open, done or cancelled."));
-                }
+            {
+                return Err(invalid("Task status must be open, done or cancelled."));
             }
         }
         "note" => {

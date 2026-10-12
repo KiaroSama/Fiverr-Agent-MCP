@@ -143,10 +143,9 @@ fn keyword(input: &Map<String, Value>) -> Result<Value, String> {
                 keys(row, &["review_count"], "top_gigs row")?;
                 if let Some(review) =
                     optional_count(row.get("review_count"), "review_count", MAX_REVIEWS)?
+                    && index < 10
                 {
-                    if index < 10 {
-                        reviews.push(review as f64);
-                    }
+                    reviews.push(review as f64);
                 }
             }
             reviews
@@ -358,25 +357,25 @@ fn dataset(input: &Map<String, Value>, mode: &str) -> Result<Value, String> {
             "dataset row",
         )?;
         for (field, bound) in [("title", 512), ("subcategory", 256), ("row_id", 96)] {
-            if let Some(value) = row_fields.get(field) {
-                if !value.is_null() {
-                    let value = text(Some(value), field, bound)?;
-                    if field == "row_id"
-                        && !value
-                            .bytes()
-                            .all(|byte| byte.is_ascii_alphanumeric() || b"._-".contains(&byte))
-                    {
-                        return Err("row_id must be a safe identifier".into());
-                    }
+            if let Some(value) = row_fields.get(field)
+                && !value.is_null()
+            {
+                let value = text(Some(value), field, bound)?;
+                if field == "row_id"
+                    && !value
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || b"._-".contains(&byte))
+                {
+                    return Err("row_id must be a safe identifier".into());
                 }
             }
         }
         let mut tags = BTreeSet::new();
-        if let Some(value) = row_fields.get("tags") {
-            if !value.is_null() {
-                for tag in list(Some(value), "tags", 20)? {
-                    tags.extend(tokens(text(Some(tag), "tag", 96)?));
-                }
+        if let Some(value) = row_fields.get("tags")
+            && !value.is_null()
+        {
+            for tag in list(Some(value), "tags", 20)? {
+                tags.extend(tokens(text(Some(tag), "tag", 96)?));
             }
         }
         let review = optional_count(row_fields.get("review_count"), "review_count", MAX_REVIEWS)?;
@@ -440,7 +439,7 @@ fn dataset(input: &Map<String, Value>, mode: &str) -> Result<Value, String> {
         .iter()
         .find(|count| frequencies.get(*count) == Some(&highest))
         .copied();
-    matches.sort_by(|left, right| right.0.cmp(&left.0));
+    matches.sort_by_key(|item| std::cmp::Reverse(item.0));
     let top: Vec<&Value> = matches
         .into_iter()
         .take(top_n)

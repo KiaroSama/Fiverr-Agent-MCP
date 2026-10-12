@@ -55,13 +55,13 @@ pub fn register(root: &Root, file: &Path, remove: bool) -> Result<Value> {
         .or_insert(json!({}))
         .as_object_mut()
         .ok_or_else(storage_error)?;
-    if let Some(existing) = servers.get("fiverr-local") {
-        if existing["command"] != entry["command"] {
-            return Err(error(
-                ErrorCode::ActionStateChanged,
-                "Existing fiverr-local belongs to another executable; explicit conflict resolution required.",
-            ));
-        }
+    if let Some(existing) = servers.get("fiverr-local")
+        && existing["command"] != entry["command"]
+    {
+        return Err(error(
+            ErrorCode::ActionStateChanged,
+            "Existing fiverr-local belongs to another executable; explicit conflict resolution required.",
+        ));
     }
     if remove {
         servers.remove("fiverr-local");

@@ -40,25 +40,23 @@ pub fn arguments(name: &str, value: &Value) -> Result<()> {
         if !valid {
             return Err(invalid(format!("{key} has an invalid type.")));
         }
-        if let Some(values) = property["enum"].as_array() {
-            if !values.contains(value) {
-                return Err(invalid(format!("{key} has an unsupported value.")));
-            }
+        if let Some(values) = property["enum"].as_array()
+            && !values.contains(value)
+        {
+            return Err(invalid(format!("{key} has an unsupported value.")));
         }
         if let Some(number) = value
             .as_u64()
             .map(i128::from)
             .or_else(|| value.as_i64().map(i128::from))
-        {
-            if property["minimum"]
+            && (property["minimum"]
                 .as_i64()
                 .is_some_and(|n| number < i128::from(n))
                 || property["maximum"]
                     .as_i64()
-                    .is_some_and(|n| number > i128::from(n))
-            {
-                return Err(invalid(format!("{key} is outside its allowed range.")));
-            }
+                    .is_some_and(|n| number > i128::from(n)))
+        {
+            return Err(invalid(format!("{key} is outside its allowed range.")));
         }
         if let Some(text) = value.as_str() {
             let length = text.chars().count() as u64;
@@ -68,13 +66,12 @@ pub fn arguments(name: &str, value: &Value) -> Result<()> {
                 return Err(invalid(format!("{key} has an invalid length.")));
             }
         }
-        if let Some(items) = value.as_array() {
-            if property["maxItems"]
+        if let Some(items) = value.as_array()
+            && property["maxItems"]
                 .as_u64()
                 .is_some_and(|n| items.len() as u64 > n)
-            {
-                return Err(invalid(format!("{key} has too many items.")));
-            }
+        {
+            return Err(invalid(format!("{key} has too many items.")));
         }
     }
     Ok(())
