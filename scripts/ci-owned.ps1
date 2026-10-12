@@ -156,6 +156,7 @@ $streams = @()
 $clock = [Diagnostics.Stopwatch]::StartNew()
 $last = 0.0
 $exitCode = 1
+$completed = $false
 try {
     $owner = [CiOwned]::new($resolved, [string[]]$arguments, $Directory, $outPath, $errPath)
     $streams = @([IO.File]::Open($outPath,'Open','Read','ReadWrite'), [IO.File]::Open($errPath,'Open','Read','ReadWrite'))
@@ -175,7 +176,9 @@ try {
         }
         if ($owner.Exited) {
             $exitCode = $owner.ExitCode
-            if ($owner.Active -gt 0) { $owner.Kill(); throw 'Descendant survived its root process.' }
+            $settled = $clock.Elapsed.TotalSeconds + 3
+            while ($owner.Active -gt 0 -and $clock.Elapsed.TotalSeconds -lt $settled) { [Threading.Thread]::Sleep(25) }
+            if ($owner.Active -gt 0) { $owner.Kill(); throw 'Descendant survived its root process after bounded handle-release grace.' }
             for ($index=0; $index -lt 2; $index++) {
                 while (($count=$streams[$index].Read($buffer,0,$buffer.Length)) -gt 0) {
                     $total += $count
@@ -191,6 +194,7 @@ try {
         [Threading.Thread]::Sleep(25)
     }
     if ($owner.Active -gt 0) { $owner.Kill(); throw 'Descendant survived its root process.' }
+    $completed = $true
 } finally {
     if ($owner) {
         if ($owner.Active -gt 0) { $owner.Kill() }
@@ -204,6 +208,6 @@ try {
         if ($remaining -gt 0) { throw 'Owned Job cleanup did not reach zero active processes.' }
     }
     foreach ($stream in $streams) { $stream.Dispose() }
-    if ($exitCode -eq 0) { [IO.Directory]::Delete($scratch,$true) }
+    if ($completed -and $exitCode -eq 0) { [IO.Directory]::Delete($scratch,$true) }
 }
 exit $exitCode

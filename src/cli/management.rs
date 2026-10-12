@@ -1,4 +1,4 @@
-use super::{Actions, Cache, HttpAuth, LocalProxy, Proxy, registration};
+use super::{Actions, Cache, HttpAuth, LocalProxy, Proxy};
 use crate::{
     core::{ErrorCode, Result, error, invalid},
     network::{Mode, Settings, profiles},

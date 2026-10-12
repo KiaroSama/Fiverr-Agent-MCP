@@ -12,7 +12,7 @@ foreach ($name in $paths.Keys) {
     [Environment]::SetEnvironmentVariable($name,$path,'Process')
     if ($env:GITHUB_ENV) { [IO.File]::AppendAllText($env:GITHUB_ENV,"$name=$path`n",[Text.UTF8Encoding]::new($false)) }
 }
-$pwsh = (Get-Command pwsh -CommandType Application -ErrorAction Stop).Source
+$pwsh = (Get-Command pwsh -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $env:CI_PWSH=$pwsh
 if ($env:GITHUB_ENV) { [IO.File]::AppendAllText($env:GITHUB_ENV,"CI_PWSH=$pwsh`n",[Text.UTF8Encoding]::new($false)) }
 $env:CARGO_BUILD_JOBS='2'
