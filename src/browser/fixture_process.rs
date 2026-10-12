@@ -10,6 +10,12 @@ pub async fn launch(
     executable: &Path,
     profile: &Path,
 ) -> Result<(Browser, Handler, tokio::process::Child)> {
+    let stderr_path = root.safe_path("logs", "fixture-browser.stderr")?;
+    root.write_new(&stderr_path, b"")?;
+    let stderr = std::fs::OpenOptions::new()
+        .write(true)
+        .open(&stderr_path)
+        .map_err(|_| crate::core::storage_error())?;
     let mut command = tokio::process::Command::new(executable);
     command
         .args([
@@ -21,6 +27,12 @@ pub async fn launch(
             "--disable-background-networking",
             "--disable-extensions",
             "--disable-component-update",
+            "--enable-automation",
+            "--password-store=basic",
+            "--use-mock-keychain",
+            "--disable-dev-shm-usage",
+            "--enable-logging=stderr",
+            "about:blank",
         ])
         .arg(format!("--user-data-dir={}", profile.display()))
         .arg(format!(
@@ -32,7 +44,7 @@ pub async fn launch(
         .env("TMPDIR", root.path().join(".cache"))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stderr(Stdio::from(stderr))
         .kill_on_drop(true);
     #[cfg(windows)]
     command.creation_flags(0x08000000);
@@ -100,6 +112,12 @@ pub async fn launch(
         result => {
             let _ = child.kill().await;
             let _ = child.wait().await;
+            if let Ok(bytes) = root.read_bounded(&stderr_path, 16384) {
+                eprintln!(
+                    "Owned loopback browser readiness failure: {}",
+                    String::from_utf8_lossy(&bytes)
+                );
+            }
             match result {
                 Ok(Err(error)) => Err(error),
                 _ => Err(error(
