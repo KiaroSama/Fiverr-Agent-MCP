@@ -51,7 +51,7 @@ pub fn read(path: &Path) -> Result<Files> {
         }
         for index in 0..zip.len() {
             let mut entry = zip.by_index(index)?;
-            let name = entry.name().to_owned();
+            let name = entry.name()?.into_owned();
             validate::path(&name)?;
             if !entry.is_file() || entry.is_symlink() {
                 return Err("archive special entry refused".into());

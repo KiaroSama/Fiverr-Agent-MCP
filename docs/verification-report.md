@@ -8,7 +8,7 @@ Rust application source, explicit local/manual MCP discovery, account-scoped loc
 
 ## Execution status
 
-No native build/test/package CI run has been observed at this source snapshot yet. No release binary has been verified/published. Initial repository creation permission was resolved on the owner's authorized retry. Exact public KiaroSama/Fiverr-Agent-MCP/origin verified. The owner now requested final native CI delivery; this report records the pre-push boundary. Actual CI artifacts carry their exact source SHA, hashes and run evidence; no authored test is marked passing here. No real client plugin/runtime loading or live Fiverr authentication/read/write has been verified. Local compilation remains prohibited, not used as a fallback.
+Initial native CI run [38217526659](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/38217526659) on source7d2462edec607a298cf7ce853ff084a74c9a6e8a failed: three Unix jobs encountered a ZIP9 filename API compilation error; Windows installer checked a different home path from its initialization marker. Dependency security job succeeded, but tests and native packages were not reached. Corrective source is awaiting CI verification. No release binary has been verified/published. Initial repository creation permission was resolved on the owner's authorized retry. Exact public KiaroSama/Fiverr-Agent-MCP/origin verified. Actual CI artifacts carry their exact source SHA, hashes and run evidence; no authored test is marked passing here. No real client plugin/runtime loading or live Fiverr authentication/read/write has been verified. Local compilation remains prohibited, not used as a fallback.
 
 ## Required outstanding acceptance
 
