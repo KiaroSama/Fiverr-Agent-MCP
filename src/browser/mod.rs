@@ -1,3 +1,5 @@
+#[cfg(feature = "browser")]
+mod fixture_process;
 pub mod observation;
 use crate::{
     core::{ErrorCode, Result, envelope, error, invalid},
@@ -58,36 +60,12 @@ pub async fn fixture_observe(root: &Root, executable: &Path, page_url: &str) -> 
     if url.scheme() != "http" || url.host_str() != Some("127.0.0.1") || !url.username().is_empty() {
         return Err(invalid("Fixture origin must be loopback."));
     }
-    use chromiumoxide::{Browser, browser::BrowserConfig};
     use futures::StreamExt;
     let _lease = observation::ProfileLease::acquire(root, "fixture")?;
     let profile = root.safe_path(".state/browser", "fixture")?;
     std::fs::create_dir_all(&profile).map_err(|_| crate::core::storage_error())?;
-    let config = BrowserConfig::builder()
-        .chrome_executable(executable)
-        .user_data_dir(&profile)
-        .request_timeout(std::time::Duration::from_secs(5))
-        .launch_timeout(std::time::Duration::from_secs(10))
-        .new_headless_mode()
-        .respect_https_errors()
-        .surface_invalid_messages()
-        .arg(format!(
-            "--disk-cache-dir={}",
-            root.path().join(".cache/browser").display()
-        ))
-        .env("TEMP", root.path().join(".cache/tmp").to_string_lossy())
-        .env("TMP", root.path().join(".cache/tmp").to_string_lossy())
-        .env("TMPDIR", root.path().join(".cache").to_string_lossy())
-        .arg("--enable-logging=stderr")
-        .build()
-        .map_err(|_| invalid("Browser configuration failed."))?;
-    let (mut browser, mut handler) = Browser::launch(config).await.map_err(|cause| {
-        eprintln!("CI loopback fixture browser launch failed: {cause}");
-        error(
-            ErrorCode::FeatureUnavailable,
-            "Configured browser failed to launch.",
-        )
-    })?;
+    let (mut browser, mut handler, mut child) =
+        fixture_process::launch(root, executable, &profile).await?;
     let worker = tokio::spawn(async move {
         while let Some(result) = handler.next().await {
             if result.is_err() {
@@ -107,11 +85,12 @@ pub async fn fixture_observe(root: &Root, executable: &Path, page_url: &str) -> 
     {
         let _ = tokio::time::timeout(std::time::Duration::from_secs(3), browser.kill()).await;
     }
-    if tokio::time::timeout(std::time::Duration::from_secs(3), browser.wait())
+    if tokio::time::timeout(std::time::Duration::from_secs(3), child.wait())
         .await
         .is_err()
     {
-        let _ = tokio::time::timeout(std::time::Duration::from_secs(3), browser.kill()).await;
+        let _ = child.kill().await;
+        let _ = child.wait().await;
     }
     worker.abort();
     let _ = worker.await;
