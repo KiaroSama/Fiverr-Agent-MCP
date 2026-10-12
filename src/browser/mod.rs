@@ -80,7 +80,8 @@ pub async fn fixture_observe(root: &Root, executable: &Path, page_url: &str) -> 
         .env("TMPDIR", root.path().join(".cache/tmp").to_string_lossy())
         .build()
         .map_err(|_| invalid("Browser configuration failed."))?;
-    let (mut browser, mut handler) = Browser::launch(config).await.map_err(|_| {
+    let (mut browser, mut handler) = Browser::launch(config).await.map_err(|cause| {
+        eprintln!("CI loopback fixture browser launch failed: {cause}");
         error(
             ErrorCode::FeatureUnavailable,
             "Configured browser failed to launch.",

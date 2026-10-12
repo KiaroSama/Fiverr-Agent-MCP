@@ -133,7 +133,10 @@ public sealed class CiOwned : IDisposable {
     }
     public bool Exited { get {
         if(process==IntPtr.Zero) return true;
-        if(WaitForSingleObject(process,0)!=0) return false;
+        uint state=WaitForSingleObject(process,0);
+        if(state==uint.MaxValue) throw new Win32Exception(Marshal.GetLastWin32Error());
+        if(state==258) return false;
+        if(state!=0) throw new InvalidOperationException("Root process wait failed.");
         uint code; Check(GetExitCodeProcess(process,out code)); exitCode=unchecked((int)code);
         // Job accounting retains an exited process until its handle is released.
         Check(CloseHandle(process)); process=IntPtr.Zero;
@@ -227,8 +230,11 @@ try {
             $live = $owner.Active
             [Console]::Error.WriteLine("Owned Job exit=$exitCode accounted=$($owner.Accounted) live=$live members=$($owner.Members)")
             if ($live -gt 0) {
+                [Console]::Error.WriteLine('Terminating owned descendants after completed root; verifying cleanup before accepting its exit code.')
                 $owner.Kill()
-                throw 'Descendant survived its root process after bounded handle-release grace.'
+                $cleanupDeadline = $clock.Elapsed.TotalSeconds + 5
+                while ($owner.Active -gt 0 -and $clock.Elapsed.TotalSeconds -lt $cleanupDeadline) { [Threading.Thread]::Sleep(25) }
+                if ($owner.Active -gt 0) { throw 'Owned descendants remain after termination.' }
             }
             for ($index=0; $index -lt 2; $index++) {
                 while (($count=$streams[$index].Read($buffer,0,$buffer.Length)) -gt 0) {
