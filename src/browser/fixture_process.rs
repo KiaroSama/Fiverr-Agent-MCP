@@ -104,6 +104,39 @@ pub async fn launch(
                     });
                 }
             }
+            let bytes = root.read_bounded(&stderr_path, 16384)?;
+            if let Ok(text) = std::str::from_utf8(&bytes)
+                && let Some(endpoint) = text
+                    .lines()
+                    .find_map(|line| line.strip_prefix("DevTools listening on "))
+            {
+                let endpoint = url::Url::parse(endpoint.trim())
+                    .map_err(|_| invalid("Invalid owned browser endpoint."))?;
+                if endpoint.scheme() != "ws"
+                    || endpoint.host_str() != Some("127.0.0.1")
+                    || endpoint.port().is_none()
+                    || !endpoint.username().is_empty()
+                    || endpoint.query().is_some()
+                    || endpoint.fragment().is_some()
+                    || !endpoint.path().starts_with("/devtools/browser/")
+                {
+                    return Err(invalid("Owned browser endpoint must be loopback."));
+                }
+                let config = HandlerConfig {
+                    ignore_https_errors: false,
+                    ignore_invalid_messages: false,
+                    request_timeout: Duration::from_secs(5),
+                    ..Default::default()
+                };
+                return Browser::connect_with_config(endpoint.to_string(), config)
+                    .await
+                    .map_err(|_| {
+                        error(
+                            ErrorCode::FeatureUnavailable,
+                            "Owned fixture browser connection failed.",
+                        )
+                    });
+            }
             ticks.tick().await;
         }
     };
