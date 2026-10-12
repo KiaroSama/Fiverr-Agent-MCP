@@ -230,7 +230,10 @@ pub fn now() -> String {
 }
 pub fn hash(bytes: &[u8]) -> String {
     use sha2::Digest;
-    format!("{:x}", sha2::Sha256::digest(bytes))
+    sha2::Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 pub fn envelope(data: Value, provenance: Value) -> Value {
     serde_json::json!({"data":data,"warnings":[],"provenance":provenance})

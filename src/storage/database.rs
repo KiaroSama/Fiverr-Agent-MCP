@@ -119,11 +119,11 @@ impl Store {
             ));
         }
         self.transaction(|tx|{
-            let old:Option<(u64,String)>=tx.query_row("SELECT version,json FROM records WHERE account=?1 AND kind=?2 AND id=?3",params![record.account_id,record.kind,record.id],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|storage_error())?;
-            if old.as_ref().map(|v|v.0)!=expected {return Err(error(ErrorCode::ActionStateChanged,"Record changed; reload its version before saving."));}
+            let old:Option<(i64,String)>=tx.query_row("SELECT version,json FROM records WHERE account=?1 AND kind=?2 AND id=?3",params![record.account_id,record.kind,record.id],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|storage_error())?;
+            if old.as_ref().map(|v|u64::try_from(v.0).map_err(|_|storage_error())).transpose()?!=expected {return Err(error(ErrorCode::ActionStateChanged,"Record changed; reload its version before saving."));}
             if let Some((version,json))=&old {tx.execute("INSERT INTO history(account,kind,id,version,json) VALUES(?1,?2,?3,?4,?5)",params![record.account_id,record.kind,record.id,version,json]).map_err(|_|storage_error())?;}
-            record.version=match old{None=>1,Some((version,_))=>version.checked_add(1).filter(|v|*v<=i64::MAX as u64).ok_or_else(storage_error)?};record.updated_at=now();
-            tx.execute("INSERT INTO records(account,kind,id,version,json) VALUES(?1,?2,?3,?4,?5) ON CONFLICT(account,kind,id) DO UPDATE SET version=excluded.version,json=excluded.json",params![record.account_id,record.kind,record.id,record.version,serde_json::to_string(&record).map_err(|_|storage_error())?]).map_err(|_|storage_error())?;
+            record.version=match old{None=>1,Some((version,_))=>u64::try_from(version.checked_add(1).ok_or_else(storage_error)?).map_err(|_|storage_error())?};record.updated_at=now();
+            tx.execute("INSERT INTO records(account,kind,id,version,json) VALUES(?1,?2,?3,?4,?5) ON CONFLICT(account,kind,id) DO UPDATE SET version=excluded.version,json=excluded.json",params![record.account_id,record.kind,record.id,i64::try_from(record.version).map_err(|_|storage_error())?,serde_json::to_string(&record).map_err(|_|storage_error())?]).map_err(|_|storage_error())?;
             Ok(record)
         })
     }
@@ -253,7 +253,7 @@ impl Store {
         self.root.write_new(&path, b"")?;
         let connection = self.connection.lock().map_err(|_| storage_error())?;
         connection
-            .backup(rusqlite::DatabaseName::Main, &path, None)
+            .backup(rusqlite::MAIN_DB, &path, None)
             .map_err(|_| storage_error())?;
         private_permissions(&path)?;
         Ok(path)

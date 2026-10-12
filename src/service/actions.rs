@@ -119,7 +119,7 @@ fn fresh(action: &Action, settings: &Settings) -> Result<()> {
 fn validate_bindings(store: &Store, tx: &rusqlite::Transaction<'_>, action: &Action) -> Result<()> {
     super::bindings::unchanged(store, &action.files)?;
     if let Some(binding) = &action.record_binding {
-        let version: Option<u64> = tx
+        let version: Option<i64> = tx
             .query_row(
                 "SELECT version FROM records WHERE account=?1 AND kind=?2 AND id=?3",
                 params![action.account_id, binding.kind, binding.id],
@@ -127,7 +127,11 @@ fn validate_bindings(store: &Store, tx: &rusqlite::Transaction<'_>, action: &Act
             )
             .optional()
             .map_err(|_| storage_error())?;
-        if version != Some(binding.version) {
+        if version
+            .map(|value| u64::try_from(value).map_err(|_| storage_error()))
+            .transpose()?
+            != Some(binding.version)
+        {
             return Err(error(
                 ErrorCode::ActionStateChanged,
                 "Prepared draft changed; review a new plan.",
