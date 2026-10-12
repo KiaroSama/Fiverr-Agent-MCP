@@ -1,0 +1,92 @@
+# Fiverr Agent MCP
+
+<div align="center">
+
+[![CI](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml)
+[![License GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-blue)](LICENSE)
+[![Source version 0.1.0](https://img.shields.io/badge/Source-0.1.0-orange)](Cargo.toml)
+[![Rust 1.99](https://img.shields.io/badge/Rust-1.99-black?logo=rust)](rust-toolchain.toml)
+[![Edition 2024](https://img.shields.io/badge/Edition-2024-black)](Cargo.toml)
+[![Documentation](https://img.shields.io/badge/Docs-installation-blue)](docs/installation.md)
+[![MCP SDK rmcp](https://img.shields.io/badge/MCP-rmcp-5c4ee5)](Cargo.toml)
+[![HTTP Axum](https://img.shields.io/badge/HTTP-Axum-5c4ee5)](Cargo.toml)
+[![Async Tokio](https://img.shields.io/badge/Async-Tokio-5c4ee5)](Cargo.toml)
+[![Storage SQLite](https://img.shields.io/badge/Storage-SQLite-003b57?logo=sqlite)](docs/architecture.md)
+[![TLS rustls](https://img.shields.io/badge/TLS-rustls-blue)](Cargo.toml)
+[![Serialization serde](https://img.shields.io/badge/Serialization-serde-blue)](Cargo.toml)
+[![Browser chromiumoxide](https://img.shields.io/badge/Browser-chromiumoxide-orange)](docs/authentication.md)
+[![Support donations](https://img.shields.io/badge/Support-donations-d04a9a)](#donate)
+
+</div>
+
+**Experimental, unofficial, and not live-account verified.** A Rust-native local workspace and MCP server for explicit Fiverr observations, drafts, notes/tasks, reviewed market analysis and human handoffs. It is not an official Fiverr API and does not currently provide full authenticated account automation. See [current verification](docs/verification-report.md) before relying on a binary or an account capability.
+
+## Install and connect
+
+1. Obtain a native archive for your actual OS/architecture from [Releases](https://github.com/KiaroSama/Fiverr-Agent-MCP/releases). Only use a published artifact whose source SHA/checksums and native CI are verified; authored workflows are not release evidence.
+2. Extract the entire archive into a writable directory. Keep bin/, fiverr.install.json, docs/ and notices together. Release users need no Rust, Cargo, Node, npm, Python or uv.
+3. Run the extracted binary's `desktop-config` command and merge its `fiverr-local` entry into your compatible client configuration. Plugin installation, runtime registration and account sign-in are separate operations.
+
+Windows example, from the installation directory:
+
+```bash
+./bin/fiverr-agent-mcp.exe desktop-config
+```
+
+Standalone MCP stdio:
+
+```bash
+./bin/fiverr-agent-mcp.exe bridge
+```
+
+Local Streamable HTTP, separately started:
+
+```bash
+./bin/fiverr-agent-mcp.exe http
+```
+
+The listener defaults to `http://127.0.0.1:1597/mcp`. Token protection is on by default. Export authorization only through the explicit interactive owner CLI; never put it in a URL, argument, issue or screenshot. Both transports use the official SDK and the same service validation. [Installation](docs/installation.md) covers Unix, client formats and port settings.
+
+## What exists
+
+- Account-scoped SQLite local drafts/imports/history, bounded search/pagination, snapshots, reminders and JSON/CSV/Markdown/HTML exports. Imported data is not a live refresh; an empty local collection is not an empty Fiverr account.
+- Exact integer money with explicit currency/scale. The adapted existing optimizer supplies keyword, exact pricing, supplied-dataset and observed-metric analysis, preserving missing values and licensing.
+- Explicit proxy profiles, initial outbound block, no direct fallback, generation cancellation and owner-only direct enablement. Browser routing is a separate unverified prerequisite.
+- Human-reviewed preparation and single-use manual handoff journal, file hashes and draft-version binding. No real message, delivery, Gig publication, checkout or payout is dispatched.
+
+The full [capability inventory](capabilities.json) gives each requested workflow an independent implementation/verification/availability/effect/mode disposition. Unsupported dedicated workflows are named explicitly, not presented as working generic aliases. [Capability guide](docs/capabilities.md).
+
+## Account access is currently gated
+
+Manual credentials/challenges remain with the human. A configured browser and local account name do not authenticate this server. Managed sign-in fails closed while strict browser routing is unverified. Typed fixture observations and dedicated profile locks are infrastructure, not proof of current Fiverr selectors or account access.
+
+No official comprehensive Fiverr account API/OAuth/MCP was verified. Fiverr's current Terms restrict automated access; owning an account is not platform permission. [Platform research](docs/research/platform-access.md) and [authentication](docs/authentication.md) explain the prerequisites. No CAPTCHA bypass, anti-detection, cookie extraction, arbitrary JavaScript/CDP/shell/URL proxy, mass messaging or automatic financial actions.
+
+## Privacy and logs
+
+State, browser profiles, exports, logs and temporary paths resolve under the installation, not caller CWD. Direct binary startup uses an early same-executable rooted-environment restart; launchers also set child paths. Private state must remain private when moving/backing up an installation.
+
+Each execution writes a new UTF-8 UTC log under logs/, named `fiverr-agent-mcp_YYYY-MM-DD_HH-mm-ss_UTC_<id>.log`. Structured JSON entries carry timestamp, level, category, message and sanitized context. INFO/WARNING/ERROR/DEBUG are supported; no private message bodies, tokens, cookies, passwords or credential URLs are logged. Bridge stdout contains protocol frames only. Logs are capped per file and retention attempts skip active locked files. Inspect metadata with `logs inspect`; do not attach raw state, profiles or authorization files to an issue. [Privacy/file policy](docs/privacy-and-files.md).
+
+## Development and verification
+
+This task's builds/tests/packages run only in GitHub CI. The required native targets are Windows x64/MSVC, Linux x64/glibc, macOS ARM64 and macOS Intel; architecture is asserted, not cross-compilation. Locked fmt/Clippy, nextest, protocol/state/negative fixtures, browser fixture, dependency checks and extracted-package smoke are configured with worker/time bounds. Actual results are reported separately; no coverage percentage, full security audit, live-account result or client-load success is implied. [Testing](docs/testing.md), [architecture](docs/architecture.md), [release](docs/release.md).
+
+## License
+
+Original application: GPL-3.0-only, Copyright (C) 2026 KiaroSama, no warranty. Reviewed upstream helper MIT notices and independently adapted CC-BY-4.0 instructions remain separate. [Third-party notices](THIRD_PARTY_NOTICES.md), [skill adaptation](docs/skills.md).
+
+## Donate
+
+If this project helps you, donations are appreciated.
+
+| Currency | Network | Address |
+| --- | --- | --- |
+| Bitcoin (BTC) | Bitcoin | `bc1qmth5m03pu5hujw5xw5jmywam3jj3sqwqupesdt` |
+| USDT, BNB, USDC, etc. | BEP20 | `0x0Bd0BA443a8B9cf15922bf7f0Bb0a4b495fD06Ef` |
+| USDT, TRX, USDC, etc. | TRC20 | `TWBA3xFTqgZAeAYMxqo85xWnzvty3DcAhw` |
+| Ethereum (ETH) | ERC20 | `0x0Bd0BA443a8B9cf15922bf7f0Bb0a4b495fD06Ef` |
+| TON | TON | `UQCN8Umo_OfOWqImZetQsrNStPcmLkMAKajFyiCOhso23NDb` |
+| Litecoin (LTC) | LTC | `ltc1qntqnnrunadurnw4cshv3qgspywrueyyeyngwuy` |
+| Solana (SOL) | Solana | `7B2wkczUjmkDhETwQuknBL8sUsbuV7nErxc317TmQuwR` |
+| Polygon (POL) | Polygon | `0x0Bd0BA443a8B9cf15922bf7f0Bb0a4b495fD06Ef` |

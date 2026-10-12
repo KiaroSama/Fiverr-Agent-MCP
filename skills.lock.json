@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "name": "fiverr-gig-optimizer",
+      "version": "1.1-native.1",
+      "path": "skills/fiverr-gig-optimizer",
+      "upstream": {
+        "repository": "https://github.com/Ahad690/fiverr-gig-optimizer",
+        "revision": "cf4d6005bd53647a8f9f7ea564bb2a92176c1e08",
+        "branch": "main",
+        "skill_version": "1.1",
+        "sources": [
+          {
+            "path": "skills/fiverr-gig-optimizer/SKILL.md",
+            "blob_sha": "0c220bc6e90665f7ec66b12928542189b1409145",
+            "url": "https://github.com/Ahad690/fiverr-gig-optimizer/blob/cf4d6005bd53647a8f9f7ea564bb2a92176c1e08/skills/fiverr-gig-optimizer/SKILL.md",
+            "license": "CC-BY-4.0"
+          },
+          {
+            "path": "skills/fiverr-gig-optimizer/references/fiverr-seo-playbook.md",
+            "blob_sha": "91ac87a70397d1054e00aa5bb65887898e916447",
+            "url": "https://github.com/Ahad690/fiverr-gig-optimizer/blob/cf4d6005bd53647a8f9f7ea564bb2a92176c1e08/skills/fiverr-gig-optimizer/references/fiverr-seo-playbook.md",
+            "license": "CC-BY-4.0"
+          },
+          {
+            "path": "skills/fiverr-gig-optimizer/scripts/score_keyword.py",
+            "blob_sha": "2f4bf1b6fd8ab41c0a3965d7e84e73821e42cf17",
+            "url": "https://github.com/Ahad690/fiverr-gig-optimizer/blob/cf4d6005bd53647a8f9f7ea564bb2a92176c1e08/skills/fiverr-gig-optimizer/scripts/score_keyword.py",
+            "license": "MIT"
+          },
+          {
+            "path": "skills/fiverr-gig-optimizer/scripts/analyze_pricing.py",
+            "blob_sha": "94ff359a9d11588384d55485ae18fb082831587b",
+            "url": "https://github.com/Ahad690/fiverr-gig-optimizer/blob/cf4d6005bd53647a8f9f7ea564bb2a92176c1e08/skills/fiverr-gig-optimizer/scripts/analyze_pricing.py",
+            "license": "MIT"
+          },
+          {
+            "path": "skills/fiverr-gig-optimizer/scripts/query_dataset.py",
+            "blob_sha": "42772b6e765209a82caab1e3d75d4d0c58834beb",
+            "url": "https://github.com/Ahad690/fiverr-gig-optimizer/blob/cf4d6005bd53647a8f9f7ea564bb2a92176c1e08/skills/fiverr-gig-optimizer/scripts/query_dataset.py",
+            "license": "MIT"
+          },
+          {
+            "path": "skills/fiverr-gig-optimizer/references/scoring-config.json",
+            "blob_sha": "63087378ec4ae3d7d8270e9280358f2f05896214",
+            "url": "https://github.com/Ahad690/fiverr-gig-optimizer/blob/cf4d6005bd53647a8f9f7ea564bb2a92176c1e08/skills/fiverr-gig-optimizer/references/scoring-config.json",
+            "license": "CC-BY-4.0"
+          },
+          {
+            "path": "LICENSE",
+            "blob_sha": "d4e1b2e4459ba43ce38d7105efbac9c411dcb68b",
+            "url": "https://github.com/Ahad690/fiverr-gig-optimizer/blob/cf4d6005bd53647a8f9f7ea564bb2a92176c1e08/LICENSE",
+            "license": "MIT"
+          },
+          {
+            "path": "LICENSE-DATA",
+            "blob_sha": "6c41aa3b9488ab0b8823a9f59e7594adfc90c13f",
+            "url": "https://github.com/Ahad690/fiverr-gig-optimizer/blob/cf4d6005bd53647a8f9f7ea564bb2a92176c1e08/LICENSE-DATA",
+            "license": "CC-BY-4.0"
+          }
+        ]
+      },
+      "licenses": {
+        "native_project_code": "GPL-3.0-only",
+        "upstream_helper_source": "MIT",
+        "adapted_instructions_and_data": "CC-BY-4.0",
+        "label_discrepancy": "Upstream SKILL.md/plugin labels MIT while LICENSE-DATA explicitly covers all Markdown/data as CC-BY-4.0; retain separate attribution."
+      },
+      "native_tool": "fiverr_market_analyze",
+      "native_helper": "src/service/analysis.rs",
+      "helper_kinds": [
+        "keyword",
+        "pricing",
+        "dataset",
+        "metrics"
+      ],
+      "external_runtime_required": false,
+      "bundled_market_dataset": false,
+      "verification": "Source-reviewed; native execution pending CI",
+      "adaptation_notice": "third_party/fiverr-gig-optimizer/NOTICE.txt",
+      "official_cc_by_legal_text": "https://creativecommons.org/licenses/by/4.0/legalcode.txt",
+      "files": [
+        {
+          "path": "skills/fiverr-gig-optimizer/SKILL.md",
+          "sha256": "1daadf6982c8a2f4a057eb6fa09aa353cfdb801d7b3b2a92c6e675cfae824e41"
+        },
+        {
+          "path": "third_party/fiverr-gig-optimizer/LICENSE",
+          "sha256": "e0caf505fb853f4132261330737bf00e7535ae293b4ec2718eac174ae1ba4f02"
+        },
+        {
+          "path": "third_party/fiverr-gig-optimizer/LICENSE-DATA",
+          "sha256": "57e01fa2d5b59c8388d40b7f0c52204835d7edc313108bc42c72c011765be517"
+        },
+        {
+          "path": "third_party/fiverr-gig-optimizer/CC-BY-4.0.txt",
+          "sha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411"
+        }
+      ]
+    }
+  ]
+}

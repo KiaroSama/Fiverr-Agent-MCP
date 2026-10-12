@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "fiverr-local": {
+      "command": "C:\\Apps\\Fiverr-Agent-MCP\\bin\\fiverr-agent-mcp.exe",
+      "args": ["bridge"],
+      "env": {
+        "TEMP": "C:\\Apps\\Fiverr-Agent-MCP\\.cache\\tmp",
+        "TMP": "C:\\Apps\\Fiverr-Agent-MCP\\.cache\\tmp",
+        "TMPDIR": "C:\\Apps\\Fiverr-Agent-MCP\\.cache\\tmp",
+        "XDG_CACHE_HOME": "C:\\Apps\\Fiverr-Agent-MCP\\.cache"
+      }
+    }
+  }
+}

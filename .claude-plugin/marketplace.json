@@ -1,0 +1,5 @@
+{
+  "name":"fiverr-agent-mcp-marketplace",
+  "owner":{"name":"KiaroSama"},
+  "plugins":[{"name":"fiverr-agent-mcp","source":"./","description":"Reviewed Fiverr optimizer instructions; no automatic MCP process, hooks or networking changes.","version":"0.1.0"}]
+}

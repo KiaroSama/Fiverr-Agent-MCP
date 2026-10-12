@@ -1,0 +1,94 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: Successful CI run containing the exact verified source and four artifacts
+        required: true
+        type: string
+      source_sha:
+        description: Exact 40-character verified main SHA
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    outputs:
+      sha: ${{ steps.gate.outputs.sha }}
+      run_id: ${{ steps.gate.outputs.run_id }}
+    steps:
+      - name: Verify exact completed CI identity and native/security jobs
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ inputs.ci_run_id }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUN_ID -notmatch '^\d+$' -or $env:SOURCE_SHA -notmatch '^[a-fA-F0-9]{40}$') { throw 'Invalid release identity' }
+          $run = (& gh api "repos/$env:GH_REPO/actions/runs/$env:RUN_ID" | ConvertFrom-Json)
+          if ($LASTEXITCODE -ne 0) { throw 'CI metadata unavailable' }
+          if ($run.status -ne 'completed' -or $run.conclusion -ne 'success' -or $run.head_sha -ne $env:SOURCE_SHA -or $run.head_branch -ne 'main' -or $run.path -ne '.github/workflows/ci.yml' -or $run.event -notin @('push','workflow_dispatch')) { throw 'Unverified CI run' }
+          $main = (& gh api "repos/$env:GH_REPO/git/ref/heads/main" | ConvertFrom-Json)
+          if ($LASTEXITCODE -ne 0 -or $main.object.sha -ne $env:SOURCE_SHA) { throw 'Release source is not current main' }
+          $jobs = @(& gh api --paginate "repos/$env:GH_REPO/actions/runs/$env:RUN_ID/jobs?per_page=100" --jq '.jobs[] | [.name,.conclusion] | @tsv')
+          if ($LASTEXITCODE -ne 0) { throw 'CI jobs unavailable' }
+          foreach ($target in @('x86_64-pc-windows-msvc','x86_64-unknown-linux-gnu','aarch64-apple-darwin','x86_64-apple-darwin')) {
+            if (-not ($jobs | Where-Object { $_ -eq "native-$target`tsuccess" })) { throw "Missing successful native job: $target" }
+          }
+          if (-not ($jobs | Where-Object { $_ -match '^security / dependencies\s+success$' })) { throw 'Missing successful security job' }
+          [IO.File]::AppendAllText($env:GITHUB_OUTPUT,"sha=$env:SOURCE_SHA`nrun_id=$env:RUN_ID`n",[Text.UTF8Encoding]::new($false))
+  publish:
+    needs: verify
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          run-id: ${{ needs.verify.outputs.run_id }}
+          github-token: ${{ github.token }}
+          pattern: fiverr-*
+          path: verified-artifacts
+          merge-multiple: false
+      - name: Verify artifact checksums/metadata and publish once
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ needs.verify.outputs.sha }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $directories = @(Get-ChildItem verified-artifacts -Directory)
+          if ($directories.Count -ne 4) { throw 'Expected four native artifact directories' }
+          $assets = @{}
+          foreach ($directory in $directories) {
+            $metadata = @(Get-ChildItem $directory.FullName -Filter 'release-*.json')
+            $sums = @(Get-ChildItem $directory.FullName -Filter 'SHA256SUMS-*.txt')
+            if ($metadata.Count -ne 1 -or $sums.Count -ne 1) { throw 'Missing release identity/checksums' }
+            $release = [IO.File]::ReadAllText($metadata[0].FullName,[Text.Encoding]::UTF8) | ConvertFrom-Json
+            if ($release.source_sha -ne $env:SOURCE_SHA -or $release.product -ne 'fiverr-agent-mcp' -or $release.version -ne '0.1.0') { throw 'Artifact source/version mismatch' }
+            foreach ($line in [IO.File]::ReadAllLines($sums[0].FullName,[Text.Encoding]::UTF8)) {
+              if ($line -notmatch '^([a-f0-9]{64})  ([a-zA-Z0-9._-]+)$') { throw 'Malformed checksum entry' }
+              $expected=$Matches[1]; $name=$Matches[2]; $path=Join-Path $directory.FullName $name
+              if ((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ne $expected) { throw 'Archive checksum mismatch' }
+              if ($assets.ContainsKey($name)) { if ((Get-FileHash $assets[$name]).Hash -ne (Get-FileHash $path).Hash) { throw 'Conflicting common archive across native targets' } }
+              else { $assets[$name]=$path }
+            }
+            $assets[$metadata[0].Name]=$metadata[0].FullName
+            $assets[$sums[0].Name]=$sums[0].FullName
+          }
+          & gh release view v0.1.0 --repo $env:GH_REPO 2>$null
+          if ($LASTEXITCODE -eq 0) { throw 'Existing release will not be overwritten' }
+          & gh release create v0.1.0 --repo $env:GH_REPO --target $env:SOURCE_SHA --draft --prerelease --title 'Fiverr Agent MCP 0.1.0 (experimental)' --notes 'Experimental native packages. See the included release metadata, installation documentation, and capability limitations.' @($assets.Values)
+          if ($LASTEXITCODE -ne 0) { throw 'Draft release creation failed' }
+          & gh release edit v0.1.0 --repo $env:GH_REPO --draft=false
+          if ($LASTEXITCODE -ne 0) { throw 'Draft publication failed' }
