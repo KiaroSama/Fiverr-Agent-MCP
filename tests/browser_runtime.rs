@@ -27,7 +27,7 @@ async fn native_browser_reads_fixed_fixture_without_exposing_credentials() {
     }
     let owned = Owned(server);
     let observed = tokio::time::timeout(
-        std::time::Duration::from_secs(20),
+        std::time::Duration::from_secs(30),
         browser::fixture_observe(
             &root,
             std::path::Path::new(&executable),

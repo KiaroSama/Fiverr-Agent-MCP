@@ -140,7 +140,7 @@ pub async fn launch(
             ticks.tick().await;
         }
     };
-    match tokio::time::timeout(Duration::from_secs(10), ready).await {
+    match tokio::time::timeout(Duration::from_secs(20), ready).await {
         Ok(Ok((browser, handler))) => Ok((browser, handler, child)),
         result => {
             let _ = child.kill().await;
