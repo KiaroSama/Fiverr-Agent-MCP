@@ -27,7 +27,7 @@ fn options(args: &[String]) -> Result<BTreeMap<String, String>> {
         return Err("options require --name value pairs".into());
     }
     let mut values = BTreeMap::new();
-    for pair in args.chunks_exact(2) {
+    for pair in args.as_chunks::<2>().0 {
         if !pair[0].starts_with("--") || values.insert(pair[0].clone(), pair[1].clone()).is_some() {
             return Err("invalid or duplicate option".into());
         }

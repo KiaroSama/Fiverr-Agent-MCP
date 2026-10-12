@@ -89,6 +89,7 @@ public sealed class CiOwned : IDisposable {
     [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetExitCodeProcess(IntPtr h,out uint code);
     [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
     IntPtr job, process;
+    int exitCode;
     static void Check(bool success) { if(!success) throw new Win32Exception(Marshal.GetLastWin32Error()); }
     static string Quote(string text) {
         var result = new StringBuilder("\""); int slashes=0;
@@ -127,9 +128,16 @@ public sealed class CiOwned : IDisposable {
             foreach(IntPtr h in new[]{jobPointer,handlesPointer,limits}) if(h!=IntPtr.Zero) Marshal.FreeHGlobal(h);
         }
     }
-    public bool Exited { get { return WaitForSingleObject(process,0)==0; } }
+    public bool Exited { get {
+        if(process==IntPtr.Zero) return true;
+        if(WaitForSingleObject(process,0)!=0) return false;
+        uint code; Check(GetExitCodeProcess(process,out code)); exitCode=unchecked((int)code);
+        // Job accounting retains an exited process until its handle is released.
+        Check(CloseHandle(process)); process=IntPtr.Zero;
+        return true;
+    } }
     public uint Active { get { Accounting a; Check(QueryInformationJobObject(job,1,out a,Marshal.SizeOf(typeof(Accounting)),IntPtr.Zero)); return a.active; } }
-    public int ExitCode { get { uint code; Check(GetExitCodeProcess(process,out code)); return unchecked((int)code); } }
+    public int ExitCode { get { if(!Exited) throw new InvalidOperationException("Process has not exited."); return exitCode; } }
     public void Kill() { Check(TerminateJobObject(job,1)); }
     public void Dispose() { if(job!=IntPtr.Zero) { CloseHandle(job); job=IntPtr.Zero; } if(process!=IntPtr.Zero) { CloseHandle(process); process=IntPtr.Zero; } }
 }
@@ -187,7 +195,10 @@ try {
     if ($owner) {
         if ($owner.Active -gt 0) { $owner.Kill() }
         $deadline = $clock.Elapsed.TotalSeconds + 5
-        while ($owner.Active -gt 0 -and $clock.Elapsed.TotalSeconds -lt $deadline) { [Threading.Thread]::Sleep(25) }
+        while ($owner.Active -gt 0 -and $clock.Elapsed.TotalSeconds -lt $deadline) {
+            [void]$owner.Exited
+            [Threading.Thread]::Sleep(25)
+        }
         $remaining = $owner.Active
         $owner.Dispose()
         if ($remaining -gt 0) { throw 'Owned Job cleanup did not reach zero active processes.' }
