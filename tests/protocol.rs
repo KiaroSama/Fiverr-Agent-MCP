@@ -53,6 +53,22 @@ async fn modern_stdio_discovery_has_no_initialize_requirement() {
             .unwrap()
             .contains(&json!("2026-07-28"))
     );
+    let request =
+        json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":{"_meta":metadata()}});
+    w.write_all(format!("{request}\n").as_bytes())
+        .await
+        .unwrap();
+    line.clear();
+    tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        reader.read_line(&mut line),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    let response: Value = serde_json::from_str(&line).unwrap();
+    assert_eq!(response["id"], 2);
+    assert!(!response["result"]["tools"].as_array().unwrap().is_empty());
     w.shutdown().await.unwrap();
     drop(reader);
     tokio::time::timeout(std::time::Duration::from_secs(5), task)
