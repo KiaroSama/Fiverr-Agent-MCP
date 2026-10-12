@@ -78,6 +78,9 @@ public sealed class CiOwned : IDisposable {
     [DllImport("kernel32.dll",SetLastError=true)] static extern IntPtr CreateJobObjectW(IntPtr a,string b);
     [DllImport("kernel32.dll",SetLastError=true)] static extern bool SetInformationJobObject(IntPtr h,int cls,IntPtr value,int size);
     [DllImport("kernel32.dll",SetLastError=true)] static extern bool QueryInformationJobObject(IntPtr h,int cls,out Accounting value,int size,IntPtr written);
+    [DllImport("kernel32.dll",EntryPoint="QueryInformationJobObject",SetLastError=true)] static extern bool QueryJobPids(IntPtr h,int cls,IntPtr value,int size,IntPtr written);
+    [DllImport("kernel32.dll",SetLastError=true)] static extern IntPtr OpenProcess(uint access,bool inherit,int pid);
+    [DllImport("kernel32.dll",SetLastError=true)] static extern bool IsProcessInJob(IntPtr process,IntPtr job,out bool member);
     [DllImport("kernel32.dll",SetLastError=true)] static extern bool TerminateJobObject(IntPtr h,uint code);
     [DllImport("kernel32.dll",SetLastError=true)] static extern bool InitializeProcThreadAttributeList(IntPtr list,int count,int flags,ref IntPtr size);
     [DllImport("kernel32.dll",SetLastError=true)] static extern bool UpdateProcThreadAttribute(IntPtr list,uint flags,IntPtr key,IntPtr value,IntPtr size,IntPtr previous,IntPtr returned);
@@ -85,7 +88,7 @@ public sealed class CiOwned : IDisposable {
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern IntPtr CreateFileW(string path,uint access,uint share,ref SA sa,uint disposition,uint flags,IntPtr template);
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool CreateProcessW(string app,StringBuilder command,IntPtr pa,IntPtr ta,bool inherit,uint flags,IntPtr env,string cwd,ref SX si,out PI pi);
     [DllImport("kernel32.dll",SetLastError=true)] static extern uint ResumeThread(IntPtr thread);
-    [DllImport("kernel32.dll")] static extern uint WaitForSingleObject(IntPtr h,uint ms);
+    [DllImport("kernel32.dll",SetLastError=true)] static extern uint WaitForSingleObject(IntPtr h,uint ms);
     [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetExitCodeProcess(IntPtr h,out uint code);
     [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
     IntPtr job, process;
@@ -136,7 +139,50 @@ public sealed class CiOwned : IDisposable {
         Check(CloseHandle(process)); process=IntPtr.Zero;
         return true;
     } }
-    public uint Active { get { Accounting a; Check(QueryInformationJobObject(job,1,out a,Marshal.SizeOf(typeof(Accounting)),IntPtr.Zero)); return a.active; } }
+    public uint Accounted { get { Accounting a; Check(QueryInformationJobObject(job,1,out a,Marshal.SizeOf(typeof(Accounting)),IntPtr.Zero)); return a.active; } }
+    public string Members { get; private set; } = "";
+    public uint Active { get {
+        const int ceiling=4096;
+        IntPtr buffer=Marshal.AllocHGlobal(8+IntPtr.Size*ceiling);
+        var held=new System.Collections.Generic.Dictionary<int,IntPtr>();
+        var clock=System.Diagnostics.Stopwatch.StartNew();
+        try {
+            while(clock.ElapsedMilliseconds<1000) {
+                Check(QueryJobPids(job,3,buffer,8+IntPtr.Size*ceiling,IntPtr.Zero));
+                int assigned=Marshal.ReadInt32(buffer), count=Marshal.ReadInt32(buffer,4);
+                if(count<0 || count>ceiling || count<assigned) throw new InvalidOperationException("Incomplete owned Job PID inventory.");
+                uint active=0; bool fresh=false; var details=new StringBuilder();
+                for(int index=0; index<count; index++) {
+                    long raw=Marshal.ReadIntPtr(buffer,8+index*IntPtr.Size).ToInt64();
+                    if(raw<=0 || raw>int.MaxValue) throw new InvalidOperationException("Invalid owned PID.");
+                    int pid=(int)raw; IntPtr handle;
+                    if(!held.TryGetValue(pid,out handle)) {
+                        fresh=true; handle=OpenProcess(0x00101000,false,pid);
+                        if(handle==IntPtr.Zero) {
+                            int code=Marshal.GetLastWin32Error();
+                            if(code==87) { details.Append(pid).Append(":gone "); continue; }
+                            throw new Win32Exception(code);
+                        }
+                        if(held.Count>=ceiling) { CloseHandle(handle); throw new InvalidOperationException("Owned PID history ceiling exceeded."); }
+                        held.Add(pid,handle);
+                    }
+                    bool member; Check(IsProcessInJob(handle,job,out member));
+                    uint state=WaitForSingleObject(handle,0);
+                    if(state==uint.MaxValue) throw new Win32Exception(Marshal.GetLastWin32Error());
+                    if(state!=0 && state!=258) throw new InvalidOperationException("Owned process wait failed.");
+                    details.Append(pid).Append(":member=").Append(member).Append(",wait=").Append(state).Append(' ');
+                    if(member && state==258) active++;
+                }
+                Members=details.ToString();
+                // Held signaled handles prevent PID reuse; a complete unchanged pass proves no live member can spawn.
+                if(active>0 || !fresh) return active;
+            }
+            throw new InvalidOperationException("Owned PID inventory did not converge within one second.");
+        } finally {
+            foreach(IntPtr handle in held.Values) CloseHandle(handle);
+            Marshal.FreeHGlobal(buffer);
+        }
+    } }
     public int ExitCode { get { if(!Exited) throw new InvalidOperationException("Process has not exited."); return exitCode; } }
     public void Kill() { Check(TerminateJobObject(job,1)); }
     public void Dispose() { if(job!=IntPtr.Zero) { CloseHandle(job); job=IntPtr.Zero; } if(process!=IntPtr.Zero) { CloseHandle(process); process=IntPtr.Zero; } }
@@ -178,7 +224,12 @@ try {
             $exitCode = $owner.ExitCode
             $settled = $clock.Elapsed.TotalSeconds + 3
             while ($owner.Active -gt 0 -and $clock.Elapsed.TotalSeconds -lt $settled) { [Threading.Thread]::Sleep(25) }
-            if ($owner.Active -gt 0) { $owner.Kill(); throw 'Descendant survived its root process after bounded handle-release grace.' }
+            $live = $owner.Active
+            [Console]::Error.WriteLine("Owned Job exit=$exitCode accounted=$($owner.Accounted) live=$live members=$($owner.Members)")
+            if ($live -gt 0) {
+                $owner.Kill()
+                throw 'Descendant survived its root process after bounded handle-release grace.'
+            }
             for ($index=0; $index -lt 2; $index++) {
                 while (($count=$streams[$index].Read($buffer,0,$buffer.Length)) -gt 0) {
                     $total += $count
@@ -196,18 +247,21 @@ try {
     if ($owner.Active -gt 0) { $owner.Kill(); throw 'Descendant survived its root process.' }
     $completed = $true
 } finally {
-    if ($owner) {
-        if ($owner.Active -gt 0) { $owner.Kill() }
-        $deadline = $clock.Elapsed.TotalSeconds + 5
-        while ($owner.Active -gt 0 -and $clock.Elapsed.TotalSeconds -lt $deadline) {
-            [void]$owner.Exited
-            [Threading.Thread]::Sleep(25)
+    try {
+        if ($owner) {
+            try {
+                if ($owner.Active -gt 0) { $owner.Kill() }
+                $deadline = $clock.Elapsed.TotalSeconds + 5
+                while ($owner.Active -gt 0 -and $clock.Elapsed.TotalSeconds -lt $deadline) {
+                    [void]$owner.Exited
+                    [Threading.Thread]::Sleep(25)
+                }
+                if ($owner.Active -gt 0) { throw 'Owned Job cleanup did not reach zero live processes.' }
+            } finally { $owner.Dispose() }
         }
-        $remaining = $owner.Active
-        $owner.Dispose()
-        if ($remaining -gt 0) { throw 'Owned Job cleanup did not reach zero active processes.' }
+    } finally {
+        foreach ($stream in $streams) { $stream.Dispose() }
+        if ($completed -and $exitCode -eq 0) { [IO.Directory]::Delete($scratch,$true) }
     }
-    foreach ($stream in $streams) { $stream.Dispose() }
-    if ($completed -and $exitCode -eq 0) { [IO.Directory]::Delete($scratch,$true) }
 }
 exit $exitCode

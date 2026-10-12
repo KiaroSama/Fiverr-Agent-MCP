@@ -39,16 +39,15 @@ impl Logger {
         logs.sort_by_key(|e| e.file_name());
         let excess = logs.len().saturating_sub(30);
         for entry in logs.into_iter().take(excess) {
-            if entry.path() != path && crate::storage::reject_links(&entry.path()).is_ok() {
-                if let Ok(candidate) = std::fs::OpenOptions::new()
+            if entry.path() != path
+                && crate::storage::reject_links(&entry.path()).is_ok()
+                && let Ok(candidate) = std::fs::OpenOptions::new()
                     .read(true)
                     .write(true)
                     .open(entry.path())
-                {
-                    if fs2::FileExt::try_lock_exclusive(&candidate).is_ok() {
-                        let _ = fs::remove_file(entry.path());
-                    }
-                }
+                && fs2::FileExt::try_lock_exclusive(&candidate).is_ok()
+            {
+                let _ = fs::remove_file(entry.path());
             }
         }
         Ok(Self {
@@ -61,11 +60,11 @@ impl Logger {
             _ => "ERROR",
         };
         let record = json!({"timestamp":crate::core::now(),"level":level,"category":category,"message":event,"context":redact(fields)});
-        if let Ok(mut file) = self.file.lock() {
-            if file.metadata().is_ok_and(|m| m.len() < 8 * 1024 * 1024) {
-                let _ = writeln!(file, "{record}");
-                let _ = file.flush();
-            }
+        if let Ok(mut file) = self.file.lock()
+            && file.metadata().is_ok_and(|m| m.len() < 8 * 1024 * 1024)
+        {
+            let _ = writeln!(file, "{record}");
+            let _ = file.flush();
         }
     }
 }
