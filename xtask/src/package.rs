@@ -84,8 +84,17 @@ fn tree(root: &Path, directory: &str, files: &mut Files) -> Result<()> {
     Ok(())
 }
 
-fn licenses(root: &Path) -> Result<Files> {
-    let args = ["metadata", "--format-version", "1", "--locked", "--offline"].map(str::to_owned);
+fn licenses(root: &Path, target: &str) -> Result<Files> {
+    let args = [
+        "metadata",
+        "--format-version",
+        "1",
+        "--locked",
+        "--offline",
+        "--filter-platform",
+        target,
+    ]
+    .map(str::to_owned);
     let output = process::run("cargo", &args, root, 120, 60)?;
     if !output.status.success() {
         return Err("locked dependency metadata failed".into());
@@ -231,7 +240,7 @@ pub fn build(root: &Path, binary: &str, out: &str, target: &str, sha: &str) -> R
         return Err("binary must be workspace-contained".into());
     }
     let mut files = public_payload(root)?;
-    files.extend(licenses(root)?);
+    files.extend(licenses(root, target)?);
     let binary_name = if target.contains("windows") {
         "bin/fiverr-agent-mcp.exe"
     } else {

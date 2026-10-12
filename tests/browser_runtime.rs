@@ -7,7 +7,12 @@ use serde_json::json;
 async fn native_browser_reads_fixed_fixture_without_exposing_credentials() {
     let executable = std::env::var_os("FIVERR_FIXTURE_BROWSER")
         .expect("CI must configure an installed native browser for this required fixture test");
-    let tmp = tempfile::tempdir().unwrap();
+    let workspace = std::env::var_os("GITHUB_WORKSPACE").expect("CI workspace is required");
+    // Chrome's Unix singleton socket has a 108-byte path limit; avoid nested CI temp roots.
+    let tmp = tempfile::Builder::new()
+        .prefix("b")
+        .tempdir_in(workspace)
+        .unwrap();
     let root = Root::explicit(&tmp.path().canonicalize().unwrap()).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
