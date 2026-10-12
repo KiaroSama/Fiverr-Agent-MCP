@@ -66,6 +66,7 @@ pub async fn fixture_observe(root: &Root, executable: &Path, page_url: &str) -> 
     std::fs::create_dir_all(&profile).map_err(|_| crate::core::storage_error())?;
     let (mut browser, mut handler, mut child) =
         fixture_process::launch(root, executable, &profile).await?;
+    eprintln!("CI owned fixture readiness and websocket connected.");
     let worker = tokio::spawn(async move {
         while let Some(result) = handler.next().await {
             if result.is_err() {
@@ -75,6 +76,7 @@ pub async fn fixture_observe(root: &Root, executable: &Path, page_url: &str) -> 
     });
     let result=async{
         let page=browser.new_page(page_url).await.map_err(|_|error(ErrorCode::UpstreamChanged,"Fixture page failed to open."))?;
+        eprintln!("CI owned fixture page opened.");
         // Fixed-purpose fixture schema extraction; never model-supplied JavaScript.
         let observed=page.evaluate("(()=>{const e=document.querySelector('[data-fiverr-fixture]'); if(!e)throw new Error('schema missing');return JSON.parse(e.textContent);})()").await.map_err(|_|error(ErrorCode::UpstreamChanged,"Fixture schema changed or is missing."))?;
         observed.into_value::<Value>().map_err(|_|invalid("Fixture observation is not valid typed JSON."))
