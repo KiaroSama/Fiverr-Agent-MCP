@@ -26,6 +26,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Capability gate failed.' }
 $browserCandidates=if($IsWindows){@('C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe')}elseif($IsMacOS){@('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')}else{@('/usr/bin/google-chrome','/usr/bin/chromium','/usr/bin/chromium-browser')}
 $env:FIVERR_FIXTURE_BROWSER=@($browserCandidates|Where-Object{Test-Path -LiteralPath $_ -PathType Leaf}|Select-Object -First 1)[0]
 if(-not $env:FIVERR_FIXTURE_BROWSER){throw 'Native browser prerequisite missing; required fixture test cannot be skipped.'}
+if ($IsLinux) {
+    # Rooted HOME/XDG removes the runner's warmed font cache; prepare it before the bounded browser fixture.
+    Owned 120 60 fc-cache @('--verbose')
+}
 Owned 1200 240 cargo @('nextest','run','--locked','--workspace','--all-features','--profile','ci','--test-threads','2','--no-tests','fail','--no-fail-fast')
 Owned 300 90 cargo @('test','--locked','--workspace','--doc','--all-features','--jobs','2')
 Owned 1800 300 cargo @('build','--locked','--release','--package','fiverr-agent-mcp','--jobs','2')
