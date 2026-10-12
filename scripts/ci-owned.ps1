@@ -191,7 +191,7 @@ public sealed class CiOwned : IDisposable {
     public void Dispose() { if(job!=IntPtr.Zero) { CloseHandle(job); job=IntPtr.Zero; } if(process!=IntPtr.Zero) { CloseHandle(process); process=IntPtr.Zero; } }
 }
 '@
-$resolved = (Get-Command $Executable -CommandType Application -ErrorAction Stop).Source
+$resolved = (Get-Command $Executable -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 if ($MinimalPath) {
     $env:PATH=Join-Path $env:SystemRoot 'System32'
     foreach ($name in @('cargo','rustc','node','python','python3','npm','uv')) {
