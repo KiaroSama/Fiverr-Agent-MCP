@@ -1,0 +1,13 @@
+# Architecture and interfaces
+
+One Rust application crate plus one Rust xtask crate. No business runtime wrapper. Core holds stable errors, validated IDs/provenance and exact Money. Storage adapts installation-owned files/SQLite. Network owns route/profile policy. Browser owns configured lifecycle, profile leases and narrow observations. Services own local workflows/action preparation/analysis. Server adapts official rmcp stdio/HTTP. CLI owns terminal-only route/registration/approval controls.
+
+Both MCP transports call the same dispatch/advertised argument validation and domain validators. Dynamic tools contain only implemented local/manual functions; capability inventory separately lists unsupported dedicated platform operations. Tools return data/warnings/provenance or stable error code/message; schemas/annotations are hints, not authorization. Resources expose scoped records/actions and local policy/capabilities; the only prompt adapts the existing licensed optimizer.
+
+SQLite account+kind+ID keys fence records. Immediate transactions prevent lost updates; expected version matches before save, old revisions remain. Opaque pagination binds selected account/kind/draft/query and uses stable ID keyset ordering. Imported observations and drafts have distinct source/draft flags. Search/reminders use bounded local records, no internet or background notification service.
+
+Prepared actions persist immutable account/target/payload hash/route generation/expiry/file hashes/optional draft version. Approval comes only from CLI trusted terminal review. Commit currently consumes approval for manual handoff; it does not remotely dispatch. A full executing/succeeded/failed/unknown engine and permitted reconciliation adapter remain incomplete. Never describe current handoff journaling as proven remote exactly-once behavior.
+
+Native HTTP validates exact authority/origin, bearer access, body/concurrency/time bounds before SDK dispatch; SDK owns negotiation/session/modern metadata semantics. Stdio uses bounded newline framing with cancel-safe partial input. Optional sampling/elicitation/tasks/subscriptions/completions are not advertised as implemented. Token, profile and secret data are not MCP resources.
+
+Xtask creates allowlisted native/plugin/source archives, locks dependency metadata, distributes licenses, reads archive entries back and smokes extracted executables. Native CI owns final execution. Replacing an adapter must retain scope, permission, route, file, approval and provenance contracts; a browser fixture cannot be promoted to a live adapter by changing its base URL.

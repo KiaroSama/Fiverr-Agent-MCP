@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-12",
+  "references": [
+    {"id":"R01","repository":"KiaroSama/Upwork-Agent-Plugin","commit":"00256cd7976f7639ab30c894ee3665de959a41e5","license":"GPL-3.0-only","use":"route/root/packaging concepts"},
+    {"id":"R02","repository":"KiaroSama/Agensi-MCP","commit":"d431e70d66ed29135dc09d2320b6cc0b0c016ab6","license":"GPL-3.0-only","use":"local HTTP/settings concepts"},
+    {"id":"R03","repository":"KyuRish/fiverr-mcp-server","commit":"0fee60669607a43c03a0137e7fa78af059d5cd21","license":"MIT","use":"schema vocabulary only"},
+    {"id":"R04","repository":"marwankous/fiverr-mcp","commit":"cad7b0f33a54de626c1b5410b1ec34a013ee1f69","license":"MIT","use":"browser boundary inventory only"},
+    {"id":"R05","repository":"eaglecheow/mcp-fiverr","commit":"a4f6020751a02e600fe700cba07c9a1b328783e0","license":"unverified; manifest MIT without LICENSE","use":"no code reuse"},
+    {"id":"R06","repository":"Ahad690/fiverr-gig-optimizer","commit":"cf4d6005bd53647a8f9f7ea564bb2a92176c1e08","license":"MIT code; CC-BY-4.0 documentation/data","use":"existing adapted skill/native deterministic helpers"},
+    {"id":"R07","repository":"waseemnasir2k26/fiverr-gig-optimizer","commit":"cd1bafc239062338f49310c18f1a5febf74c3752","license":"MIT","use":"unbundled presentation reference"},
+    {"id":"R08","repository":"modelcontextprotocol/rust-sdk","commit":"79437f291b2c44053d00dcd5db969fd0cca7c887","release":"rmcp-v3.5.1","license":"Apache-2.0","use":"official SDK"},
+    {"id":"R09","repository":"mattsse/chromiumoxide","commit":"a7e2bb835b9643410f9e3dc044f0d947e96cbfa4","release":"v0.9.1","license":"MIT/Apache-2.0","use":"browser lifecycle"},
+    {"id":"R10","repository":"seanmonstar/reqwest","commit":"de55373434f07f42926599dbb5a88550d8e55112","release":"v0.13.5","license":"MIT/Apache-2.0","use":"routed native HTTP"},
+    {"id":"R11","repository":"nextest-rs/nextest","commit":"cd1d6d5467322dbc0d39a80cb671d000ac302798","release":"cargo-nextest-0.9.148","license":"MIT/Apache-2.0","use":"CI test runner"}
+  ]
+}

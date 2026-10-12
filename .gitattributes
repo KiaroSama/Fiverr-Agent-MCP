@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.png -text
+*.jpg -text
+*.exe -text
+*.zip -text
+*.gz -text
+third_party/** -text

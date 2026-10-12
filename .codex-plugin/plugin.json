@@ -1,0 +1,8 @@
+{
+  "name":"fiverr-agent-mcp",
+  "version":"0.1.0",
+  "description":"Reviewed third-party Fiverr optimizer with separately installed native runtime.",
+  "author":{"name":"KiaroSama"},
+  "license":"GPL-3.0-only AND MIT AND CC-BY-4.0",
+  "skills":"./skills/"
+}

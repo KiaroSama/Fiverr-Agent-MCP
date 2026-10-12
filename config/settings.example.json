@@ -1,0 +1,12 @@
+{
+  "revision":0,
+  "route_generation":0,
+  "mode":"blocked",
+  "selected_profile_id":null,
+  "profiles":[],
+  "local_proxy":"socks5h://127.0.0.1:1595",
+  "http_port":1597,
+  "http_auth_mode":"token",
+  "browser_executable":null,
+  "account_id":"local"
+}

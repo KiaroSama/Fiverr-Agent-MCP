@@ -1,0 +1,1 @@
+{"profiles":[{"id":"example-not-selected","label":"Local operator proxy","url":"socks5h://127.0.0.1:1595"}],"note":"Example only. This does not install or select a proxy; import through the owner CLI."}

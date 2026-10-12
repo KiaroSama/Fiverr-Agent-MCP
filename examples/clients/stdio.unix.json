@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "fiverr-local": {
+      "command": "/absolute/path/Fiverr Agent MCP/bin/fiverr-agent-mcp",
+      "args": ["bridge"],
+      "env": {
+        "TEMP": "/absolute/path/Fiverr Agent MCP/.cache/tmp",
+        "TMP": "/absolute/path/Fiverr Agent MCP/.cache/tmp",
+        "TMPDIR": "/absolute/path/Fiverr Agent MCP/.cache/tmp",
+        "XDG_CACHE_HOME": "/absolute/path/Fiverr Agent MCP/.cache"
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "fiverr-agent-mcp",
+  "version": "0.1.0",
+  "description": "Reviewed third-party Fiverr optimizer instructions for an explicitly installed native local workspace.",
+  "author": {"name": "KiaroSama"},
+  "repository": "https://github.com/KiaroSama/Fiverr-Agent-MCP",
+  "license": "GPL-3.0-only AND MIT AND CC-BY-4.0"
+}

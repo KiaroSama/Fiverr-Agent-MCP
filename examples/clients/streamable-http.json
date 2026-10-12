@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "fiverr-local-http": {
+      "url": "http://127.0.0.1:1597/mcp",
+      "headers": {"Authorization": "Bearer REPLACE_LOCALLY_FROM_PRIVATE_OWNER_EXPORT"}
+    }
+  }
+}

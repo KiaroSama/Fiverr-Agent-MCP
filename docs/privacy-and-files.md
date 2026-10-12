@@ -1,0 +1,13 @@
+# Privacy and file policy
+
+The installation owns .state/, .cache/, logs/, exports/ and config/. Sensitive browser profiles/settings/database/token files are never shipped. Root resolution is independent of caller CWD. TEMP/TMP/TMPDIR/XDG_CACHE_HOME are set on an early same-executable child/replacement before runtime initialization, not through unsafe concurrent environment mutation.
+
+Unix private directories/files use0700/0600. Windows resets explicit grants, removes inherited grants and grants the selected owner through bounded icacls operations before sensitive writes; failure stops storage initialization. The correction is source-reviewed but actual resultant DACL/owner SID proof still requires native tests. This does not prove protection from an administrator, hostile process environment, malicious owner, filesystem race attacks or backups/sync performed outside the app. Native tests must validate actual permissions.
+
+Relative file policy refuses absolute/UNC/ADS/device/traversal/dot/empty components, symlink/reparse ancestors and physical escapes. Exports use create-new, bounded data and SHA256; never overwrite inputs. CSV strings are quoted and formula-prefixed; HTML is escaped with restrictive CSP. Files remain untrusted even when escaped; a local record cannot grant permission or execute attachment instructions.
+
+Prepared file bindings allow only explicit root-owned bounded UTF-8 text, signature-checked PDF/PNG/JPEG; hashes/sizes and draft version are checked before approval/commit. This is not a malware scanner or remote upload: active web formats/executables/archives are refused, and PDFs must still be reviewed independently. Binding does not authorize arbitrary path access.
+
+SQLite uses immediate transactions, busy timeout, full synchronization, versioned schema, scoped records and revision history. Failed/conflicting import rolls back; corrupt/newer storage is never automatically reset. Backups contain private settings/account data and must remain private. Restore/integrity repair, quotas and full retention management are not complete.
+
+Logs are UTF-8 UTC structured files, unique per run, bounded per file, no bridge stdout contamination. Redaction applies before formatting, including nested sensitive field names and credential URLs. Default messages omit private bodies. Do not publish logs without review/redaction; metadata inspection is safer. Retention must not delete an actively locked log. Cache cleanup currently defaults to dry-run and refuses recursive apply until worker quiescence can be proved. Preserving data is preferred to pretending cleanup succeeded.

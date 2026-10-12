@@ -1,0 +1,45 @@
+Fiverr Gig Optimizer upstream attribution and adaptation notice
+
+Upstream: Ahad690/fiverr-gig-optimizer
+https://github.com/Ahad690/fiverr-gig-optimizer
+Reviewed revision: cf4d6005bd53647a8f9f7ea564bb2a92176c1e08
+Original skill identity: fiverr-gig-optimizer (metadata 1.1, plugin 1.1.0)
+
+Source-code copyright: (c) 2026 fiverr-gig-optimizer contributors.
+Original helper source is MIT licensed. Preserve the unmodified LICENSE in
+this directory with substantial helper adaptations. New project code remains
+GPL-3.0-only subject to its root license; this does not erase upstream MIT rights.
+
+Upstream LICENSE-DATA expressly licenses all data and documentation, including
+all Markdown, under Creative Commons Attribution 4.0 International, despite
+MIT labels in SKILL.md and plugin metadata. This distribution conservatively
+retains CC-BY-4.0 attribution and modification notices for the adapted skill,
+retained copy guidance, and associated documentation. LICENSE-DATA is the
+original upstream notice; CC-BY-4.0.txt is the unmodified official full text.
+https://creativecommons.org/licenses/by/4.0/legalcode.txt
+
+Adaptation changes, 2026-10-12:
+- Replaced score_keyword.py, analyze_pricing.py and query_dataset.py invocation
+  instructions with typed native fiverr_market_analyze requests.
+- Retained gather, candidate, deterministic score/price, offer-copy, draft and
+  owner-review sequence from the existing skill rather than creating new skills.
+- Added exact integer/rational money, explicit currency/scale/provenance,
+  input bounds, missing-value distinctions and narrow canonical row schema.
+- Preserved source scoring defaults, inclusive percentiles, ties-to-even major
+  recommendations and actual first-observed tied-mode semantics. Source comments
+  and sample examples that contradict these algorithms are not treated as goldens.
+- Removed Python/Node/shell invocation, live scrape/profile import, external
+  datasets/actors, FX, uploaded contributions/tokens, automerge/refresh, browser
+  PDF/canvas rendering, AI-image execution and assets those branches depended on.
+- Supplied observations/local imports replace data acquisition. The adaptation
+  does not grant Fiverr collection permission or imply live account verification.
+- Metrics are ordinary supplied-counter ratios, not upstream market predictions.
+
+Pinned source paths and blob identifiers are recorded in skills.lock.json.
+The adapted instruction and request contract are in skills/fiverr-gig-optimizer/
+SKILL.md; semantic details and verification boundaries are in docs/skills.md.
+No source scripts or market datasets are shipped or executed by this package.
+
+Neither Ahad690, the contributors nor Fiverr endorses this adaptation.
+The original MIT and CC-BY disclaimers remain applicable. Data rights and
+Fiverr platform permission are separate from these software/document licenses.
