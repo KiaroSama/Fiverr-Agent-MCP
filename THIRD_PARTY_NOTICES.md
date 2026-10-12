@@ -12,7 +12,9 @@ The existing instruction/copy-guidance adaptation is attributed to that same pro
 
 Cargo.lock pins executable, test and packaging dependencies. Native packages generate licenses/dependencies.json and distribute actual license texts from the resolved normal/build dependency graph. Missing license texts fail packaging; an SPDX label alone is not a substitute. Audits and compatibility checks run in CI.
 
-The application uses the official modelcontextprotocol/rust-sdk (Apache-2.0), reqwest (MIT OR Apache-2.0), chromiumoxide (MIT OR Apache-2.0), Tokio (MIT), rusqlite (MIT), serde (MIT OR Apache-2.0), Axum (MIT) and their locked dependencies. SQLite is bundled by libsqlite3-sys and retains the applicable upstream notices. Final package inventories, not this illustrative list, identify resolved versions/licenses.
+The locked rmcp/rmcp-macros3.5.1 package lacks its workspace license text in the registry archive. The exact pinned upstream LICENSE, including the Apache-2.0/MIT transition statement, is retained in third_party/rust-sdk/ with a source/hash notice and included in native dependency notices. The fallback is restricted to those exact versions; other missing license texts still fail packaging.
+
+The application uses the official modelcontextprotocol/rust-sdk (Apache-2.0 with retained upstream MIT transition notices), reqwest (MIT OR Apache-2.0), chromiumoxide (MIT OR Apache-2.0), Tokio (MIT), rusqlite (MIT), serde (MIT OR Apache-2.0), Axum (MIT) and their locked dependencies. SQLite is bundled by libsqlite3-sys and retains the applicable upstream notices. Final package inventories, not this illustrative list, identify resolved versions/licenses.
 
 ## References versus redistributed material
 

@@ -1,0 +1,8 @@
+Model Context Protocol Rust SDK redistribution license
+
+Source: https://github.com/modelcontextprotocol/rust-sdk/blob/79437f291b2c44053d00dcd5db969fd0cca7c887/LICENSE
+Applies to locked rmcp and rmcp-macros version 3.5.1 only.
+Upstream LICENSE retained byte-for-byte; SHA256:
+0382b0057770ca05e9c350a50aa3b1c1fea84da0bc81d723bf00b9aa841be58a
+
+The upstream document explains its Apache-2.0/MIT transition and documentation terms. No license grant or copyright statement has been changed. Native packaging uses this pinned upstream text only when the exact published SDK crate omits its workspace license file; other missing licenses still fail packaging.

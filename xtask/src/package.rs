@@ -201,6 +201,19 @@ fn licenses(root: &Path, target: &str) -> Result<Files> {
             );
             found += 1;
         }
+        if found == 0 && ["rmcp", "rmcp-macros"].contains(&name) && version == "3.5.1" {
+            let bytes = validate::regular(root, "third_party/rust-sdk/LICENSE")?;
+            if validate::digest(&bytes)
+                != "0382b0057770ca05e9c350a50aa3b1c1fea84da0bc81d723bf00b9aa841be58a"
+            {
+                return Err("pinned SDK license hash mismatch".into());
+            }
+            files.insert(
+                format!("licenses/dependencies/{name}-{version}/LICENSE"),
+                bytes,
+            );
+            found += 1;
+        }
         if found == 0 {
             return Err(format!("no distributable license text for {name}-{version}").into());
         }
