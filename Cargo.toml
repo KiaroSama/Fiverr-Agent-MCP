@@ -48,5 +48,5 @@ unsafe_code = "deny"
 
 [profile.release]
 strip = true
-lto = "thin"
-codegen-units = 1
+lto = "off"
+codegen-units = 2

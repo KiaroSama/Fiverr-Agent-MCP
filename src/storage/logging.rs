@@ -21,7 +21,8 @@ impl Logger {
         let path = root.safe_path("logs", &name)?;
         root.write_new(&path, b"")?;
         let file = std::fs::OpenOptions::new()
-            .append(true)
+            .read(true)
+            .write(true)
             .open(&path)
             .map_err(|_| storage_error())?;
         fs2::FileExt::try_lock_exclusive(&file).map_err(|_| storage_error())?;
