@@ -18,6 +18,7 @@ pub fn write(path: &Path, files: &Files) -> Result<()> {
         for (name, bytes) in files {
             validate::path(name)?;
             let options = SimpleFileOptions::default()
+                .system(zip::System::Unix)
                 .compression_method(CompressionMethod::Deflated)
                 .last_modified_time(zip::DateTime::default())
                 .unix_permissions(mode(name));
