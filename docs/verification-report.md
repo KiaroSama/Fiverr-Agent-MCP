@@ -1,21 +1,19 @@
 # Verification report
 
-Checked 2026-10-12. This report is a factual pre-CI status, not a certificate.
+Checked 2026-10-13. Evidence is revision-specific, not a certificate of complete Fiverr access.
 
-## Authored
+## Verified native baseline
 
-Rust application source, explicit local/manual MCP discovery, account-scoped local workspace, optimizer helper, route policy, private file rules, typed browser fixture infrastructure, native CI/package scripts and current client/plugin manifests. Source-only rustfmt ran. Cargo.generate-lockfile resolved311packages with Rust1.99 compatibility; no local compilation or Rust test execution.
+Source `4a573bdcb7a51541e4ce979fe8ef5798842a1b25` completed [CI run38253015746](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/38253015746): Windows x64 37/37, Linux x64 38/38, macOS ARM64 38/38 and macOS Intel 38/38 tests passed, zero skipped. Formatting, Clippy, manifest/capability gates, native browser fixtures, release builds, dependency audit/license checks and extracted minimum-PATH package smoke passed. Doctest commands discovered zero cases and add no coverage.
 
-## Execution status
+Downloaded archive checksums and native manifest payload hashes matched. Every source archive member matched exact committed bytes; common source/plugin archives were identical across targets. No Rust compilation, test or application execution occurred locally. The initial failed CI run is historical and does not describe the verified baseline.
 
-Initial native CI run [38217526659](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/38217526659) on source7d2462edec607a298cf7ce853ff084a74c9a6e8a failed: three Unix jobs encountered a ZIP9 filename API compilation error; Windows installer checked a different home path from its initialization marker. Dependency security job succeeded, but tests and native packages were not reached. Corrective source is awaiting CI verification. No release binary has been verified/published. Initial repository creation permission was resolved on the owner's authorized retry. Exact public KiaroSama/Fiverr-Agent-MCP/origin verified. Actual CI artifacts carry their exact source SHA, hashes and run evidence; no authored test is marked passing here. No real client plugin/runtime loading or live Fiverr authentication/read/write has been verified. Local compilation remains prohibited, not used as a fallback.
+## Current continuation
+
+Generated client registration/examples now use the owner-requested `Fiverr-Agent-mcp` entry. Backup validation/empty-workspace restore and unknown/executing journal no-replay regression sources are added. Restore never replaces existing records/history/actions, re-enables routes, imports HTTP tokens or revives approvals. These changes require their own exact-source CI result; the baseline run above does not validate later source. Installed baseline executables do not gain later changes until replaced by a newly verified CI build.
 
 ## Required outstanding acceptance
 
-Native compilation/Clippy/tests/browser/archive smoke/security/license results for exact source SHA; real release/checksum/download integrity; requested coverage/fuzz/mutation targets; managed account manual sign-in/current permitted adapter and strict browser routing; remote mutation/reconciliation engine; complete storage retention/restore and all platform file/ACL edge cases; real client loading.
+Real permitted manual Fiverr account sign-in/current typed production adapter and strict browser routing; remote executing/unknown-outcome postcondition reconciliation; complete retention/platform privacy acceptance; measured 90% application/95% safety coverage, fuzz and mutation evidence; actual client/plugin loading. Backup fixture coverage does not certify arbitrary databases, all filesystem races or platform privacy.
 
-Capability implementation is independent of verification. Authored local functions are not called fixture-tested until tests actually execute; fixture-tested does not mean live-verified. Manual handoffs never mean remote success. Current delivery cannot be called full account-backed completion.
-
-## Evidence location
-
-Actual CI logs/JUnit and release metadata must be referenced using their exact GitHub run/source SHA after execution. Do not replace this status with invented timestamps/counts or a static green badge. The final private task report can cite the run without changing the already-tested source tree.
+Capability implementation and verification are independent. Fixtures are not live account evidence, manual handoff is not remote success, and green native builds do not fulfill all account-backed workflows. No real messages, deliveries or financial mutations are dispatched merely for tests. GitHub release publication remains separate from CI artifact availability.

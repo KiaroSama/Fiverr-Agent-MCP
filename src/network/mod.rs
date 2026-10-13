@@ -64,9 +64,14 @@ impl Settings {
                 .map(|v| serde_json::from_value(v).map_err(|_| storage_error()))
                 .unwrap_or(Ok(Self::default()))?;
             let result = f(&mut settings)?;
-            settings.revision += 1;
+            settings.revision = settings.revision.checked_add(1).ok_or_else(|| {
+                invalid("Settings revision is exhausted; preserve state and contact support.")
+            })?;
             if route {
-                settings.route_generation += 1;
+                settings.route_generation =
+                    settings.route_generation.checked_add(1).ok_or_else(|| {
+                        invalid("Route generation is exhausted; networking remains unchanged.")
+                    })?;
             }
             Ok((
                 serde_json::to_value(settings).map_err(|_| storage_error())?,

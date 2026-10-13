@@ -223,14 +223,20 @@ pub fn commit(store: &Store, id: &str) -> Result<Value> {
     let action = store.transaction(|tx| {
         let settings = Settings::in_transaction(tx)?;
         let mut action = read(tx, id)?;
-        fresh(&action, &settings)?;
-        validate_bindings(store, tx, &action)?;
-        if action.state == "outcome_unknown" {
+        if action.account_id != settings.account_id {
+            return Err(error(
+                ErrorCode::ResourceNotFound,
+                "Action not found in selected account scope.",
+            ));
+        }
+        if ["executing", "outcome_unknown"].contains(&action.state.as_str()) {
             return Err(error(
                 ErrorCode::ActionOutcomeUnknown,
                 "Outcome is unknown; reconciliation is required, no replay.",
             ));
         }
+        fresh(&action, &settings)?;
+        validate_bindings(store, tx, &action)?;
         if action.state != "approved" {
             return Err(error(
                 ErrorCode::ConfirmationRequired,
@@ -250,7 +256,7 @@ pub fn commit(store: &Store, id: &str) -> Result<Value> {
 }
 pub fn reconcile(store: &Store, id: &str) -> Result<Value> {
     let current = get(store, id)?;
-    if current["data"]["state"] == "outcome_unknown" {
+    if current["data"]["state"] == "outcome_unknown" || current["data"]["state"] == "executing" {
         return Err(error(
             ErrorCode::ActionOutcomeUnknown,
             "No verified remote postcondition adapter is available. Owner must inspect the exact target; automatic replay remains blocked.",

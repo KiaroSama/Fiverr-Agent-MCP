@@ -12,9 +12,9 @@ pub fn desktop(root: &Root, entry_only: bool) -> Value {
     });
     let entry = json!({"command":executable,"args":["bridge"],"env":{"TEMP":root.path().join(".cache/tmp"),"TMP":root.path().join(".cache/tmp"),"TMPDIR":root.path().join(".cache/tmp"),"XDG_CACHE_HOME":root.path().join(".cache")}});
     if entry_only {
-        json!({"fiverr-local":entry})
+        json!({"Fiverr-Agent-mcp":entry})
     } else {
-        json!({"mcpServers":{"fiverr-local":entry}})
+        json!({"mcpServers":{"Fiverr-Agent-mcp":entry}})
     }
 }
 pub fn register(root: &Root, file: &Path, remove: bool) -> Result<Value> {
@@ -48,25 +48,25 @@ pub fn register(root: &Root, file: &Path, remove: bool) -> Result<Value> {
             "Existing client configuration is not valid JSON; nothing overwritten.",
         )
     })?;
-    let entry = desktop(root, true)["fiverr-local"].clone();
+    let entry = desktop(root, true)["Fiverr-Agent-mcp"].clone();
     let object = config.as_object_mut().ok_or_else(storage_error)?;
     let servers = object
         .entry("mcpServers")
         .or_insert(json!({}))
         .as_object_mut()
         .ok_or_else(storage_error)?;
-    if let Some(existing) = servers.get("fiverr-local")
+    if let Some(existing) = servers.get("Fiverr-Agent-mcp")
         && existing["command"] != entry["command"]
     {
         return Err(error(
             ErrorCode::ActionStateChanged,
-            "Existing fiverr-local belongs to another executable; explicit conflict resolution required.",
+            "Existing Fiverr-Agent-mcp belongs to another executable; explicit conflict resolution required.",
         ));
     }
     if remove {
-        servers.remove("fiverr-local");
+        servers.remove("Fiverr-Agent-mcp");
     } else {
-        servers.insert("fiverr-local".into(), entry);
+        servers.insert("Fiverr-Agent-mcp".into(), entry);
     }
     let backup = file.with_extension(format!("json.backup-{}", uuid::Uuid::new_v4().simple()));
     std::fs::write(&backup, &bytes).map_err(|_| storage_error())?;

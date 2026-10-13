@@ -232,12 +232,12 @@ pub async fn execute(root: Root, store: Store, command: Command) -> Result<Value
         Command::DesktopConfig { entry_only } => Ok(registration::desktop(&root, entry_only)),
         Command::Register { file } => {
             owner_confirm(
-                "Modify only fiverr-local in the explicit client file, keeping a backup?",
+                "Modify only Fiverr-Agent-mcp in the explicit client file, keeping a backup?",
             )?;
             registration::register(&root, &file, false)
         }
         Command::Unregister { file } => {
-            owner_confirm("Remove only this installation's fiverr-local entry?")?;
+            owner_confirm("Remove only this installation's Fiverr-Agent-mcp entry?")?;
             registration::register(&root, &file, true)
         }
         Command::Proxy { command } => proxy(&store, command),
@@ -335,20 +335,17 @@ pub async fn execute(root: Root, store: Store, command: Command) -> Result<Value
         }
         Command::Backup {
             command: Backup::Validate { filename },
-        } => {
-            let path = root.safe_path("exports", &filename)?;
-            let bytes = root.read_bounded(&path, 64 * 1024 * 1024)?;
-            if !bytes.starts_with(b"SQLite format 3\0") {
-                return Err(invalid("Backup is not a SQLite database."));
-            }
-            Ok(json!({"header_valid":true,"restore_verified":false}))
-        }
+        } => store.validate_backup(&filename),
         Command::Backup {
-            command: Backup::Restore { .. },
-        } => Err(error(
-            ErrorCode::HumanActionRequired,
-            "In-place rollback/restore is not implemented. Preserve the backup; use a clean compatible installation, never overwrite live state blindly.",
-        )),
+            command: Backup::Restore { filename },
+        } => {
+            let preview = store.validate_backup(&filename)?;
+            eprintln!("{preview}");
+            owner_confirm(
+                "Restore this backup into an empty workspace with networking blocked and old approvals invalidated?",
+            )?;
+            store.restore_backup_checked(&filename, preview["sha256"].as_str())
+        }
         Command::Call { name, input } => {
             let args = if let Some(file) = input {
                 read_json(&root, &file)?

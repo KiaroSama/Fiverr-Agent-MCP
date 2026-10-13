@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![CI](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml)
+[![CI](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml/badge.svg?branch=feature%2Ffiverr-native)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml)
 [![License GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-blue)](LICENSE)
 [![Source version 0.1.0](https://img.shields.io/badge/Source-0.1.0-orange)](Cargo.toml)
 [![Rust 1.99](https://img.shields.io/badge/Rust-1.99-black?logo=rust)](rust-toolchain.toml)
@@ -23,9 +23,32 @@
 
 ## Install and connect
 
-1. Obtain a native archive for your actual OS/architecture from [Releases](https://github.com/KiaroSama/Fiverr-Agent-MCP/releases). Only use a published artifact whose source SHA/checksums and native CI are verified; authored workflows are not release evidence.
+1. Obtain a native archive for your actual OS/architecture from a successful [CI run](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml), or from [Releases](https://github.com/KiaroSama/Fiverr-Agent-MCP/releases) when a verified release exists. CI artifacts are experimental and expire; a release is not implied. Verify the exact source SHA/checksums and native CI; authored workflows are not release evidence.
 2. Extract the entire archive into a writable directory. Keep bin/, fiverr.install.json, docs/ and notices together. Release users need no Rust, Cargo, Node, npm, Python or uv.
-3. Run the extracted binary's `desktop-config` command and merge its `fiverr-local` entry into your compatible client configuration. Plugin installation, runtime registration and account sign-in are separate operations.
+3. Run the extracted binary's `desktop-config` command and merge its `Fiverr-Agent-mcp` entry into your compatible client configuration. Plugin installation, runtime registration and account sign-in are separate operations.
+
+### Claude Desktop on Windows
+
+Keep the verified Windows executable at `bin/fiverr-agent-mcp.exe` beside the installation's `fiverr.install.json`, documentation and notices. The following example uses the owner's installation path; change the absolute paths if you move the installation. Merge only `Fiverr-Agent-mcp` into your existing `mcpServers` object: do not replace your other MCP entries or settings.
+
+```json
+{
+  "mcpServers": {
+    "Fiverr-Agent-mcp": {
+      "command": "G:\\Program Files\\Portable\\Scripts\\Fiverr Agent MCP\\bin\\fiverr-agent-mcp.exe",
+      "args": ["bridge"],
+      "env": {
+        "TEMP": "G:\\Program Files\\Portable\\Scripts\\Fiverr Agent MCP\\.cache\\tmp",
+        "TMP": "G:\\Program Files\\Portable\\Scripts\\Fiverr Agent MCP\\.cache\\tmp",
+        "TMPDIR": "G:\\Program Files\\Portable\\Scripts\\Fiverr Agent MCP\\.cache\\tmp",
+        "XDG_CACHE_HOME": "G:\\Program Files\\Portable\\Scripts\\Fiverr Agent MCP\\.cache"
+      }
+    }
+  }
+}
+```
+
+Save the Claude Desktop configuration and fully quit/restart Claude Desktop. Stdio does not need a separately running HTTP server, token, Node.js, Python or Rust. Initial outbound access remains blocked; connecting MCP does not sign in to Fiverr. See the [Windows example](examples/clients/claude-desktop.windows.json) and [official local-server guide](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
 
 Windows example, from the installation directory:
 
