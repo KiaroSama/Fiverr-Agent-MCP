@@ -131,9 +131,13 @@ impl Root {
             ));
         }
         let relative = path.strip_prefix(&self.0).map_err(|_| storage_error())?;
-        if relative
-            .components()
-            .any(|part| !matches!(part, Component::Normal(_)))
+        let lexical = relative.to_string_lossy();
+        if lexical
+            .split(['/', '\\'])
+            .any(|part| part == "." || part == "..")
+            || relative
+                .components()
+                .any(|part| !matches!(part, Component::Normal(_)))
         {
             return Err(error(
                 ErrorCode::FilePolicyViolation,

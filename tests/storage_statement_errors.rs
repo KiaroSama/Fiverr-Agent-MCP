@@ -9,7 +9,8 @@ use serde_json::json;
 fn nonnormal_owned_paths_and_missing_private_files_fail_without_writes() {
     let temp = tempfile::tempdir().unwrap();
     let root = Root::explicit(&temp.path().canonicalize().unwrap()).unwrap();
-    let path = root.path().join("exports/../outside");
+    // Construct the lexical input directly: Windows verbatim PathBuf::join may normalize '..'.
+    let path = std::path::PathBuf::from(format!("{}/exports/../outside", root.path().display()));
     assert_eq!(
         root.assert_owned(&path).unwrap_err().code,
         ErrorCode::FilePolicyViolation
