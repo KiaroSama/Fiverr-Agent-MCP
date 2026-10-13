@@ -124,22 +124,69 @@ pub fn snapshot(store: &Store, args: &Value) -> Result<Value> {
         json!({"source":"local_snapshot","live_verified":false}),
     ))
 }
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReminderCursor {
+    version: u8,
+    account: String,
+    after: String,
+    observed_at: String,
+}
 pub fn reminders(store: &Store, args: &Value) -> Result<Value> {
     let account = super::account_scope(store, args)?;
-    let (tasks, more) = store.page(&account, "task", None, 100, true, None)?;
     let current = chrono::Utc::now();
-    let due: Vec<_> = tasks
-        .into_iter()
-        .filter(|t| t.payload["status"] != "done" && t.payload["status"] != "cancelled")
-        .filter(|t| {
-            t.payload["due_at"]
+    let limit = match args.get("limit") {
+        None => 100,
+        Some(value) => value
+            .as_u64()
+            .filter(|n| *n > 0 && *n <= 100)
+            .ok_or_else(|| invalid("Limit must be an integer between 1 and 100."))?
+            as usize,
+    };
+    let (after, cutoff) = match args.get("cursor") {
+        None => (None, current),
+        Some(value) => {
+            let value = value
                 .as_str()
-                .and_then(|d| chrono::DateTime::parse_from_rfc3339(d).ok())
-                .is_some_and(|d| d <= current)
-        })
-        .collect();
+                .ok_or_else(|| invalid("Cursor must be opaque text."))?;
+            let cursor: ReminderCursor = serde_json::from_slice(&decode(value)?)
+                .map_err(|_| invalid("Invalid reminder cursor."))?;
+            if cursor.version != 1 || cursor.account != account {
+                return Err(invalid(
+                    "Cursor does not belong to this account/reminder view.",
+                ));
+            }
+            let cutoff = chrono::DateTime::parse_from_rfc3339(&cursor.observed_at)
+                .map_err(|_| invalid("Invalid reminder observation time."))?
+                .with_timezone(&chrono::Utc);
+            if cutoff > current {
+                return Err(invalid(
+                    "Reminder observation time must not be in the future.",
+                ));
+            }
+            (Some(cursor.after), cutoff)
+        }
+    };
+    let (due, more) = store.due_tasks_page(&account, after.as_deref(), limit, cutoff)?;
+    let cursor = if more {
+        due.last()
+            .map(|record| ReminderCursor {
+                version: 1,
+                account: account.clone(),
+                after: record.id.clone(),
+                observed_at: cutoff.to_rfc3339(),
+            })
+            .map(|cursor| {
+                serde_json::to_vec(&cursor)
+                    .map(|value| encode(&value))
+                    .map_err(|_| invalid("Cannot serialize reminder cursor."))
+            })
+            .transpose()?
+    } else {
+        None
+    };
     Ok(
-        json!({"data":due,"warnings":["Local deadline inference; not a Fiverr deadline/notification."],"provenance":{"source":"local_reminder_inference","observed_at":now()},"partial":more,"notifications_sent":false}),
+        json!({"data":due,"warnings":["Local deadline inference; not a Fiverr deadline/notification. Pagination fixes the cutoff, not a mutable task snapshot."],"provenance":{"source":"local_reminder_inference","observed_at":cutoff.to_rfc3339()},"partial":more,"notifications_sent":false,"pagination":{"limit":limit,"next_cursor":cursor,"partial":false,"live_collection":false}}),
     )
 }
 fn encode(bytes: &[u8]) -> String {

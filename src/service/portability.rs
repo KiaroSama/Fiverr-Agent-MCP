@@ -9,6 +9,7 @@ pub fn export(store: &Store, args: &Value) -> Result<Value> {
     let records = store.list(&account, kind, 0, 100)?;
     let format = args.get("format").and_then(Value::as_str).unwrap_or("json");
     let filename = super::local::string(args, "filename")?;
+    validate_export_extension(format, filename)?;
     let content = match format {
         "json" => serde_json::to_string_pretty(&records)
             .map_err(|_| invalid("Export serialization failed."))?,
@@ -28,10 +29,13 @@ pub fn export(store: &Store, args: &Value) -> Result<Value> {
         "markdown" => {
             let mut out = format!("# Imported {kind} records\n\n");
             for r in &records {
+                let payload = serde_json::to_string_pretty(&r.payload)
+                    .map_err(|_| invalid("Export serialization failed."))?;
+                let longest = payload.split(|c| c != '`').map(str::len).max().unwrap_or(0);
+                let fence = "`".repeat(longest.max(2) + 1);
                 out.push_str(&format!(
-                    "## {}\n\n{}\n\n",
-                    escape(&r.id),
-                    escape(&r.payload.to_string())
+                    "## {}\n\n{fence}json\n{payload}\n{fence}\n\n",
+                    r.id
                 ));
             }
             out
@@ -99,4 +103,25 @@ fn escape(text: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('`', "&#96;")
+}
+
+fn validate_export_extension(format: &str, filename: &str) -> Result<()> {
+    let extension = std::path::Path::new(filename)
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let valid = match format {
+        "json" => extension == "json",
+        "csv" => extension == "csv",
+        "markdown" => matches!(extension.as_str(), "md" | "markdown"),
+        "html" => matches!(extension.as_str(), "html" | "htm"),
+        _ => false,
+    };
+    if !valid {
+        return Err(invalid(
+            "Export filename extension must match json (.json), csv (.csv), markdown (.md/.markdown) or html (.html/.htm).",
+        ));
+    }
+    Ok(())
 }

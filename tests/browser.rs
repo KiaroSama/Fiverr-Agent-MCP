@@ -55,4 +55,37 @@ async fn sign_in_never_launches_from_blocked_unverified_route() {
         sign_in(&store).await.unwrap_err().code,
         ErrorCode::RouteBlocked
     );
+    fiverr_agent_mcp::network::Settings::change(&store, true, |s| {
+        s.mode = fiverr_agent_mcp::network::Mode::Direct;
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(
+        sign_in(&store).await.unwrap_err().code,
+        ErrorCode::HumanActionRequired
+    );
+    fiverr_agent_mcp::browser::configure(&store, &std::env::current_exe().unwrap()).unwrap();
+    assert_eq!(
+        sign_in(&store).await.unwrap_err().code,
+        ErrorCode::DnsPolicyUnverified
+    );
+    #[cfg(feature = "browser")]
+    {
+        for uri in [
+            "invalid",
+            "https://www.fiverr.com/",
+            "http://fixture.invalid/",
+            "http://user@127.0.0.1/",
+        ] {
+            assert!(
+                fiverr_agent_mcp::browser::fixture_observe(
+                    &store.root,
+                    &std::env::current_exe().unwrap(),
+                    uri
+                )
+                .await
+                .is_err()
+            );
+        }
+    }
 }

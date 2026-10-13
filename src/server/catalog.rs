@@ -138,8 +138,8 @@ pub const TOOLS: &[(&str, &str, &str, bool)] = &[
     ),
     (
         "fiverr_reminders_list",
-        "List due local tasks; no platform deadline or notifications claimed.",
-        "empty",
+        "List due local tasks with scoped pagination; no platform deadline or notifications claimed.",
+        "tasks",
         true,
     ),
     (

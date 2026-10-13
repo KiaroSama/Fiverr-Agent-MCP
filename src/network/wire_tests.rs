@@ -2,6 +2,139 @@ use super::*;
 use std::net::{Ipv4Addr, SocketAddr};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+#[tokio::test]
+async fn routed_http_status_and_body_limits_are_enforced_without_redirects() {
+    let temporary = tempfile::tempdir().unwrap();
+    let store = Store::open(
+        crate::storage::Root::explicit(&temporary.path().canonicalize().unwrap()).unwrap(),
+    )
+    .unwrap();
+    Settings::change(&store, true, |s| {
+        s.mode = Mode::Direct;
+        Ok(())
+    })
+    .unwrap();
+    let client = RouteClient::new(store.clone()).unwrap();
+    let cases = [
+        (b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\nConnection: close\r\n\r\nbody".to_vec(), None),
+        (b"HTTP/1.1 429 Rate Limited\r\nContent-Length: 0\r\n\r\n".to_vec(), Some(ErrorCode::RateLimited)),
+        (b"HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\n\r\n".to_vec(), Some(ErrorCode::AuthRequired)),
+        (b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n".to_vec(), Some(ErrorCode::ChallengeRequired)),
+        (b"HTTP/1.1 302 Found\r\nLocation: http://must-not-follow.invalid/\r\nContent-Length: 0\r\n\r\n".to_vec(), Some(ErrorCode::UpstreamChanged)),
+        (b"HTTP/1.1 200 OK\r\nContent-Length: 2097153\r\n\r\n".to_vec(), Some(ErrorCode::FilePolicyViolation)),
+        (b"HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\nshort".to_vec(), Some(ErrorCode::ProxyUnreachable)),
+    ];
+    for (response, expected) in cases {
+        let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+            .await
+            .unwrap();
+        let address = listener.local_addr().unwrap();
+        let mut worker = Owned(tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut header = Vec::new();
+            let mut chunk = [0; 1024];
+            while !header.windows(4).any(|v| v == b"\r\n\r\n") {
+                let n = stream.read(&mut chunk).await.unwrap();
+                assert!(n > 0 && header.len() < 8192);
+                header.extend_from_slice(&chunk[..n]);
+            }
+            stream.write_all(&response).await.unwrap();
+            stream.shutdown().await.unwrap();
+        }));
+        let result = tokio::time::timeout(
+            Duration::from_secs(3),
+            client.fixture_get(Url::parse(&format!("http://{address}/fixture")).unwrap()),
+        )
+        .await
+        .unwrap();
+        match expected {
+            Some(code) => assert_eq!(result.unwrap_err().code, code),
+            None => assert_eq!(result.unwrap(), b"body"),
+        }
+        tokio::time::timeout(Duration::from_secs(3), &mut worker.0)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+    let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+        .await
+        .unwrap();
+    let address = listener.local_addr().unwrap();
+    let mut worker = Owned(tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let mut request = [0; 2048];
+        stream.read(&mut request).await.unwrap();
+        stream
+            .write_all(b"HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n")
+            .await
+            .unwrap();
+        let body = vec![b'x'; 2 * 1024 * 1024 + 1];
+        let _ = stream.write_all(&body).await;
+    }));
+    assert_eq!(
+        tokio::time::timeout(
+            Duration::from_secs(3),
+            client.fixture_get(Url::parse(&format!("http://{address}/large")).unwrap())
+        )
+        .await
+        .unwrap()
+        .unwrap_err()
+        .code,
+        ErrorCode::FilePolicyViolation
+    );
+    tokio::time::timeout(Duration::from_secs(3), &mut worker.0)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        client
+            .get(Url::parse("http://127.0.0.1/").unwrap())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::FilePolicyViolation
+    );
+    Settings::change(&store, true, |s| {
+        s.mode = Mode::Blocked;
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(
+        client
+            .fixture_get(Url::parse("http://127.0.0.1/").unwrap())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::RouteBlocked
+    );
+}
+
+#[test]
+fn selected_missing_or_invalid_proxy_cannot_build_a_route() {
+    let temporary = tempfile::tempdir().unwrap();
+    let store = Store::open(
+        crate::storage::Root::explicit(&temporary.path().canonicalize().unwrap()).unwrap(),
+    )
+    .unwrap();
+    Settings::change(&store, true, |s| {
+        s.mode = Mode::Proxy;
+        Ok(())
+    })
+    .unwrap();
+    assert!(RouteClient::new(store.clone()).is_err());
+    Settings::change(&store, true, |s| {
+        s.profiles = vec![profiles::Profile {
+            id: "bad".into(),
+            label: "Bad".into(),
+            url: "file:///bad".into(),
+        }];
+        s.selected_profile_id = Some("bad".into());
+        Ok(())
+    })
+    .unwrap();
+    assert!(RouteClient::new(store).is_err());
+}
+
 struct Owned(tokio::task::JoinHandle<()>);
 impl Drop for Owned {
     fn drop(&mut self) {
