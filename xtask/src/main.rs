@@ -1,4 +1,5 @@
 mod archives;
+mod coverage;
 mod package;
 mod process;
 mod validate;
@@ -62,6 +63,13 @@ fn execute() -> Result<()> {
     match command.as_str() {
         "validate-manifests" => validate::manifests(&root()),
         "verify-capabilities" => validate::capabilities(&root()),
+        "coverage-report" => {
+            let values = options(&args[1..])?;
+            coverage::report(
+                required(&values, "--input")?,
+                required(&values, "--output")?,
+            )
+        }
         "package" | "verify-package" => {
             let values = options(&args[1..])?;
             let revision = required(&values, "--sha")?;

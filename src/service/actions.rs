@@ -72,6 +72,7 @@ pub fn prepare(store: &Store, kind: &str, args: &Value) -> Result<Value> {
             params![action.id, action.state, action.value()?.to_string()],
         )
         .map_err(|_| storage_error())?;
+        Store::check_capacity(tx)?;
         Ok(())
     })?;
     Ok(envelope(

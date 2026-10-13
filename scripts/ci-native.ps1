@@ -30,8 +30,29 @@ if ($IsLinux) {
     # Rooted HOME/XDG removes the runner's warmed font cache; prepare it before the bounded browser fixture.
     Owned 120 60 fc-cache @('--verbose')
 }
-Owned 1200 240 cargo @('nextest','run','--locked','--workspace','--all-features','--profile','ci','--test-threads','2','--no-tests','fail','--no-fail-fast')
+if ($IsLinux) {
+    Owned 1500 300 cargo @('llvm-cov','nextest','--locked','--workspace','--all-features','--json','--summary-only','--output-path',(Join-Path $root '.ci-work/coverage.json'),'--profile','ci','--test-threads','2','--no-tests','fail','--no-fail-fast')
+    & $xtask coverage-report --input (Join-Path $root '.ci-work/coverage.json') --output (Join-Path $root '.ci-work/coverage-summary.json')
+    if ($LASTEXITCODE -ne 0) { throw 'Coverage evidence parsing failed.' }
+    & $PSScriptRoot/ci-mutation.ps1 -Owner $xtask -Root $root
+    if ($LASTEXITCODE -ne 0) { throw 'Bounded mutation campaign failed.' }
+} else {
+    Owned 1200 240 cargo @('nextest','run','--locked','--workspace','--all-features','--profile','ci','--test-threads','2','--no-tests','fail','--no-fail-fast')
+}
 Owned 300 90 cargo @('test','--locked','--workspace','--doc','--all-features','--jobs','2')
 Owned 1800 300 cargo @('build','--locked','--release','--package','fiverr-agent-mcp','--jobs','2')
 $binary=Join-Path $env:CARGO_TARGET_DIR ('release/fiverr-agent-mcp'+$(if($IsWindows){'.exe'}else{''}))
+if ($IsWindows) {
+    $privacyRoot=Join-Path $root '.ci-work/privacy acceptance'
+    New-Item -ItemType Directory -Path $privacyRoot -Force | Out-Null
+    Owned 30 15 $binary @('--root',$privacyRoot,'status')
+    $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    foreach ($relative in @('.state','.state/workspace','.state/workspace/workspace.sqlite3','logs')) {
+        $acl=Get-Acl -LiteralPath (Join-Path $privacyRoot $relative)
+        if (-not $acl.AreAccessRulesProtected) { throw 'Private ACL inheritance is not protected.' }
+        $rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]))
+        if ($rules.Count -eq 0 -or @($rules|Where-Object {$_.IdentityReference.Value -ne $sid -or $_.AccessControlType -ne 'Allow'}).Count -ne 0) { throw 'Private ACL grants another identity or lacks owner access.' }
+    }
+    Remove-Item -LiteralPath $privacyRoot -Recurse -Force
+}
 Owned 300 90 $xtask @('package','--target',$Target,'--sha',$Sha,'--binary',$binary,'--out',(Join-Path $root 'dist'))

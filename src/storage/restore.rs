@@ -72,6 +72,7 @@ impl Store {
             // Only settings are imported: tokens and source installation credentials never regain authority.
             tx.execute("DELETE FROM kv WHERE key='http_token'", []).map_err(|_|storage_error())?;
             tx.execute("INSERT INTO kv(key,value) VALUES('settings',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[serde_json::to_string(&snapshot.settings).map_err(|_|storage_error())?]).map_err(|_|storage_error())?;
+            super::capacity::validate(tx)?;
             Ok(json!({"restored":true,"records":snapshot.records.len(),"history":snapshot.history.len(),"actions":snapshot.actions.len(),"route":"blocked","old_approvals_invalidated":true,"http_token_restored":false,"browser_sessions_restored":false}))
         })
     }
