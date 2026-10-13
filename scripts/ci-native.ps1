@@ -34,6 +34,9 @@ if ($IsLinux) {
     Owned 1500 300 cargo @('llvm-cov','nextest','--locked','--workspace','--all-features','--json','--summary-only','--output-path',(Join-Path $root '.ci-work/coverage.json'),'--profile','ci','--test-threads','2','--no-tests','fail','--no-fail-fast')
     & $xtask coverage-report --input (Join-Path $root '.ci-work/coverage.json') --output (Join-Path $root '.ci-work/coverage-summary.json')
     if ($LASTEXITCODE -ne 0) { throw 'Coverage evidence parsing failed.' }
+    # Upstream prebuilt cargo-mutants requires newer glibc than the supported Ubuntu22.04 baseline.
+    Owned 900 240 cargo @('install','cargo-mutants','--version','27.1.0','--locked','--root',(Join-Path $root '.ci-cache/mutation-tool'),'--jobs','2')
+    $env:PATH=(Join-Path $root '.ci-cache/mutation-tool/bin')+[IO.Path]::PathSeparator+$env:PATH
     & $PSScriptRoot/ci-mutation.ps1 -Owner $xtask -Root $root
     if ($LASTEXITCODE -ne 0) { throw 'Bounded mutation campaign failed.' }
 } else {
