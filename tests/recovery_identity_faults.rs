@@ -77,7 +77,7 @@ fn backup_action_identifiers_are_validated_before_any_destination_write() {
 }
 
 #[test]
-fn corrupt_existing_record_refuses_optimistic_save_without_erasing_evidence() {
+fn mistyped_existing_record_refuses_optimistic_save_without_erasing_evidence() {
     let temp = tempfile::tempdir().unwrap();
     let store = Store::open(Root::explicit(&temp.path().canonicalize().unwrap()).unwrap()).unwrap();
     let saved = store
@@ -101,10 +101,11 @@ fn corrupt_existing_record_refuses_optimistic_save_without_erasing_evidence() {
         )
         .unwrap();
     let original = serde_json::to_string(&saved).unwrap();
-    for damaged in ["not-json", "{}"] {
+    for damaged in [vec![0xff_u8], b"{}".to_vec()] {
         store
             .transaction(|tx| {
-                tx.execute("UPDATE records SET json=?1", [damaged]).unwrap();
+                tx.execute("UPDATE records SET json=?1", [&damaged])
+                    .unwrap();
                 Ok(())
             })
             .unwrap();
@@ -115,10 +116,10 @@ fn corrupt_existing_record_refuses_optimistic_save_without_erasing_evidence() {
         assert!(store.history("local", "note", "a").unwrap().is_empty());
         store
             .transaction(|tx| {
-                let text: String = tx
+                let bytes: Vec<u8> = tx
                     .query_row("SELECT json FROM records", [], |row| row.get(0))
                     .unwrap();
-                assert_eq!(text, damaged);
+                assert_eq!(bytes, damaged);
                 tx.execute("UPDATE records SET json=?1", [&original])
                     .unwrap();
                 Ok(())
