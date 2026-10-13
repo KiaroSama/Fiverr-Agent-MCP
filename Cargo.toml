@@ -39,6 +39,7 @@ uuid = { version = "=1.28.0", features = ["v4"] }
 chromiumoxide = { version = "=0.9.1", optional = true, default-features = false }
 
 [dev-dependencies]
+tokio = { version = "=1.53.2", features = ["test-util"] }
 tempfile = "=3.27.0"
 rcgen = "=0.14.10"
 tokio-rustls = "=0.26.6"
