@@ -29,9 +29,11 @@ fn virtual_schema_hidden_shadows_and_integrity_mismatches_are_refused() {
     drop(c);
     assert!(store.validate_backup("virtual.sqlite3").is_err());
     let path = store.backup("integrity.sqlite3").unwrap();
-    let c = rusqlite::Connection::open(&path).unwrap();
-    c.execute_batch("ALTER TABLE records RENAME TO old;CREATE TABLE records(account TEXT,kind TEXT,id TEXT,version INTEGER CHECK(version>100),json TEXT);PRAGMA ignore_check_constraints=ON;INSERT INTO records SELECT * FROM old;DROP TABLE old;PRAGMA ignore_check_constraints=OFF;").unwrap();
-    drop(c);
+    let mut bytes = std::fs::read(&path).unwrap();
+    // SQLite header says one free page, but its freelist head is zero.
+    bytes[32..36].copy_from_slice(&0_u32.to_be_bytes());
+    bytes[36..40].copy_from_slice(&1_u32.to_be_bytes());
+    std::fs::write(&path, bytes).unwrap();
     assert!(store.validate_backup("integrity.sqlite3").is_err());
     assert_eq!(
         store.get("local", "note", "a").unwrap().payload["body"],
