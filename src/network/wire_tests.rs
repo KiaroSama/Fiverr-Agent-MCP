@@ -62,8 +62,13 @@ async fn routed_http_status_and_body_limits_are_enforced_without_redirects() {
     let address = listener.local_addr().unwrap();
     let mut worker = Owned(tokio::spawn(async move {
         let (mut stream, _) = listener.accept().await.unwrap();
-        let mut request = [0; 2048];
-        stream.read(&mut request).await.unwrap();
+        let mut request = Vec::new();
+        let mut chunk = [0; 1024];
+        while !request.windows(4).any(|part| part == b"\r\n\r\n") {
+            let count = stream.read(&mut chunk).await.unwrap();
+            assert!(count > 0 && request.len() < 8192);
+            request.extend_from_slice(&chunk[..count]);
+        }
         stream
             .write_all(b"HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n")
             .await
