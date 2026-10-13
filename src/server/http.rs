@@ -18,6 +18,9 @@ use rmcp::transport::streamable_http_server::{
 use std::{sync::Arc, time::Duration};
 use subtle::ConstantTimeEq;
 use tokio_util::sync::CancellationToken;
+#[cfg(test)]
+#[path = "../../tests/support/http_deadline.rs"]
+mod deadline_tests;
 #[derive(Clone)]
 struct Access {
     store: Store,
