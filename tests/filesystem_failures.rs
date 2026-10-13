@@ -44,6 +44,7 @@ fn inaccessible_owned_parents_report_canonicalization_and_write_failure() {
     assert_eq!(results.0.unwrap(), directory.join("new.txt"));
     assert!(results.1.is_ok());
     assert!(results.2.is_err());
-    assert!(results.3.is_err());
+    assert!(results.3.is_ok());
+    assert_eq!(std::fs::read(directory.join("new.txt")).unwrap(), b"No");
     assert_eq!(std::fs::read(path).unwrap(), b"Keep");
 }
