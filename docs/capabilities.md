@@ -9,3 +9,15 @@ Groups covered: account/settings; marketplace/categories/gigs/sellers/reviews/se
 The existing helper supplies deterministic keyword/pricing/supplied-dataset/observed-ratio analysis only. Pairwise offers_compare, opportunity_match and metrics_compare are not hidden aliases to that helper. Unsupported remote operations require actual platform permission/interface, account identity and route evidence; generic draft storage does not implement them. Financial/contractual activity remains a clearly incomplete human handoff.
 
 No unsupported tool returns an empty successful platform result. Current dedicated live operations are not implemented; reasons distinguish that code gap from independent external permission/route blockers. Full account-backed scope remains incomplete.
+
+## Local reminder pagination
+
+`fiverr_reminders_list` accepts `limit` (1-100, default 100) and an opaque `cursor`.
+Eligible local draft tasks are filtered before the result limit: completed, cancelled,
+undated and future tasks cannot hide a later due task. Imported records and other
+accounts remain excluded. Follow `pagination.next_cursor` until null; top-level
+`partial` indicates another eligible page, not an unrecoverable first-100 prefix.
+The cursor binds the selected account and a fixed due-time cutoff across pages.
+Task records can still change between calls; restart without a cursor to refresh.
+Dates are parsed as RFC3339 with offsets. This produces no platform notification
+and does not turn a local inferred deadline into a verified Fiverr deadline.

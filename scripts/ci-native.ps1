@@ -31,7 +31,7 @@ if ($IsLinux) {
     Owned 120 60 fc-cache @('--verbose')
 }
 if ($IsLinux) {
-    Owned 1500 300 cargo @('llvm-cov','nextest','--locked','--workspace','--all-features','--json','--summary-only','--output-path',(Join-Path $root '.ci-work/coverage.json'),'--profile','ci','--test-threads','2','--no-tests','fail','--no-fail-fast')
+    Owned 1500 300 cargo @('llvm-cov','nextest','--locked','--workspace','--all-features','--json','--output-path',(Join-Path $root '.ci-work/coverage.json'),'--profile','ci','--test-threads','2','--no-tests','fail','--no-fail-fast')
     & $xtask coverage-report --input (Join-Path $root '.ci-work/coverage.json') --output (Join-Path $root '.ci-work/coverage-summary.json')
     if ($LASTEXITCODE -ne 0) { throw 'Coverage evidence parsing failed.' }
     # Upstream prebuilt cargo-mutants requires newer glibc than the supported Ubuntu22.04 baseline.

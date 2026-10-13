@@ -124,6 +124,7 @@ impl Store {
         self.transaction(|tx|{
             let old:Option<(i64,String)>=tx.query_row("SELECT version,json FROM records WHERE account=?1 AND kind=?2 AND id=?3",params![record.account_id,record.kind,record.id],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|storage_error())?;
             if old.as_ref().map(|v|u64::try_from(v.0).map_err(|_|storage_error())).transpose()?!=expected {return Err(error(ErrorCode::ActionStateChanged,"Record changed; reload its version before saving."));}
+            if record.kind == "snapshot" && old.is_some() {return Err(error(ErrorCode::ActionStateChanged,"Snapshots are immutable; create a new snapshot instead of overwriting evidence."));}
             if let Some((version,json))=&old {tx.execute("INSERT INTO history(account,kind,id,version,json) VALUES(?1,?2,?3,?4,?5)",params![record.account_id,record.kind,record.id,version,json]).map_err(|_|storage_error())?;}
             record.version=match old{None=>1,Some((version,_))=>u64::try_from(version.checked_add(1).ok_or_else(storage_error)?).map_err(|_|storage_error())?};record.updated_at=now();
             tx.execute("INSERT INTO records(account,kind,id,version,json) VALUES(?1,?2,?3,?4,?5) ON CONFLICT(account,kind,id) DO UPDATE SET version=excluded.version,json=excluded.json",params![record.account_id,record.kind,record.id,i64::try_from(record.version).map_err(|_|storage_error())?,serde_json::to_string(&record).map_err(|_|storage_error())?]).map_err(|_|storage_error())?;
@@ -199,6 +200,54 @@ impl Store {
         records.truncate(limit);
         Ok((records, more))
     }
+    pub fn due_tasks_page(
+        &self,
+        account: &str,
+        after: Option<&str>,
+        limit: usize,
+        cutoff: chrono::DateTime<chrono::Utc>,
+    ) -> Result<(Vec<Record>, bool)> {
+        validate_id(account)?;
+        if let Some(after) = after {
+            validate_id(after)?;
+        }
+        if limit == 0 || limit > 100 {
+            return Err(crate::core::invalid("Reminder limit must be 1-100."));
+        }
+        let connection = self.connection.lock().map_err(|_| storage_error())?;
+        let mut statement = connection
+            .prepare(
+                "SELECT json FROM records WHERE account=?1 AND kind='task' AND id>?2 AND json_extract(json,'$.draft')=1 ORDER BY id",
+            )
+            .map_err(|_| storage_error())?;
+        let rows = statement
+            .query_map(params![account, after.unwrap_or("")], |row| {
+                row.get::<_, String>(0)
+            })
+            .map_err(|_| storage_error())?;
+        let mut records = Vec::with_capacity(limit + 1);
+        // Filter before limiting. The workspace cap bounds the scan; one SQL
+        // statement keeps its read snapshot and only matching records accumulate.
+        for row in rows {
+            let record: Record = serde_json::from_str(&row.map_err(|_| storage_error())?)
+                .map_err(|_| storage_error())?;
+            let active =
+                record.payload["status"] != "done" && record.payload["status"] != "cancelled";
+            let due = record.payload["due_at"]
+                .as_str()
+                .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
+                .is_some_and(|value| value <= cutoff);
+            if active && due {
+                records.push(record);
+                if records.len() > limit {
+                    break;
+                }
+            }
+        }
+        let more = records.len() > limit;
+        records.truncate(limit);
+        Ok((records, more))
+    }
     pub fn history(&self, account: &str, kind: &str, id: &str) -> Result<Vec<Record>> {
         self.get(account, kind, id)?;
         let connection = self.connection.lock().map_err(|_| storage_error())?;
@@ -222,9 +271,12 @@ impl Store {
             validate_kind(&record.kind)?;
             validate_id(&record.id)?;
             record.provenance.validate()?;
-            if record.provenance.source != "user_import" || !record.payload.is_object() {
+            if record.provenance.source != "user_import"
+                || !record.payload.is_object()
+                || record.payload.to_string().len() > 256 * 1024
+            {
                 return Err(crate::core::invalid(
-                    "Imported records require user_import provenance and object payloads.",
+                    "Imported records require user_import provenance and object payloads at most 256 KiB.",
                 ));
             }
         }

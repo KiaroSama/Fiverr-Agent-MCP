@@ -66,7 +66,20 @@ pub fn report(input: &str, output: &str) -> Result<()> {
             safety.0 += covered;
             safety.1 += total;
         }
-        included.push(json!({"file":source,"covered":covered,"lines":total}));
+        let missing: Vec<_> = file["segments"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|segment| {
+                segment[3].as_bool() == Some(true)
+                    && segment[2].as_u64() == Some(0)
+                    && segment[4].as_bool() == Some(true)
+            })
+            .filter_map(|segment| segment[0].as_u64())
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        included.push(json!({"file":source,"covered":covered,"lines":total,"uncovered_region_start_lines":missing}));
     }
     if application.1 == 0 || safety.1 == 0 {
         return Err("coverage scope has zero discovered lines".into());
@@ -79,5 +92,8 @@ pub fn report(input: &str, output: &str) -> Result<()> {
     println!(
         "Measured Linux line coverage: application={application_percent:.2}% (target90), safety={safety_percent:.2}% (target95). Targets are reported truthfully, not waived."
     );
+    if application_percent < 90.0 || safety_percent < 95.0 {
+        return Err("Required application90% / safety95% source line coverage not met; inspect preserved coverage evidence before packaging.".into());
+    }
     Ok(())
 }
