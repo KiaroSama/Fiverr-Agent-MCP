@@ -110,4 +110,27 @@ async fn real_owner_terminal_accepts_explicit_consent_and_keeps_model_routes_sep
         actions::get(&store, id).unwrap()["data"]["state"],
         "approved"
     );
+    let source = tempfile::tempdir().unwrap();
+    let source_root = Root::explicit(&source.path().canonicalize().unwrap()).unwrap();
+    let source_store = Store::open(source_root.clone()).unwrap();
+    let path = source_store.backup("empty.sqlite3").unwrap();
+    let destination = tempfile::tempdir().unwrap();
+    let destination_root = Root::explicit(&destination.path().canonicalize().unwrap()).unwrap();
+    destination_root
+        .write_new(
+            &destination_root
+                .safe_path("exports", "empty.sqlite3")
+                .unwrap(),
+            &std::fs::read(path).unwrap(),
+        )
+        .unwrap();
+    assert!(
+        terminal(
+            &destination_root,
+            &["backup", "restore", "empty.sqlite3"],
+            b"y\n"
+        )
+        .await
+        .contains("restored")
+    );
 }
