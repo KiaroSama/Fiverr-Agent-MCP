@@ -83,7 +83,7 @@ fn corrupt_statement_shapes_fail_every_journal_settings_and_collection_operation
             })
             .unwrap();
     }
-    store.transaction(|tx|{tx.execute_batch("ALTER TABLE records RENAME TO old;CREATE TABLE records(account TEXT,kind TEXT,id TEXT,version INTEGER,json TEXT);INSERT INTO records VALUES('local','task','a',1,NULL);").unwrap();Ok(())}).unwrap();
+    store.transaction(|tx|{tx.execute_batch(r#"ALTER TABLE records RENAME TO old;CREATE TABLE records(account TEXT,kind TEXT,id TEXT,version INTEGER,json TEXT);INSERT INTO records VALUES('local','task','a',1,'{"draft":true}');"#).unwrap();Ok(())}).unwrap();
     assert!(
         store
             .due_tasks_page("local", None, 1, chrono::Utc::now())
