@@ -27,4 +27,14 @@ async fn malformed_and_overlong_frames_fail_without_partial_dispatch() {
     Transport::<RoleServer>::close(&mut transport)
         .await
         .unwrap();
+    let (writer, reader) = tokio::io::duplex(16);
+    drop(reader);
+    let mut transport = BoundedStdio::new(tokio::io::empty(), writer);
+    let response: ServerJsonRpcMessage =
+        serde_json::from_value(serde_json::json!({"jsonrpc":"2.0","id":1,"result":{}})).unwrap();
+    assert!(
+        Transport::<RoleServer>::send(&mut transport, response)
+            .await
+            .is_err()
+    );
 }

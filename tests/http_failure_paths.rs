@@ -27,6 +27,28 @@ async fn protected_http_header_storage_and_body_failures_return_exact_status() {
         router.clone().oneshot(request).await.unwrap().status(),
         StatusCode::UNAUTHORIZED
     );
+    // Hold response bodies so each owns one request permit; the seventeenth must fail.
+    let mut held = Vec::new();
+    for _ in 0..16 {
+        let request = Request::builder()
+            .uri("/healthz")
+            .header("host", "127.0.0.1:1597")
+            .header("authorization", format!("Bearer {token}"))
+            .body(Body::empty())
+            .unwrap();
+        held.push(router.clone().oneshot(request).await.unwrap());
+    }
+    let request = Request::builder()
+        .uri("/healthz")
+        .header("host", "127.0.0.1:1597")
+        .header("authorization", format!("Bearer {token}"))
+        .body(Body::empty())
+        .unwrap();
+    assert_eq!(
+        router.clone().oneshot(request).await.unwrap().status(),
+        StatusCode::TOO_MANY_REQUESTS
+    );
+    drop(held);
     let body = Body::from_stream(futures::stream::once(async {
         Err::<Vec<u8>, _>(std::io::Error::other("controlled body failure"))
     }));
