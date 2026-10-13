@@ -150,10 +150,9 @@ fn import_validation_is_atomic_scoped_and_distinct_from_commit() {
     assert_eq!(page["pagination"]["next_cursor"], "1");
     assert!(local::list(&store, &json!({"kind":"note","limit":0})).is_err());
     assert_eq!(
-        service::dispatch(
+        service::account_scope(
             &store,
-            "fiverr_record_get",
-            json!({"account_id":"other","kind":"note","id":"import1"})
+            &json!({"account_id":"other","kind":"note","id":"import1"})
         )
         .unwrap_err()
         .code,
@@ -165,9 +164,15 @@ fn import_validation_is_atomic_scoped_and_distinct_from_commit() {
 fn shared_dispatch_reports_handoffs_and_rejects_unimplemented_or_hostile_input() {
     let temp = tempfile::tempdir().unwrap();
     let store = Store::open(Root::explicit(&temp.path().canonicalize().unwrap()).unwrap()).unwrap();
-    for name in ["fiverr_capabilities", "fiverr_account_capabilities"] {
-        assert!(service::dispatch(&store, name, json!({})).unwrap()["data"].is_object());
-    }
+    assert!(
+        service::dispatch(&store, "fiverr_capabilities", json!({})).unwrap()["data"].is_object()
+    );
+    assert_eq!(
+        service::dispatch(&store, "fiverr_account_capabilities", json!({}))
+            .unwrap_err()
+            .code,
+        ErrorCode::FeatureUnavailable
+    );
     assert_eq!(
         service::dispatch(&store, "fiverr_settings_get", json!({})).unwrap()["data"]["mode"],
         "blocked"
