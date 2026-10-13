@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "fiverr-local": {
+    "Fiverr-Agent-mcp": {
       "command": "/absolute/path/Fiverr Agent MCP/bin/fiverr-agent-mcp",
       "args": ["bridge"],
       "env": {

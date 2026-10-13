@@ -12,7 +12,7 @@ Run `--help`, `--version` or `version` without creating state. `status`, `deskto
 
 Configure an absolute executable command and args `["bridge"]`. No HTTP listener is required. `desktop-config` generates the real installation paths plus TEMP/TMP/TMPDIR/XDG_CACHE_HOME. The public Windows example has the owner's requested sample installation path; regenerate it for another directory. Unix clients use the corresponding native executable, not PowerShell or a Node shim.
 
-`register <absolute-file>` and `unregister <absolute-file>` require local terminal consent and only alter this installation's fiverr-local entry, preserving other entries with a backup. JSON validation is not proof of real host loading; review the generated entry before registration.
+`register <absolute-file>` and `unregister <absolute-file>` require local terminal consent and only alter this installation's Fiverr-Agent-mcp entry, preserving other entries with a backup. JSON validation is not proof of real host loading; review the generated entry before registration.
 
 ## HTTP runtime
 
@@ -28,4 +28,4 @@ The instruction ZIP contains one adapted existing fiverr-gig-optimizer skill, no
 
 ## Upgrade/uninstall
 
-Stop clients/listeners before upgrading. Preserve private state/browser profiles/exports and back them up privately. Replace only verified executable/public payload; never reset a schema-newer or corrupt store. `backup create` writes a private SQLite copy; live restore is not implemented. Unregister only the matching runtime entry if desired. Deleting an installation also deletes its private state; inspect it first and keep needed backups. Plugin uninstall does not remotely log out Fiverr.
+Stop clients/listeners before upgrading. Preserve private state/browser profiles/exports and back them up privately. Replace only verified executable/public payload; never reset a schema-newer or corrupt store. `backup create <filename>` writes a private SQLite copy in exports/. `backup validate <filename>` checks bounded input (64 MiB), supported ordinary-table schema, database integrity and row bindings (at most 10,000 rows in each supported data table). Backup creation reports success only after the copy passes this recovery validation; oversized or incompatible copies are not reported as usable backups. `backup restore <filename>` requires interactive owner approval and an empty workspace; it never replaces existing records/history/journal. Restored routing remains blocked, pending approvals are cancelled, executing actions become outcome_unknown, and HTTP tokens/browser sessions are not restored. Preserve the backup privately; in-place rollback of a populated installation is deliberately refused. Unregister only the matching runtime entry if desired. Deleting an installation also deletes its private state; inspect it first and keep needed backups. Plugin uninstall does not remotely log out Fiverr.

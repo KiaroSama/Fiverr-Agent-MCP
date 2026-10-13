@@ -30,6 +30,46 @@ fn model_cannot_approve_and_stale_route_cannot_commit() {
         ErrorCode::ActionStateChanged
     );
 }
+#[test]
+fn unknown_and_executing_journal_states_never_replay_even_after_expiry() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = Root::explicit(&tmp.path().canonicalize().unwrap()).unwrap();
+    let store = Store::open(root.clone()).unwrap();
+    let action = actions::prepare(
+        &store,
+        "message",
+        &json!({"target_id":"buyer1","payload":{"recipient_id":"buyer1","body":"Do not dispatch"}}),
+    )
+    .unwrap();
+    let id = action["data"]["id"].as_str().unwrap().to_owned();
+    // Persist a crash/reply-loss fixture through the existing transactional storage seam.
+    for state in ["executing", "outcome_unknown"] {
+        let mut data = action["data"].clone();
+        data["state"] = json!(state);
+        data["expires_at"] = json!(0);
+        store
+            .transaction(|tx| {
+                tx.execute(
+                    "UPDATE actions SET state=?1,json=?2 WHERE id=?3",
+                    rusqlite::params![state, data.to_string(), id],
+                )
+                .unwrap();
+                Ok(())
+            })
+            .unwrap();
+        let reopened = Store::open(root.clone()).unwrap();
+        assert_eq!(
+            actions::commit(&reopened, &id).unwrap_err().code,
+            ErrorCode::ActionOutcomeUnknown
+        );
+        assert!(actions::cancel(&reopened, &id).is_err());
+        assert_eq!(
+            actions::get(&reopened, &id).unwrap()["data"]["state"],
+            state
+        );
+    }
+}
+
 fn crate_route_change(store: &Store) {
     fiverr_agent_mcp::network::Settings::change(store, true, |_| Ok(())).unwrap();
 }

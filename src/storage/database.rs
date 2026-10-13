@@ -252,10 +252,34 @@ impl Store {
         let path = self.root.safe_path("exports", name)?;
         self.root.write_new(&path, b"")?;
         let connection = self.connection.lock().map_err(|_| storage_error())?;
-        connection
-            .backup(rusqlite::MAIN_DB, &path, None)
+        let mut destination = Connection::open(&path).map_err(|_| storage_error())?;
+        let backup = rusqlite::backup::Backup::new(&connection, &mut destination)
             .map_err(|_| storage_error())?;
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        loop {
+            if std::time::Instant::now() >= deadline {
+                return Err(error(
+                    ErrorCode::StorageUnavailable,
+                    "Backup deadline exceeded; original workspace preserved. The incomplete destination is not a verified backup.",
+                ));
+            }
+            match backup.step(100).map_err(|_| storage_error())? {
+                rusqlite::backup::StepResult::Done => break,
+                rusqlite::backup::StepResult::More => {}
+                _ => {
+                    return Err(error(
+                        ErrorCode::StorageUnavailable,
+                        "Backup source or destination is busy; no automatic retry occurred.",
+                    ));
+                }
+            }
+        }
+        drop(backup);
+        drop(destination);
+        drop(connection);
         private_permissions(&path)?;
+        // A completed copy must also fit this executable's recovery contract.
+        self.validate_backup(name)?;
         Ok(path)
     }
 }
