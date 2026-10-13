@@ -113,7 +113,10 @@ fn mistyped_existing_record_refuses_optimistic_save_without_erasing_evidence() {
             store.save(saved.clone(), Some(1)).unwrap_err().code,
             ErrorCode::StorageUnavailable
         );
-        assert!(store.history("local", "note", "a").unwrap().is_empty());
+        assert_eq!(
+            store.history("local", "note", "a").unwrap_err().code,
+            ErrorCode::StorageUnavailable
+        );
         store
             .transaction(|tx| {
                 let bytes: Vec<u8> = tx
@@ -129,6 +132,7 @@ fn mistyped_existing_record_refuses_optimistic_save_without_erasing_evidence() {
             store.get("local", "note", "a").unwrap().payload["body"],
             "Keep"
         );
+        assert!(store.history("local", "note", "a").unwrap().is_empty());
     }
 }
 
