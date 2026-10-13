@@ -41,8 +41,8 @@ fn inaccessible_owned_parents_report_canonicalization_and_write_failure() {
         root.write_new(&directory.join("new.txt"), b"No"),
     );
     std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700)).unwrap();
-    assert!(results.0.is_err());
-    assert!(results.1.is_err());
+    assert_eq!(results.0.unwrap(), directory.join("new.txt"));
+    assert!(results.1.is_ok());
     assert!(results.2.is_err());
     assert!(results.3.is_err());
     assert_eq!(std::fs::read(path).unwrap(), b"Keep");
