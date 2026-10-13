@@ -64,6 +64,9 @@ impl Store {
         transaction.commit().map_err(|_| storage_error())?;
         Ok(result)
     }
+    pub(crate) fn check_capacity(tx: &rusqlite::Transaction<'_>) -> Result<()> {
+        super::capacity::validate(tx)
+    }
     pub fn value(&self, key: &str) -> Result<Option<Value>> {
         let connection = self.connection.lock().map_err(|_| storage_error())?;
         let value: Option<String> = connection
@@ -124,6 +127,8 @@ impl Store {
             if let Some((version,json))=&old {tx.execute("INSERT INTO history(account,kind,id,version,json) VALUES(?1,?2,?3,?4,?5)",params![record.account_id,record.kind,record.id,version,json]).map_err(|_|storage_error())?;}
             record.version=match old{None=>1,Some((version,_))=>u64::try_from(version.checked_add(1).ok_or_else(storage_error)?).map_err(|_|storage_error())?};record.updated_at=now();
             tx.execute("INSERT INTO records(account,kind,id,version,json) VALUES(?1,?2,?3,?4,?5) ON CONFLICT(account,kind,id) DO UPDATE SET version=excluded.version,json=excluded.json",params![record.account_id,record.kind,record.id,i64::try_from(record.version).map_err(|_|storage_error())?,serde_json::to_string(&record).map_err(|_|storage_error())?]).map_err(|_|storage_error())?;
+            super::capacity::retain_history(tx, &record.account_id, &record.kind, &record.id)?;
+            super::capacity::validate(tx)?;
             Ok(record)
         })
     }
@@ -245,6 +250,7 @@ impl Store {
                     )
                 })?;
             }
+            super::capacity::validate(tx)?;
             Ok(records.len())
         })
     }
