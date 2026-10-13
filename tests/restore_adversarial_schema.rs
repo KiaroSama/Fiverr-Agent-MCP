@@ -30,7 +30,7 @@ fn virtual_schema_hidden_shadows_and_integrity_mismatches_are_refused() {
     assert!(store.validate_backup("virtual.sqlite3").is_err());
     let path = store.backup("integrity.sqlite3").unwrap();
     let c = rusqlite::Connection::open(&path).unwrap();
-    c.execute_batch("PRAGMA writable_schema=ON;UPDATE sqlite_schema SET sql=replace(sql,'version INTEGER NOT NULL','version INTEGER NOT NULL CHECK(version>100)') WHERE name='records';PRAGMA writable_schema=OFF;").unwrap();
+    c.execute_batch("ALTER TABLE records RENAME TO old;CREATE TABLE records(account TEXT,kind TEXT,id TEXT,version INTEGER CHECK(version>100),json TEXT);PRAGMA ignore_check_constraints=ON;INSERT INTO records SELECT * FROM old;DROP TABLE old;PRAGMA ignore_check_constraints=OFF;").unwrap();
     drop(c);
     assert!(store.validate_backup("integrity.sqlite3").is_err());
     assert_eq!(
