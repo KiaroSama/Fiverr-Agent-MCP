@@ -199,9 +199,5 @@ fn typed_sql_row_and_settings_corruption_fail_closed() {
         })
         .unwrap();
     assert!(Settings::load(&store).is_err());
-    assert!(
-        store
-            .transaction(|tx| Settings::in_transaction(tx))
-            .is_err()
-    );
+    assert!(store.transaction(Settings::in_transaction).is_err());
 }
