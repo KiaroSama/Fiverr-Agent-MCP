@@ -10,7 +10,9 @@ Downloaded archive checksums and native manifest payload hashes matched. Every s
 
 ## Current continuation
 
-Generated client registration/examples now use the owner-requested `Fiverr-Agent-mcp` entry. Backup validation/empty-workspace restore and unknown/executing journal no-replay regression sources are added. Restore never replaces existing records/history/actions, re-enables routes, imports HTTP tokens or revives approvals. These changes require their own exact-source CI result; the baseline run above does not validate later source. Installed baseline executables do not gain later changes until replaced by a newly verified CI build.
+Source `e2ec4fe17676c0bbc744d2c40b1bd30cef54ed7f` completed [CI run38341811976](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/38341811976): Windows43/43, Linux/macOS44/44 each, zero skips, all native packages and dependency checks passed. Generated client registration/examples use `Fiverr-Agent-mcp`. Backup validation/empty-workspace restore and unknown/executing journal no-replay regressions executed. Restore never replaces existing records/history/actions, re-enables routes, imports HTTP tokens or revives approvals.
+
+Source `14bfe1151ce5c276d4c558980eac0169a039c3dd` in [CI run38352515372](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/38352515372) passed Windows/both macOS native packages and dependency checks. Linux47/47 tests passed with zero skips and measured 62.37% application / 72.09% safety source line coverage. Native retention/capacity regressions and fresh Windows owner-only DACL checks passed. Linux packaging was blocked by the mutation inventory gate before any mutant executed; that run is not fully green. The inventory integration correction restricts discovery to the two validator source files, but its executed mutation/package result still requires replacement CI. Installed executables retain their recorded source revision until a newly verified build replaces them.
 
 ## Required outstanding acceptance
 

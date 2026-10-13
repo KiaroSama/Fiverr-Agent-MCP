@@ -78,6 +78,7 @@ jobs:
           path: |
             .ci-work/coverage-summary.json
             .ci-work/coverage.json
+            .ci-work/mutation-inventory.json
             .ci-work/mutants/mutants.out/outcomes.json
           if-no-files-found: warn
           retention-days: 14
