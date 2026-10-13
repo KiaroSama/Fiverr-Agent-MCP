@@ -45,7 +45,7 @@ fn retention_delete_failure_rolls_back_current_record_and_new_revision() {
         for version in 1..=100 {
             let mut historical = saved.clone();
             historical.version = version;
-            tx.execute("INSERT INTO history(account,kind,id,version,json) VALUES('local','note','a',?1,?2)", rusqlite::params![version, serde_json::to_string(&historical).unwrap()]).unwrap();
+            tx.execute("INSERT INTO history(account,kind,id,version,json) VALUES('local','note','a',?1,?2)", rusqlite::params![i64::try_from(version).unwrap(), serde_json::to_string(&historical).unwrap()]).unwrap();
         }
         saved.version = 101;
         tx.execute("UPDATE records SET version=101,json=?1", [serde_json::to_string(&saved).unwrap()]).unwrap();
