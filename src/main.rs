@@ -57,7 +57,7 @@ fn main() {
     })();
     match result {
         Ok(value) => {
-            if !bridge && !long {
+            if !bridge && !long && !value.is_null() {
                 println!(
                     "{}",
                     serde_json::to_string_pretty(&value).unwrap_or_else(|_| "{}".into())

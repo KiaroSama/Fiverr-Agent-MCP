@@ -6,6 +6,10 @@ Live authentication is not implemented/verified. Account/session tools report pr
 
 The owner confirmed an account-backed product with manual sign-in and narrow typed operations. Local functionality alone does not fulfill that requirement. Live readiness remains blocked on permitted current platform interfaces, verified routing/containment and an owner session; this limitation is not waived by a fixture test.
 
+## Launcher Sign in
+
+The main menu and `run.ps1 -SignIn` expose the same native `auth sign-in` path. The owner requested the saved, verified integration-session behavior of Agensi/Upwork, not merely a website link. Those reference services have distinct remote MCP/OAuth contracts; no equivalent first-party Fiverr contract was verified in the current research. Copying their callback/token code or changing their hostname would not produce valid Fiverr authentication. The entry therefore remains visibly gated and never claims a connected account. This requested integration is unfinished.
+
 ## Human workflow
 
 Open the official Fiverr site in an owner-controlled browser through the intended route. Enter credentials, 2FA and challenges yourself. Verify the intended account and role before acting. Do not expose credential fields, sessions, tokens, CSRF data or browser debugging endpoints to an assistant. Identity verification may require a separate official manual process; the server must not silently bypass proxy policy.

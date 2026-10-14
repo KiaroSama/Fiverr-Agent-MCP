@@ -56,6 +56,36 @@ pub(super) fn actions(store: &Store, command: Actions) -> Result<Value> {
         Actions::Reject { id } => service::actions::cancel(store, &id),
     }
 }
+pub(super) fn add_proxy(store: &Store, label: String, value: &str) -> Result<()> {
+    crate::core::bounded_text(&label, 80)?;
+    if label.trim().is_empty() || label.chars().any(char::is_control) {
+        return Err(invalid(
+            "Proxy label must contain 1-80 printable characters.",
+        ));
+    }
+    let url = profiles::normalize(value.trim())?.to_string();
+    Settings::change(store, false, |s| {
+        if s.profiles
+            .iter()
+            .any(|p| p.label.eq_ignore_ascii_case(&label))
+        {
+            return Err(invalid("Proxy label already exists."));
+        }
+        s.profiles.push(profiles::Profile {
+            id: uuid::Uuid::new_v4().to_string(),
+            label,
+            url,
+        });
+        Ok(())
+    })
+}
+pub(super) fn set_local_proxy(store: &Store, value: &str) -> Result<()> {
+    let url = profiles::normalize(value.trim())?.to_string();
+    Settings::change(store, false, |s| {
+        s.local_proxy = url;
+        Ok(())
+    })
+}
 pub(super) fn proxy(store: &Store, command: Proxy) -> Result<Value> {
     match command {
         Proxy::List => Ok(json!(
@@ -70,45 +100,37 @@ pub(super) fn proxy(store: &Store, command: Proxy) -> Result<Value> {
             let text =
                 std::str::from_utf8(&bytes).map_err(|_| invalid("Proxy import must be UTF-8."))?;
             let imported = profiles::parse_import(text)?;
-            let count = imported.len();
+            let mut count = 0;
+            let mut skipped = 0;
             Settings::change(store, false, |s| {
-                for p in &imported {
-                    if s.profiles
+                for p in imported {
+                    if let Some(existing) = s
+                        .profiles
                         .iter()
-                        .any(|x| x.label.eq_ignore_ascii_case(&p.label))
+                        .find(|x| x.label.eq_ignore_ascii_case(&p.label))
                     {
-                        return Err(invalid(
-                            "Proxy label conflicts with existing profiles; entire import cancelled.",
-                        ));
+                        if existing.url != p.url {
+                            return Err(invalid(
+                                "Proxy label conflicts with existing profiles; entire import cancelled.",
+                            ));
+                        }
+                        skipped += 1;
+                    } else {
+                        s.profiles.push(p);
+                        count += 1;
                     }
                 }
-                s.profiles.extend(imported);
                 Ok(())
             })?;
-            Ok(json!({"imported":count,"selected":false}))
+            Ok(json!({"imported":count,"skipped":skipped,"selected":false}))
         }
         Proxy::Add { label, file } => {
             let bytes = store.root.read_bounded(&file, 2048)?;
-            let url = profiles::normalize(
-                std::str::from_utf8(&bytes)
-                    .map_err(|_| invalid("Proxy input must be UTF-8."))?
-                    .trim(),
-            )?
-            .to_string();
-            Settings::change(store, false, |s| {
-                if s.profiles
-                    .iter()
-                    .any(|p| p.label.eq_ignore_ascii_case(&label))
-                {
-                    return Err(invalid("Proxy label already exists."));
-                }
-                s.profiles.push(profiles::Profile {
-                    id: uuid::Uuid::new_v4().to_string(),
-                    label,
-                    url,
-                });
-                Ok(())
-            })?;
+            add_proxy(
+                store,
+                label,
+                std::str::from_utf8(&bytes).map_err(|_| invalid("Proxy input must be UTF-8."))?,
+            )?;
             Ok(json!({"added":true,"selected":false}))
         }
         Proxy::Edit { id, file } => {
@@ -179,26 +201,25 @@ pub(super) fn local_proxy(store: &Store, command: LocalProxy) -> Result<Value> {
         }
         LocalProxy::Settings { file: Some(file) } => {
             let bytes = store.root.read_bounded(&file, 2048)?;
-            let url = profiles::normalize(
-                std::str::from_utf8(&bytes)
-                    .map_err(|_| invalid("UTF-8 required."))?
-                    .trim(),
-            )?
-            .to_string();
-            Settings::change(store, false, |s| {
-                s.local_proxy = url;
-                Ok(())
-            })?;
+            set_local_proxy(
+                store,
+                std::str::from_utf8(&bytes).map_err(|_| invalid("UTF-8 required."))?,
+            )?;
             Ok(json!({"updated":true,"activated":false}))
         }
         LocalProxy::Select => {
             Settings::change(store, true, |s| {
-                let id = uuid::Uuid::new_v4().to_string();
-                s.profiles.push(profiles::Profile {
-                    id: id.clone(),
-                    label: format!("Local proxy {}", s.profiles.len() + 1),
-                    url: s.local_proxy.clone(),
-                });
+                let id = if let Some(profile) = s.profiles.iter().find(|p| p.url == s.local_proxy) {
+                    profile.id.clone()
+                } else {
+                    let id = uuid::Uuid::new_v4().to_string();
+                    s.profiles.push(profiles::Profile {
+                        id: id.clone(),
+                        label: format!("Local proxy {}", s.profiles.len() + 1),
+                        url: s.local_proxy.clone(),
+                    });
+                    id
+                };
                 s.selected_profile_id = Some(id);
                 s.mode = Mode::Proxy;
                 Ok(())

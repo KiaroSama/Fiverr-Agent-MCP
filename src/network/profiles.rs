@@ -72,6 +72,44 @@ pub fn normalize(value: &str) -> Result<Url> {
     }
     Ok(url)
 }
+fn named_line(line: &str) -> Result<Option<(String, String)>> {
+    let Some((scheme, tail)) = line.split_once("://") else {
+        return Ok(None);
+    };
+    if tail.contains('@') {
+        return Ok(None);
+    }
+    let (host, rest) = if tail.starts_with('[') {
+        let Some(end) = tail.find(']') else {
+            return Err(invalid("Invalid IPv6 proxy host."));
+        };
+        (
+            &tail[..=end],
+            tail[end + 1..].strip_prefix(':').unwrap_or(""),
+        )
+    } else {
+        let Some((host, rest)) = tail.split_once(':') else {
+            return Ok(None);
+        };
+        (host, rest)
+    };
+    let fields: Vec<_> = rest.splitn(4, ':').collect();
+    if fields.len() != 4 {
+        return Ok(None);
+    }
+    let encoded = |s: &str| {
+        percent_encoding::utf8_percent_encode(s, percent_encoding::NON_ALPHANUMERIC).to_string()
+    };
+    let auth = if fields[1].is_empty() && fields[2].is_empty() {
+        String::new()
+    } else {
+        format!("{}:{}@", encoded(fields[1]), encoded(fields[2]))
+    };
+    Ok(Some((
+        fields[3].trim().to_owned(),
+        format!("{scheme}://{auth}{host}:{}", fields[0]),
+    )))
+}
 pub fn parse_import(text: &str) -> Result<Vec<Profile>> {
     if text.len() > 256 * 1024 {
         return Err(invalid("Proxy import exceeds 256 KiB."));
@@ -90,10 +128,15 @@ pub fn parse_import(text: &str) -> Result<Vec<Profile>> {
         let parsed = (|| {
             let (label, value) = if let Some((label, url)) = line.split_once('|') {
                 (label.trim().to_string(), url.trim().to_string())
+            } else if let Some(named) = named_line(line)? {
+                named
             } else {
                 (format!("Proxy {}", index + 1), line.to_string())
             };
             crate::core::bounded_text(&label, 80)?;
+            if label.chars().any(char::is_control) {
+                return Err(invalid("Proxy label contains control characters."));
+            }
             if label.is_empty() {
                 return Err(invalid("Proxy label is empty."));
             }
