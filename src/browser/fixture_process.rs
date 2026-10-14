@@ -16,7 +16,11 @@ pub async fn launch(
         .write(true)
         .open(&stderr_path)
         .map_err(|_| crate::core::storage_error())?;
-    let mut command = tokio::process::Command::new(executable);
+    // Match chromiumoxide's Windows sandbox path normalization at the process boundary.
+    let cache = root.path().join(".cache/browser");
+    let temporary = root.path().join(".cache/tmp");
+    let unix_temporary = root.path().join(".cache");
+    let mut command = tokio::process::Command::new(dunce::simplified(executable));
     command
         .args([
             "--headless=new",
@@ -34,14 +38,17 @@ pub async fn launch(
             "--enable-logging=stderr",
             "about:blank",
         ])
-        .arg(format!("--user-data-dir={}", profile.display()))
+        .arg(format!(
+            "--user-data-dir={}",
+            dunce::simplified(profile).display()
+        ))
         .arg(format!(
             "--disk-cache-dir={}",
-            root.path().join(".cache/browser").display()
+            dunce::simplified(&cache).display()
         ))
-        .env("TEMP", root.path().join(".cache/tmp"))
-        .env("TMP", root.path().join(".cache/tmp"))
-        .env("TMPDIR", root.path().join(".cache"))
+        .env("TEMP", dunce::simplified(&temporary))
+        .env("TMP", dunce::simplified(&temporary))
+        .env("TMPDIR", dunce::simplified(&unix_temporary))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::from(stderr))
