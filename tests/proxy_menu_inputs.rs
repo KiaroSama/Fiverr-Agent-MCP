@@ -26,6 +26,7 @@ fn reference_named_proxy_syntax_preserves_credentials_ipv6_and_existing_formats(
     for bad in [
         "socks5://host:0:::Bad",
         "socks5://host:1595:::Bad\u{1b}name",
+        "socks5://host:1595:::Bad\tname",
         "socks4://host:1595:::Bad",
         "http://[::1:80:::Bad",
     ] {

@@ -39,7 +39,7 @@ try {
     $env:TEMP = $temp; $env:TMP = $temp; $env:TMPDIR = $temp
     $env:XDG_CACHE_HOME = Join-Path $root '.cache'
     Write-Event 'DEBUG' 'Rooted child temporary paths configured'
-    $native = if ($Status) { @('status') } elseif ($Preview) { @('preview') } elseif ($SignIn) { @('auth','sign-in') } elseif ($Arguments.Count -gt 0) { $Arguments } else { @('menu') }
+    [string[]]$native = if ($Status) { @('status') } elseif ($Preview) { @('preview') } elseif ($SignIn) { @('auth','sign-in') } elseif ($Arguments.Count -gt 0) { $Arguments } else { @('menu') }
     & $binary --root $root @native
     $code = $LASTEXITCODE
     Write-Event $(if ($code -eq 0) { 'INFO' } else { 'ERROR' }) ('Native process exited with code '+$code)
