@@ -19,6 +19,7 @@ browser = ["dep:chromiumoxide"]
 axum = { version = "=0.8.9", features = ["http1", "tokio"] }
 chrono = { version = "=0.4.45", default-features = false, features = ["clock", "serde"] }
 clap = { version = "=4.6.7", features = ["derive"] }
+dunce = "=1.0.5"
 fs2 = "=0.4.3"
 futures = "=0.3.34"
 percent-encoding = "=2.3.2"

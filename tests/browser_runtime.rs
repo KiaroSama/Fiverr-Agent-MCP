@@ -14,6 +14,17 @@ async fn native_browser_reads_fixed_fixture_without_exposing_credentials() {
         .tempdir_in(workspace)
         .unwrap();
     let root = Root::explicit(&tmp.path().canonicalize().unwrap()).unwrap();
+    #[cfg(windows)]
+    {
+        use std::path::{Component, Prefix};
+        assert!(
+            matches!(root.path().components().next(), Some(Component::Prefix(prefix)) if matches!(prefix.kind(), Prefix::VerbatimDisk(_)))
+        );
+        assert_eq!(
+            std::fs::canonicalize(dunce::simplified(root.path())).unwrap(),
+            root.path()
+        );
+    }
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let page = r#"<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'"><script type="application/json" data-fiverr-fixture>{"page_state":"account","account":{"account_id":"fixture","username":"sample-owner","roles":["buyer","seller"],"observed_at":"2026-10-12T00:00:00Z","source":"fixture","mira_eligible":null}}</script>"#;

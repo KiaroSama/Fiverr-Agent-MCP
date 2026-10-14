@@ -665,6 +665,7 @@ dependencies = [
  "chromiumoxide",
  "chrono",
  "clap",
+ "dunce",
  "fs2",
  "futures",
  "percent-encoding",
