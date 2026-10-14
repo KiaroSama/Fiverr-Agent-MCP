@@ -1,4 +1,6 @@
+pub mod console;
 mod management;
+pub mod menu;
 pub mod registration;
 use crate::{
     core::{ErrorCode, Result, error, invalid},
@@ -9,7 +11,7 @@ use crate::{
 use clap::{Parser, Subcommand};
 use management::*;
 use serde_json::{Value, json};
-use std::{io::IsTerminal, path::PathBuf};
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(
@@ -27,6 +29,7 @@ pub struct Arguments {
 pub enum Command {
     Version,
     Menu,
+    Preview,
     Status,
     Capabilities,
     Doctor,
@@ -209,7 +212,11 @@ pub async fn execute(root: Root, store: Store, command: Command) -> Result<Value
             server::http::run(store, port).await?;
             Ok(Value::Null)
         }
-        Command::Menu => menu(&store),
+        Command::Menu => menu::terminal(&root, &store).await,
+        Command::Preview => {
+            menu::preview(&store, &mut console::Terminal)?;
+            Ok(Value::Null)
+        }
         Command::Status | Command::Doctor => service::dispatch(&store, "fiverr_status", json!({})),
         Command::Capabilities => server::catalog::capabilities(),
         Command::HttpPort { port } => {
@@ -355,34 +362,4 @@ pub async fn execute(root: Root, store: Store, command: Command) -> Result<Value
             service::dispatch(&store, &name, args)
         }
     }
-}
-fn menu(store: &Store) -> Result<Value> {
-    if !std::io::stdin().is_terminal() {
-        return Err(invalid(
-            "Menu requires an interactive terminal; use scriptable commands for automation.",
-        ));
-    }
-    loop {
-        eprintln!(
-            "\nFiverr Agent MCP — Copyright (C) 2026 KiaroSama\nGPL-3.0-only; ABSOLUTELY NO WARRANTY. See LICENSE and THIRD_PARTY_NOTICES.md.\n1 Status\n2 Proxy profiles\n3 Browser/account status\n4 Prepared actions\n5 HTTP configuration\n0 Exit"
-        );
-        let mut choice = String::new();
-        std::io::stdin()
-            .read_line(&mut choice)
-            .map_err(|_| invalid("Menu input failed."))?;
-        let result = match choice.trim() {
-            "0" => break,
-            "1" => service::dispatch(store, "fiverr_status", json!({})),
-            "2" => proxy(store, Proxy::List),
-            "3" => service::account::status(store),
-            "4" => service::actions::list(store),
-            "5" => Ok(json!({"port":Settings::load(store)?.http_port})),
-            _ => Err(invalid("Choose 0-5.")),
-        };
-        match result {
-            Ok(v) => eprintln!("{v}"),
-            Err(e) => eprintln!("{e}"),
-        }
-    }
-    Ok(json!({"menu_closed":true}))
 }

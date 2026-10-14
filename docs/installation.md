@@ -8,6 +8,18 @@ Standard layout: bin/fiverr-agent-mcp.exe (Windows) or bin/fiverr-agent-mcp (Uni
 
 Run `--help`, `--version` or `version` without creating state. `status`, `desktop-config` and `capabilities` are JSON commands. Run.ps1 requires PowerShell7 and performs no compiler/tool installation; run.sh is POSIX. Direct executable startup works without a launcher.
 
+## Launcher menu
+
+Run `run.ps1` on Windows or `run.sh` on Unix, or execute the native binary with `menu`. The native menu follows the Agensi/Upwork console layout: bright cyan heading/numbers, green default/success, yellow warnings, red errors and readable connection/proxy/account summaries. `NO_COLOR` or `TERM=dumb` disables color; redirected preview is plain text.
+
+The main menu exposes proxy selection/import/addition, explicit direct/block, Sign in, client registration, local-proxy settings/activation, local HTTP startup/port and diagnostics. Account/browser and workspace submenus expose the existing account status, browser configuration, actions, backup, logs, diagnostics export, cache inspection and HTTP settings. Destructive or authority-changing operations retain their existing owner-terminal consent and prerequisites. Starting HTTP occupies this terminal until stopped.
+
+`run.ps1 -Preview` prints the menu without waiting for input; `-Status` prints JSON; `-SignIn` invokes the same gated native sign-in command. Existing native arguments are still accepted, but launcher switches cannot be combined. Windows PowerShell forwards once to installed PowerShell7; no dependency is installed automatically. Paths resolve relative to the installation, not the caller's directory. Enter selects proxy selection; `0`/`back` cancels a form, `quit`/`exit` closes the main menu and EOF exits without applying a default action.
+
+Proxy import accepts the existing URL and `Label | URL` formats plus the reference `scheme://host:port:username:password:label` form (IPv6 in brackets). Prefer standard percent-encoded URLs when fields contain separators. Imports remain bounded to256KiB/100profiles, validate all lines and preserve the active route. Reimporting the same name/endpoint skips it; a conflicting name cancels the transaction. Proxy URLs typed in the menu are hidden; credentials never appear in summaries, command arguments or logs. Keep real lists private.
+
+**Sign in is not yet connected account access.** Unlike the reference services, no supported Fiverr MCP/OAuth endpoint, integration token grant or approved account contract has been verified. Selecting Sign in reports the exact routing/configuration/access prerequisite; it never reports a saved session from a website link, cookie copy or fixture. The requested real integration remains incomplete, rather than being replaced with a cosmetic login button.
+
 ## Stdio runtime
 
 Configure an absolute executable command and args `["bridge"]`. No HTTP listener is required. `desktop-config` generates the real installation paths plus TEMP/TMP/TMPDIR/XDG_CACHE_HOME. The public Windows example has the owner's requested sample installation path; regenerate it for another directory. Unix clients use the corresponding native executable, not PowerShell or a Node shim.

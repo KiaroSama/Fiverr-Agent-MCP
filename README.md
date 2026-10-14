@@ -70,6 +70,12 @@ Local Streamable HTTP, separately started:
 
 The listener defaults to `http://127.0.0.1:1597/mcp`. Token protection is on by default. Export authorization only through the explicit interactive owner CLI; never put it in a URL, argument, issue or screenshot. Both transports use the official SDK and the same service validation. [Installation](docs/installation.md) covers Unix, client formats and port settings.
 
+## Launcher
+
+`run.ps1` opens the native management menu on Windows (`run.sh` on Unix). Its Agensi/Upwork-style palette and layout provide proxy import/selection/addition, explicit direct/block, Sign in, MCP registration, local-proxy settings, HTTP startup/port, diagnostics and account/workspace submenus. `run.ps1 -Preview` is non-interactive; `-Status` remains JSON. Hidden proxy input and plain redirected/NO_COLOR output are supported. See [launcher controls](docs/installation.md#launcher-menu).
+
+The Sign in entry does **not** claim a connected Fiverr session: an approved Fiverr access/authentication contract remains unverified. This is not the OAuth connection provided by the reference services.
+
 ## What exists
 
 - Account-scoped SQLite local drafts/imports/history, bounded search/pagination, snapshots, reminders and JSON/CSV/Markdown/HTML exports. Imported data is not a live refresh; an empty local collection is not an empty Fiverr account.

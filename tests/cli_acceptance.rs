@@ -361,16 +361,15 @@ async fn file_based_proxy_and_action_commands_are_atomic_and_sanitized() {
         .await["imported"],
         1
     );
-    assert!(
-        cli::execute(
-            store.root.clone(),
-            store.clone(),
+    assert_eq!(
+        run(
+            &store,
             Command::Proxy {
                 command: Proxy::Import { file: imported }
             }
         )
-        .await
-        .is_err()
+        .await["imported"],
+        0
     );
     let edited = input(&store, "edit.txt", b"http://127.0.0.1:1999");
     assert_eq!(

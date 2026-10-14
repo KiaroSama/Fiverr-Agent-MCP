@@ -42,9 +42,10 @@ async fn real_owner_terminal_accepts_explicit_consent_and_keeps_model_routes_sep
     let temp = tempfile::tempdir().unwrap();
     let root = Root::explicit(&temp.path().canonicalize().unwrap()).unwrap();
     let store = Store::open(root.clone()).unwrap();
-    let output = terminal(&root, &["menu"], b"1\n2\n3\n4\n5\ninvalid\n0\n").await;
+    let output = terminal(&root, &["menu"], b"1\n14\n2\n13\n12\ninvalid\n0\n").await;
     assert!(output.contains("menu_closed"));
-    assert!(output.contains("Choose 0-5"));
+    assert!(output.contains("Choose 1-15"));
+    assert!(output.contains("Sign in to Fiverr"));
     let decline = terminal(&root, &["direct"], b"n\n").await;
     assert!(decline.contains("Owner declined"));
     assert_eq!(
