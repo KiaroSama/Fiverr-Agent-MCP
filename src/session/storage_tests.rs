@@ -111,6 +111,29 @@ fn session_missing_or_wrong_schema_and_failed_commits_never_reset_evidence() {
         .execute("UPDATE session SET metadata=x'ffff'", [])
         .unwrap();
     assert!(storage::load(&store).is_err());
+    for operation in ["replace", "record", "forget"] {
+        let (_tmp, store, path) = setup();
+        let connection = Connection::open(path).unwrap();
+        connection
+            .execute_batch(
+                "DROP TABLE session; CREATE TABLE session(id INTEGER PRIMARY KEY,metadata,cookie);",
+            )
+            .unwrap();
+        connection
+            .execute("INSERT INTO session VALUES(1,x'ffff',NULL)", [])
+            .unwrap();
+        let state = initial(
+            &Settings::load(&store).unwrap(),
+            "extension",
+            "fixture_owner",
+        );
+        let result = match operation {
+            "replace" => storage::replace(&store, state, None),
+            "record" => storage::record(&store, 1, "account_observed"),
+            _ => storage::forget(&store),
+        };
+        assert!(result.is_err());
+    }
     let tmp = tempfile::tempdir().unwrap();
     let store = Store::open(crate::storage::Root::explicit(tmp.path()).unwrap()).unwrap();
     let path = store

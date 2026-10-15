@@ -181,6 +181,22 @@ async fn actual_session_cli_and_native_frames_preserve_secret_boundary() {
         true
     );
     drop(stdin);
+    let output = tokio::time::timeout(
+        Duration::from_secs(10),
+        tokio::process::Command::new(&exe)
+            .arg(&caller)
+            .stdin(Stdio::null())
+            .kill_on_drop(true)
+            .output(),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(output.status.success());
+    assert_eq!(
+        serde_json::from_slice::<Value>(&output.stdout[4..]).unwrap()["ok"],
+        false
+    );
     assert!(
         command(root.path(), &["session", "forget"], None)
             .await
