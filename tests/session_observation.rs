@@ -30,6 +30,19 @@ fn identity_requires_positive_management_navigation_and_exact_account() {
     ] {
         assert!(observe_html(page.as_bytes(), "fixture_owner").is_err());
     }
+    for href in [
+        "http://[",
+        "https://www.fiverr.com/sellers/fixture_owner/edit?x=1",
+        "/sellers/bad.name/edit",
+    ] {
+        assert!(
+            observe_html(
+                PAGE.replace("/sellers/fixture_owner/edit", href).as_bytes(),
+                "fixture_owner"
+            )
+            .is_err()
+        );
+    }
     let ambiguous = PAGE.replace("</nav>", "<a href='/sellers/other/edit'>Other</a></nav>");
     assert!(observe_html(ambiguous.as_bytes(), "fixture_owner").is_err());
 }

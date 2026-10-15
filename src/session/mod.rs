@@ -3,6 +3,8 @@ pub mod native;
 pub mod observation;
 mod storage;
 #[cfg(test)]
+mod storage_tests;
+#[cfg(test)]
 mod wire_tests;
 
 use crate::{

@@ -43,6 +43,12 @@ fn malformed_cookie_and_username_do_not_replace_saved_session() {
     let temp = tempfile::tempdir().unwrap();
     let root = Root::explicit(temp.path()).unwrap();
     let store = Store::open(root.clone()).unwrap();
+    let bad_utf8 = root.safe_path("config", "invalid-utf8.txt").unwrap();
+    root.write_new(&bad_utf8, &[0xff]).unwrap();
+    assert!(session::import_cookie(&store, &bad_utf8, "fixture_owner").is_err());
+    assert!(
+        session::import_cookie(&store, &root.path().join("missing.txt"), "fixture_owner").is_err()
+    );
     let good = root.safe_path("config", "good.txt").unwrap();
     root.write_new(&good, b"session=synthetic-original")
         .unwrap();
