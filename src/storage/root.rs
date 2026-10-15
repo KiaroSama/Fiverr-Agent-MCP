@@ -124,14 +124,23 @@ impl Root {
             .map_err(|_| storage_error())
     }
     pub fn assert_owned(&self, path: &Path) -> Result<()> {
-        if !path.starts_with(&self.0) {
+        // Windows canonical roots use verbatim disk prefixes; owner input may not.
+        // Simplify only safe spellings, without resolving traversal or links.
+        let (lexical_path, lexical_root) = if path.starts_with(&self.0) {
+            (path, self.0.as_path())
+        } else {
+            (dunce::simplified(path), dunce::simplified(&self.0))
+        };
+        if !lexical_path.starts_with(lexical_root) {
             return Err(error(
                 ErrorCode::FilePolicyViolation,
                 "Path is outside the installation root.",
             ));
         }
-        let relative = path.strip_prefix(&self.0).map_err(|_| storage_error())?;
-        let lexical = relative.to_string_lossy();
+        let relative = lexical_path
+            .strip_prefix(lexical_root)
+            .map_err(|_| storage_error())?;
+        let lexical = path.to_string_lossy();
         if lexical
             .split(['/', '\\'])
             .any(|part| part == "." || part == "..")

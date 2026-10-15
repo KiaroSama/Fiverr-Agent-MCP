@@ -74,7 +74,7 @@ The listener defaults to `http://127.0.0.1:1597/mcp`. Token protection is on by 
 
 `run.ps1` opens the native management menu on Windows (`run.sh` on Unix). Its Agensi/Upwork-style palette and layout provide proxy import/selection/addition, explicit direct/block, Sign in, MCP registration, local-proxy settings, HTTP startup/port, diagnostics and account/workspace submenus. `run.ps1 -Preview` is non-interactive; `-Status` remains JSON. Hidden proxy input and plain redirected/NO_COLOR output are supported. See [launcher controls](docs/installation.md#launcher-menu).
 
-The Sign in entry does **not** claim a connected Fiverr session: an approved Fiverr access/authentication contract remains unverified. This is not the OAuth connection provided by the reference services.
+The Sign in entry is explicitly **unavailable**: no verified Fiverr integration/authentication adapter is implemented. Changing the route does not enable login. This is not the OAuth connection provided by the reference services.
 
 ## What exists
 
