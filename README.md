@@ -87,7 +87,7 @@ The full [capability inventory](capabilities.json) gives each requested workflow
 
 ## Account access is currently gated
 
-Manual credentials/challenges remain with the human. A configured browser and local account name do not authenticate this server. Managed sign-in fails closed while strict browser routing is unverified. Typed fixture observations and dedicated profile locks are infrastructure, not proof of current Fiverr selectors or account access.
+Menu option 6 supports two explicit owner-selected session methods: private local cookie-file import with selected-route verification, and a bundled user-gesture browser extension/native account-observation bridge. Saved credentials are not authentication; positive account evidence must match the expected username and expires after five minutes. Extension DOM observations are not independent server authentication. See [authentication/setup](docs/authentication.md) and [extension installation](extension/README.md). A configured browser, local account name or passing synthetic fixture does not prove live Fiverr access. Automation permission and strict browser routing remain unverified.
 
 No official comprehensive Fiverr account API/OAuth/MCP was verified. Fiverr's current Terms restrict automated access; owning an account is not platform permission. [Platform research](docs/research/platform-access.md) and [authentication](docs/authentication.md) explain the prerequisites. No CAPTCHA bypass, anti-detection, cookie extraction, arbitrary JavaScript/CDP/shell/URL proxy, mass messaging or automatic financial actions.
 

@@ -2,6 +2,7 @@ pub mod console;
 mod management;
 pub mod menu;
 pub mod registration;
+pub mod session;
 use crate::{
     core::{ErrorCode, Result, error, invalid},
     network::{Mode, Settings, profiles},
@@ -66,6 +67,14 @@ pub enum Command {
     },
     Direct,
     Block,
+    Session {
+        #[command(subcommand)]
+        command: session::Session,
+    },
+    #[command(hide = true)]
+    NativeSession {
+        caller: String,
+    },
     Auth {
         #[command(subcommand)]
         command: Auth,
@@ -269,9 +278,23 @@ pub async fn execute(root: Root, store: Store, command: Command) -> Result<Value
                 json!({"mode":"blocked","generation_changed":true,"active_work":"cooperative generation cancellation within 50ms; no remote write adapter dispatched"}),
             )
         }
+        Command::Session { command } => session::execute(&store, command).await,
+        Command::NativeSession { caller } => crate::session::native::run(&store, &caller).await,
         Command::Auth {
             command: Auth::SignIn,
-        } => crate::browser::sign_in(&store).await,
+        } => {
+            use std::io::IsTerminal;
+            if !std::io::stdin().is_terminal() {
+                return Err(error(
+                    ErrorCode::HumanActionRequired,
+                    "Sign-in requires an interactive owner terminal; use session import/verify or extension-pair explicitly.",
+                ));
+            }
+            let Some(command) = session::menu(&root, &mut console::Terminal)? else {
+                return Ok(Value::Null);
+            };
+            Box::pin(execute(root, store, command)).await
+        }
         Command::Auth {
             command: Auth::Status,
         } => service::account::status(&store),
@@ -280,10 +303,7 @@ pub async fn execute(root: Root, store: Store, command: Command) -> Result<Value
         } => service::account::handoff("remote_logout", &json!({})),
         Command::Auth {
             command: Auth::RemoveLocalSession,
-        } => Err(error(
-            ErrorCode::HumanActionRequired,
-            "No app-managed authenticated session exists. Do not delete browser profiles/drafts as logout.",
-        )),
+        } => crate::session::forget(&store),
         Command::Browser {
             command: Browser::Status,
         } => crate::browser::status(&store),

@@ -71,7 +71,11 @@ fn preview_has_reference_layout_all_management_actions_and_no_secret_values() {
     assert!(!screen.output.contains("{\""));
     assert!(!screen.output.contains("ABSOLUTELY NO WARRANTY"));
     assert!(!screen.output.contains("GPL-3.0-only"));
-    assert!(screen.output.contains("Sign in to Fiverr (unavailable)"));
+    assert!(
+        screen
+            .output
+            .contains("Sign in to Fiverr (cookie / browser extension)")
+    );
 }
 #[tokio::test]
 async fn menu_eof_invalid_back_and_quit_preserve_settings() {
@@ -113,15 +117,11 @@ async fn reference_named_import_selection_local_proxy_and_port_are_real_transact
 #[tokio::test]
 async fn login_never_reports_connected_and_error_does_not_close_menu() {
     let (_temp, root, store) = workspace();
-    let mut screen = Screen::script("6\n14\n2\n13\n12\nexit\n");
+    let mut screen = Screen::script("6\nback\n14\n2\n13\n12\nexit\n");
     menu::run(&root, &store, &mut screen).await.unwrap();
-    assert!(screen.output.contains("Sign-in unavailable"));
+    assert!(screen.output.contains("Import local cookie file"));
     assert!(!screen.output.contains("ROUTE_BLOCKED"));
-    assert!(
-        screen
-            .output
-            .contains("Changing the route does not enable connected sign-in")
-    );
+    assert!(screen.output.contains("Pair logged-in browser extension"));
     assert!(screen.output.contains("Not connected"));
     assert!(!screen.output.contains("Sign-in complete"));
     assert!(screen.output.contains("Route configuration"));
@@ -134,7 +134,7 @@ async fn all_existing_workspace_and_account_forms_preserve_authority_and_report_
         "3\nOwner\nhttp://127.0.0.1:1596\n1\n99\n",
         "4\n7\nmissing-client.json\n",
         "8\n\n8\ninvalid\n11\nnot-a-port\n11\n0\n",
-        "14\n1\n14\n3\nmissing-browser\n14\n4\n14\n5\n14\n99\n",
+        "14\n1\nback\n14\n3\nmissing-browser\n14\n4\n14\n5\n14\n99\n",
         "15\n1\n15\n2\nfixture.sqlite3\n15\n3\nfixture.sqlite3\n",
         "15\n2\nfixture.sqlite3\n3\n\nhttp://127.0.0.1:1596\n",
         "15\n4\nfixture.sqlite3\n15\n5\n15\n6\nfixture.json\n",

@@ -120,6 +120,7 @@ impl Settings {
 pub struct RouteClient {
     store: Store,
     generation: u64,
+    account: String,
     client: reqwest::Client,
 }
 impl RouteClient {
@@ -169,12 +170,16 @@ impl RouteClient {
         Ok(Self {
             store,
             generation: settings.route_generation,
+            account: settings.account_id,
             client,
         })
     }
     pub fn check(&self) -> Result<()> {
         let current = Settings::load(&self.store)?;
-        if current.mode == Mode::Blocked || current.route_generation != self.generation {
+        if current.mode == Mode::Blocked
+            || current.route_generation != self.generation
+            || current.account_id != self.account
+        {
             return Err(error(
                 ErrorCode::RouteBlocked,
                 "Route changed or blocked; request cancelled, recreate the client.",
@@ -193,12 +198,47 @@ impl RouteClient {
     }
     pub async fn get(&self, url: Url) -> Result<Vec<u8>> {
         approved_destination(&url)?;
-        self.get_inner(url).await
+        self.get_inner(url, None).await
     }
-    async fn get_inner(&self, url: Url) -> Result<Vec<u8>> {
+    pub(crate) async fn session_page(
+        &self,
+        cookie: &str,
+        generation: u64,
+        account: &str,
+    ) -> Result<Vec<u8>> {
+        if self.generation != generation || Settings::load(&self.store)?.account_id != account {
+            return Err(error(
+                ErrorCode::RouteBlocked,
+                "Session route/account binding changed before dispatch.",
+            ));
+        }
+        let mut header = reqwest::header::HeaderValue::from_str(cookie)
+            .map_err(|_| invalid("Invalid local cookie header."))?;
+        header.set_sensitive(true);
+        let url = Url::parse(crate::session::observation::MANAGEMENT_URL)
+            .map_err(|_| invalid("Invalid fixed account URL."))?;
+        approved_destination(&url)?;
+        self.get_inner(url, Some(header)).await
+    }
+    #[cfg(test)]
+    pub(crate) async fn fixture_session_page(&self, url: Url, cookie: &str) -> Result<Vec<u8>> {
+        let mut header = reqwest::header::HeaderValue::from_str(cookie)
+            .map_err(|_| invalid("Invalid fixture header."))?;
+        header.set_sensitive(true);
+        self.get_inner(url, Some(header)).await
+    }
+    async fn get_inner(
+        &self,
+        url: Url,
+        cookie: Option<reqwest::header::HeaderValue>,
+    ) -> Result<Vec<u8>> {
         self.check()?;
         let request = async {
-            let response = self.client.get(url).send().await.map_err(|_| {
+            let mut builder = self.client.get(url);
+            if let Some(cookie) = cookie {
+                builder = builder.header(reqwest::header::COOKIE, cookie);
+            }
+            let response = builder.send().await.map_err(|_| {
                 error(
                     ErrorCode::ProxyUnreachable,
                     "Selected-route request failed; no direct fallback or replay occurred.",
@@ -263,7 +303,7 @@ impl RouteClient {
     // Only local wire fixtures can inject an origin; release tools cannot choose a base URL.
     #[cfg(test)]
     pub(crate) async fn fixture_get(&self, url: Url) -> Result<Vec<u8>> {
-        self.get_inner(url).await
+        self.get_inner(url, None).await
     }
 }
 pub fn approved_destination(url: &Url) -> Result<()> {

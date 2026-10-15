@@ -4,14 +4,28 @@ use fiverr_agent_mcp::{
     storage::{Root, Store, logging::Logger},
 };
 fn main() {
-    let arguments = Arguments::parse();
+    let native_caller = std::env::args()
+        .nth(1)
+        .filter(|s| s.starts_with("chrome-extension://"));
+    let arguments = if let Some(caller) = native_caller {
+        // Native messaging has its own binary framing; never send clap/menu text to stdout.
+        Arguments {
+            root: None,
+            command: Some(Command::NativeSession { caller }),
+        }
+    } else {
+        Arguments::parse()
+    };
     if matches!(arguments.command, Some(Command::Version)) {
         println!("fiverr-agent-mcp {}", env!("CARGO_PKG_VERSION"));
         return;
     }
     let command = arguments.command.unwrap_or(Command::Menu);
-    let bridge = matches!(&command, Command::Bridge);
-    let long = matches!(&command, Command::Bridge | Command::Http { .. });
+    let bridge = matches!(&command, Command::Bridge | Command::NativeSession { .. });
+    let long = matches!(
+        &command,
+        Command::Bridge | Command::NativeSession { .. } | Command::Http { .. }
+    );
     let result = (|| {
         let root = Root::discover(arguments.root.as_deref())?;
         if let Some(code) = fiverr_agent_mcp::bootstrap::rooted_process(&root)? {
@@ -38,7 +52,13 @@ fn main() {
             .enable_all()
             .build()
             .map_err(|_| fiverr_agent_mcp::core::storage_error())?;
+        let native = matches!(&command, Command::NativeSession { .. });
         let result = runtime.block_on(fiverr_agent_mcp::cli::execute(root, store, command));
+        if native {
+            // Tokio stdin uses a blocking reader; EOF may never arrive from Chrome.
+            // The process exits after one frame, without waiting on that reader thread.
+            runtime.shutdown_timeout(std::time::Duration::ZERO);
+        }
         match &result {
             Ok(_) => logger.event(
                 "INFO",

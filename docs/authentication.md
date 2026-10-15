@@ -1,29 +1,61 @@
 # Authentication and account scope
 
-## Current state
+## Two owner-selected session methods
 
-Live authentication is not implemented/verified. Account/session tools report prerequisites and `live_authenticated:false`; they must not be interpreted as a successful login. `auth sign-in` refuses blocked routing, then missing browser, then unverified strict browser assurance. It does not launch an uncontrolled browser or collect passwords/cookies. `fiverr_auth_start` provides a clearly incomplete human handoff.
+Menu option 6 and `auth sign-in` open the session menu. Choose local cookie-file import or pair the bundled browser extension. These are unofficial session adapters, not a Fiverr OAuth grant. Neither enables remote writes or establishes Fiverr automation permission. Live Fiverr compatibility has not been verified with an owner account.
 
-The owner confirmed an account-backed product with manual sign-in and narrow typed operations. Local functionality alone does not fulfill that requirement. Live readiness remains blocked on permitted current platform interfaces, verified routing/containment and an owner session; this limitation is not waived by a fixture test.
+### Local cookie file
 
-## Launcher Sign in
+1. Create a private text file under the installation, for example `config/session-input.txt`, containing only your own Cookie header value. Do not include `Cookie:`, a trailing newline or exported JSON. Never send that file or value to an assistant. The app validates ASCII cookie pairs, duplicate names, control characters and the 16 KiB maximum.
+2. Select your intended route in the launcher. Cookie verification uses only that route, verified TLS and the fixed `https://www.fiverr.com/users/manage_gigs` page. No redirect, endpoint guessing, direct fallback or proxy rotation occurs.
+3. Import using your expected username:
 
-The main menu and `run.ps1 -SignIn` expose the same native `auth sign-in` path. The owner requested the saved, verified integration-session behavior of Agensi/Upwork, not merely a website link. Those reference services have distinct remote MCP/OAuth contracts; no equivalent first-party Fiverr contract was verified in the current research. Copying their callback/token code or changing their hostname would not produce valid Fiverr authentication. The entry therefore remains visibly gated and never claims a connected account. This requested integration is unfinished.
+```bash
+bin/fiverr-agent-mcp session import config/session-input.txt your_username
+```
 
-## Human workflow
+Relative input paths resolve against the installation in both CLI and menu; absolute paths must remain inside that installation.
 
-Open the official Fiverr site in an owner-controlled browser through the intended route. Enter credentials, 2FA and challenges yourself. Verify the intended account and role before acting. Do not expose credential fields, sessions, tokens, CSRF data or browser debugging endpoints to an assistant. Identity verification may require a separate official manual process; the server must not silently bypass proxy policy.
+```bash
+bin/fiverr-agent-mcp session verify
+```
 
-## Dedicated infrastructure
+A saved cookie is `credential_saved`, not authentication. Verification requires positive management-page markup, one account-navigation username matching the expected account, and a same-origin logout link. A 200 response or empty page is insufficient. Signed-out, challenge, rate-limit, account mismatch and route failures remain explicit errors. Current live markup may differ; a changed page fails closed.
 
-Configured browser executable must be an existing absolute file. Profiles are installation-owned, not personal/system profiles. ProfileLease uses an OS file lock: concurrent ownership fails, process release unlocks it, stale-looking files are not blindly deleted. Typed AccountObservation decoding checks account ID, roles, observation time and source, refuses signed-out/expired/challenge/changed schemas, and never switches account automatically.
+### Logged-in browser extension
 
-Controlled browser fixture extraction uses a fixed-purpose JSON marker, local loopback page and literal internal script. It is not a current Fiverr selector, permission grant, or production endpoint override. No arbitrary JS/CDP/cookie extraction is exposed through MCP.
+Load the bundled `extension/` directory as an unpacked Chromium MV3 extension. It requires only `activeTab`, `scripting` and `nativeMessaging`; no cookie access or network interception. See [extension setup](../extension/README.md) for manual host registration on each supported desktop browser.
 
-## Logout distinctions
+```bash
+bin/fiverr-agent-mcp session extension-pair abcdefghijklmnopabcdefghijklmnop your_username
+```
 
-Remote logout is a manual official-site handoff. Local profile removal is separate and currently refused rather than recursively deleting user files. Drafts/imports are not authentication state. Do not erase drafts or unrelated profiles to fix an expired session.
+Replace the example extension ID with the exact ID displayed by your browser.
 
-## Remaining acceptance
+```bash
+bin/fiverr-agent-mcp session extension-manifest
+```
 
-Real managed manual login, safe account read, expiration/challenge behavior, role/entitlement evidence and strict browser network enforcement still require implementation and approved live validation. No real message, delivery or financial transaction is sent solely to make tests green.
+Run manifest generation from the installed `bin` executable. It writes a private manifest allowing only the paired extension origin, and never changes registry/browser settings automatically. Existing different manifests are preserved for review. In your already signed-in Fiverr management tab, click the extension and request the account observation. No password, cookie or message body leaves the browser. The Rust host validates the caller, bounded message schema, exact HTTPS authority/path and expected account.
+
+Extension observations report `account_observed:true`, but `live_authenticated:false`: DOM evidence is untrusted and is not independent server authentication. Browser networking remains operator-managed/unverified, separate from native HTTP route settings. The app does not navigate that browser or certify its egress. Native caller arguments are not cryptographic authentication against another same-user local process.
+
+## Status, freshness and removal
+
+```bash
+bin/fiverr-agent-mcp session status
+```
+
+```bash
+bin/fiverr-agent-mcp session forget
+```
+
+Selecting import or extension pairing explicitly replaces the selected local session mode; errors never switch it automatically. Account/route changes invalidate observations. Successful observations expire after 300 seconds. Status includes mode, expected username, state, observation time/freshness, native/browser route distinction and unverified automation permission, never raw credentials. `fiverr_account_get` and `fiverr_session_status` expose this sanitized summary; no MCP tool imports cookies or pairs an extension.
+
+Credentials reside in a separately protected SQLite store under `.state/browser`, outside workspace backups/exports. This is private filesystem storage, not application-level encryption. Forget clears the app's credential and observation, not your original input file, browser session or remote account. SQLite secure deletion does not promise forensic erasure on SSDs, backups or journal recovery. Protect/remove your original cookie file yourself when no longer needed. Do not include private input or session files in support attachments.
+
+Remote logout remains a manual official-site action. No recursive browser-profile or draft deletion occurs. The existing dedicated browser fixture infrastructure is distinct from this owner-operated extension.
+
+## Verification limits
+
+Native CI must exercise import/status/forget, routing failures, private backup exclusion, account/URL/schema guards, native binary framing and the exact extension extractor against synthetic browser fixtures. Those tests are not live Fiverr authentication, a loaded-extension/browser registration test, platform permission, strict whole-browser containment or real client acceptance. No live credentials belong in public CI. Real messages, deliveries or financial transactions are never sent just to obtain a passing test.

@@ -54,6 +54,7 @@ pub fn report(input: &str, output: &str) -> Result<()> {
             "src/core/",
             "src/storage/",
             "src/network/",
+            "src/session/",
             "src/service/actions.rs",
             "src/service/bindings.rs",
             "src/server/http.rs",
