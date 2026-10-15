@@ -270,18 +270,18 @@ fn actual_menu_exercises_every_main_option_with_hidden_input_consent_and_failure
     menu.choose("1");
     menu.send("Proxy number [0] {back=0, quit=exit}: ", "2");
     menu.expect("Operation complete");
-    assert_eq!(state(&store).mode, Mode::Proxy);
+    assert!(state(&store).mode == Mode::Proxy);
     menu.choose("4");
     menu.send("[y/N]: ", "n");
     menu.expect("Owner declined");
-    assert_eq!(state(&store).mode, Mode::Proxy);
+    assert!(state(&store).mode == Mode::Proxy);
     menu.choose("4");
     menu.send("[y/N]: ", "y");
     menu.expect("Operation complete");
-    assert_eq!(state(&store).mode, Mode::Direct);
+    assert!(state(&store).mode == Mode::Direct);
     menu.choose("5");
     menu.expect("Operation complete");
-    assert_eq!(state(&store).mode, Mode::Blocked);
+    assert!(state(&store).mode == Mode::Blocked);
     menu.choose("6");
     menu.expect("Sign-in unavailable");
     menu.choose("7");
@@ -300,10 +300,10 @@ fn actual_menu_exercises_every_main_option_with_hidden_input_consent_and_failure
         "http://127.0.0.1:1599",
     );
     menu.expect("Local proxy settings saved");
-    assert_eq!(state(&store).mode, Mode::Blocked);
+    assert!(state(&store).mode == Mode::Blocked);
     menu.choose("9");
     menu.expect("Operation complete");
-    assert_eq!(state(&store).mode, Mode::Proxy);
+    assert!(state(&store).mode == Mode::Proxy);
     menu.choose("11");
     menu.send(
         "Local HTTP port [1597] {back=0, quit=exit}: ",
@@ -427,7 +427,7 @@ fn actual_menu_exercises_all_account_and_workspace_submenu_operations() {
             _ => {
                 menu.send("[y/N]: ", "y");
                 menu.expect("Operation complete");
-                assert_eq!(state(&store).mode, Mode::Blocked);
+                assert!(state(&store).mode == Mode::Blocked);
                 assert!(state(&store).browser_executable.is_none());
             }
         }
