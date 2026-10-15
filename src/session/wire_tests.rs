@@ -52,6 +52,25 @@ async fn changed_route_cannot_receive_an_old_session_cookie() {
         ErrorCode::RouteBlocked
     );
     let current = Settings::load(&store).unwrap();
+    assert!(
+        client
+            .session_page(
+                "invalid\r\nheader",
+                current.route_generation,
+                &current.account_id
+            )
+            .await
+            .is_err()
+    );
+    assert!(
+        client
+            .fixture_session_page(
+                url::Url::parse("http://127.0.0.1/").unwrap(),
+                "invalid\r\nheader"
+            )
+            .await
+            .is_err()
+    );
     assert_eq!(
         client
             .session_page("session=synthetic", current.route_generation, "other")

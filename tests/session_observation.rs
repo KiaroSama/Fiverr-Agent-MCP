@@ -50,6 +50,10 @@ fn identity_requires_positive_management_navigation_and_exact_account() {
 fn native_observations_reject_untrusted_shapes_and_urls() {
     let valid = r#"{"type":"account_observation","url":"https://www.fiverr.com/users/manage_gigs","username":"fixture_owner","management":true,"logout":true}"#;
     let observation: Observation = serde_json::from_str(valid).unwrap();
+    let mut malformed = observation.clone();
+    malformed.url = "not a URL".into();
+    assert!(malformed.validate("fixture_owner").is_err());
+    assert!(observation.validate("bad.name").is_err());
     observation.validate("fixture_owner").unwrap();
     for url in [
         "http://www.fiverr.com/users/manage_gigs",
