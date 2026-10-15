@@ -69,6 +69,9 @@ fn preview_has_reference_layout_all_management_actions_and_no_secret_values() {
     assert!(!screen.output.contains("fixture-password"));
     assert!(!screen.output.contains("fixture-user"));
     assert!(!screen.output.contains("{\""));
+    assert!(!screen.output.contains("ABSOLUTELY NO WARRANTY"));
+    assert!(!screen.output.contains("GPL-3.0-only"));
+    assert!(screen.output.contains("Sign in to Fiverr (unavailable)"));
 }
 #[tokio::test]
 async fn menu_eof_invalid_back_and_quit_preserve_settings() {
@@ -112,7 +115,13 @@ async fn login_never_reports_connected_and_error_does_not_close_menu() {
     let (_temp, root, store) = workspace();
     let mut screen = Screen::script("6\n14\n2\n13\n12\nexit\n");
     menu::run(&root, &store, &mut screen).await.unwrap();
-    assert!(screen.output.contains("ROUTE_BLOCKED"));
+    assert!(screen.output.contains("Sign-in unavailable"));
+    assert!(!screen.output.contains("ROUTE_BLOCKED"));
+    assert!(
+        screen
+            .output
+            .contains("Changing the route does not enable connected sign-in")
+    );
     assert!(screen.output.contains("Not connected"));
     assert!(!screen.output.contains("Sign-in complete"));
     assert!(screen.output.contains("Route configuration"));

@@ -10,7 +10,7 @@ const ITEMS: &[&str] = &[
     "Add one proxy",
     "Direct connection (explicit)",
     "Block connections",
-    "Sign in to Fiverr",
+    "Sign in to Fiverr (unavailable)",
     "Register MCP in your client",
     "Local proxy settings (default port 1595)",
     "Select local proxy from settings",
@@ -50,10 +50,6 @@ pub fn preview(store: &Store, screen: &mut impl Console) -> Result<()> {
     screen.write(
         "  Account: Not connected | Live Fiverr access: not verified\n",
         Style::Warning,
-    )?;
-    screen.write(
-        "  GPL-3.0-only; ABSOLUTELY NO WARRANTY. See LICENSE.\n",
-        Style::Muted,
     )?;
     screen.write("\nFiverr Main menu:\n", Style::Accent)?;
     for (i, item) in ITEMS.iter().enumerate() {
@@ -232,15 +228,17 @@ fn select(store: &Store, screen: &mut impl Console) -> Result<Option<Command>> {
         command: Proxy::Select { id: p.id.clone() },
     }))
 }
+fn sign_in_unavailable(screen: &mut impl Console) -> Result<Option<Command>> {
+    screen.write("Sign-in unavailable: no verified Fiverr integration/auth adapter is implemented. Changing the route does not enable connected sign-in. No browser was opened and no account connection was created.\n", Style::Warning)?;
+    Ok(None)
+}
 async fn browser(root: &Root, screen: &mut impl Console) -> Result<Option<Command>> {
-    screen.write("\nAccount and browser:\n  1. Sign in to Fiverr\n  2. Account status\n  3. Configure browser executable\n  4. Browser status\n  5. Logout (manual handoff)\n", Style::Accent)?;
+    screen.write("\nAccount and browser:\n  1. Sign in to Fiverr (unavailable)\n  2. Account status\n  3. Configure browser executable\n  4. Browser status\n  5. Logout (manual handoff)\n", Style::Accent)?;
     let Some(pick) = ask(screen, "Selection", "0", false)? else {
         return Ok(None);
     };
     Ok(Some(match pick.as_str() {
-        "1" => Command::Auth {
-            command: Auth::SignIn,
-        },
+        "1" => return sign_in_unavailable(screen),
         "2" => Command::Auth {
             command: Auth::Status,
         },
@@ -334,39 +332,82 @@ pub async fn run(root: &Root, store: &Store, screen: &mut impl Console) -> Resul
         } else {
             choice.as_str()
         };
-        let outcome: Result<Option<Command>> = async { Ok(match choice {
-            "1" => select(store, screen)?,
-            "2" => ask(screen, "Proxy list path", "Proxy list.txt", false)?.map(|p| Command::Proxy { command: Proxy::Import { file: path(root, &p) } }),
-            "3" => {
-                let Some(label) = ask(screen, "Profile name", "", false)? else { return Ok(None) };
-                let Some(url) = ask(screen, "Proxy URL (hidden; encoded credentials)", "", true)? else { return Ok(None) };
-                management::add_proxy(store, label, &url)?;
-                screen.write("Proxy saved; route unchanged.\n", Style::Success)?;
-                None
-            },
-            "4" => Some(Command::Direct), "5" => Some(Command::Block),
-            "6" => {
-                screen.write("Connected sign-in requires a verified Fiverr service/auth contract. A website link is not an integration token.\n", Style::Warning)?;
-                Some(Command::Auth { command: Auth::SignIn })
-            },
-            "7" => ask(screen, "Existing client JSON configuration path", "", false)?.map(|p| Command::Register { file: path(root, &p) }),
-            "8" => {
-                let Some(url) = ask(screen, "Local proxy URL (hidden; Enter keeps current)", "keep", true)? else { return Ok(None) };
-                if url != "keep" { management::set_local_proxy(store, &url)?; }
-                screen.write("Local proxy settings saved; use option 9 to select.\n", Style::Success)?;
-                None
-            },
-            "9" => Some(Command::LocalProxy { command: LocalProxy::Select }),
-            "10" => Some(Command::Http { port: None }),
-            "11" => {
-                let current = Settings::load(store)?.http_port.to_string();
-                let Some(port) = ask(screen, "Local HTTP port", &current, false)? else { return Ok(None) };
-                Some(Command::HttpPort { port: port.parse().map_err(|_| invalid("HTTP port must be 1-65535."))? })
-            },
-            "12" => Some(Command::Doctor), "13" => Some(Command::Proxy { command: Proxy::Test }),
-            "14" => browser(root, screen).await?, "15" => workspace(screen).await?,
-            _ => return Err(invalid("Choose 1-15, or quit/exit.")),
-        }) }.await;
+        let outcome: Result<Option<Command>> =
+            async {
+                Ok(match choice {
+                    "1" => select(store, screen)?,
+                    "2" => ask(screen, "Proxy list path", "Proxy list.txt", false)?.map(|p| {
+                        Command::Proxy {
+                            command: Proxy::Import {
+                                file: path(root, &p),
+                            },
+                        }
+                    }),
+                    "3" => {
+                        let Some(label) = ask(screen, "Profile name", "", false)? else {
+                            return Ok(None);
+                        };
+                        let Some(url) =
+                            ask(screen, "Proxy URL (hidden; encoded credentials)", "", true)?
+                        else {
+                            return Ok(None);
+                        };
+                        management::add_proxy(store, label, &url)?;
+                        screen.write("Proxy saved; route unchanged.\n", Style::Success)?;
+                        None
+                    }
+                    "4" => Some(Command::Direct),
+                    "5" => Some(Command::Block),
+                    "6" => sign_in_unavailable(screen)?,
+                    "7" => ask(screen, "Existing client JSON configuration path", "", false)?.map(
+                        |p| Command::Register {
+                            file: path(root, &p),
+                        },
+                    ),
+                    "8" => {
+                        let Some(url) = ask(
+                            screen,
+                            "Local proxy URL (hidden; Enter keeps current)",
+                            "keep",
+                            true,
+                        )?
+                        else {
+                            return Ok(None);
+                        };
+                        if url != "keep" {
+                            management::set_local_proxy(store, &url)?;
+                        }
+                        screen.write(
+                            "Local proxy settings saved; use option 9 to select.\n",
+                            Style::Success,
+                        )?;
+                        None
+                    }
+                    "9" => Some(Command::LocalProxy {
+                        command: LocalProxy::Select,
+                    }),
+                    "10" => Some(Command::Http { port: None }),
+                    "11" => {
+                        let current = Settings::load(store)?.http_port.to_string();
+                        let Some(port) = ask(screen, "Local HTTP port", &current, false)? else {
+                            return Ok(None);
+                        };
+                        Some(Command::HttpPort {
+                            port: port
+                                .parse()
+                                .map_err(|_| invalid("HTTP port must be 1-65535."))?,
+                        })
+                    }
+                    "12" => Some(Command::Doctor),
+                    "13" => Some(Command::Proxy {
+                        command: Proxy::Test,
+                    }),
+                    "14" => browser(root, screen).await?,
+                    "15" => workspace(screen).await?,
+                    _ => return Err(invalid("Choose 1-15, or quit/exit.")),
+                })
+            }
+            .await;
         let outcome = match outcome {
             Ok(Some(command)) => invoke(root, store, command).await.map(Some),
             Ok(None) => Ok(None),
