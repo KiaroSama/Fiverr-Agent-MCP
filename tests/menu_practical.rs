@@ -86,8 +86,57 @@ impl Menu {
     }
     fn send(&mut self, prompt: &str, input: &str) {
         self.expect(prompt);
+        if prompt.contains("(hidden") {
+            self.wait_for_hidden_input();
+        }
         writeln!(self.child.stdin.as_mut().unwrap(), "{input}").unwrap();
         self.child.stdin.as_mut().unwrap().flush().unwrap();
+    }
+    fn wait_for_hidden_input(&self) {
+        // The prompt is flushed before rpassword disables ECHO. Observe termios,
+        // not an arbitrary delay, before forwarding synthetic credentials.
+        let device = format!("/proc/{}/fd/0", self.session_pid.unwrap());
+        let deadline = self.deadline.min(Instant::now() + Duration::from_secs(2));
+        loop {
+            let mut check = Command::new("/bin/stty")
+                .args(["-F", &device, "-a"])
+                .env("LC_ALL", "C")
+                .stdin(Stdio::null())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::null())
+                .spawn()
+                .unwrap();
+            let status = loop {
+                if let Some(status) = check.try_wait().unwrap() {
+                    break status;
+                }
+                if Instant::now() >= deadline {
+                    let _ = check.kill();
+                    let _ = check.wait();
+                    panic!("PTY echo inspection deadline exceeded");
+                }
+                std::thread::sleep(Duration::from_millis(2));
+            };
+            let mut output = String::new();
+            check
+                .stdout
+                .take()
+                .unwrap()
+                .read_to_string(&mut output)
+                .unwrap();
+            assert!(status.success(), "Cannot inspect owned PTY echo state");
+            if output
+                .split_whitespace()
+                .any(|flag| flag.trim_end_matches(';') == "-echo")
+            {
+                return;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "Hidden input did not disable echo"
+            );
+            std::thread::sleep(Duration::from_millis(2));
+        }
     }
     fn choose(&mut self, value: &str) {
         self.expect("Selection [1] {quit=exit}: ");
@@ -114,9 +163,16 @@ impl Menu {
         self.expect("\"menu_closed\": true");
         // Pipe EOF and child exit are separate signals; both must arrive before the deadline.
         loop {
+            assert!(
+                Instant::now() < self.deadline,
+                "Menu output exceeded wall deadline"
+            );
             let remaining = self.deadline.saturating_duration_since(Instant::now());
             match self.output.recv_timeout(remaining) {
-                Ok(bytes) => self.text.push_str(std::str::from_utf8(&bytes).unwrap()),
+                Ok(bytes) => {
+                    self.text.push_str(std::str::from_utf8(&bytes).unwrap());
+                    assert!(self.text.len() < 256 * 1024, "Unbounded exit output");
+                }
                 Err(mpsc::RecvTimeoutError::Disconnected) => break,
                 Err(mpsc::RecvTimeoutError::Timeout) => panic!("Menu output did not close"),
             }
