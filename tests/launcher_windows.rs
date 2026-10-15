@@ -9,12 +9,15 @@ async fn launch(root: &std::path::Path, arguments: &[&str]) -> std::process::Out
         .args(arguments)
         .current_dir(root.join("elsewhere"))
         .env("NO_COLOR", "1")
+        .envs(fiverr_agent_mcp::bootstrap::environment(
+            &fiverr_agent_mcp::storage::Root::explicit(root).unwrap(),
+        ))
         .stdin(Stdio::null())
         .kill_on_drop(true);
     command.creation_flags(0x08000000);
     tokio::time::timeout(Duration::from_secs(10), command.output())
         .await
-        .unwrap()
+        .unwrap_or_else(|_| panic!("Launcher deadline exceeded for {arguments:?}"))
         .unwrap()
 }
 #[tokio::test]

@@ -127,6 +127,33 @@ async fn actual_session_cli_and_native_frames_preserve_secret_boundary() {
     )
     .unwrap();
     assert_eq!(manifest["allowed_origins"], json!([caller.clone()]));
+    let output = tokio::time::timeout(
+        Duration::from_secs(10),
+        tokio::process::Command::new(&exe)
+            .args(["session", "extension-manifest"])
+            .stdin(Stdio::null())
+            .kill_on_drop(true)
+            .output(),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(output.status.success());
+    let manifest_path = root.path().join("config/com.fiverr_agent_mcp.session.json");
+    std::fs::write(&manifest_path, b"{}").unwrap();
+    let output = tokio::time::timeout(
+        Duration::from_secs(10),
+        tokio::process::Command::new(&exe)
+            .args(["session", "extension-manifest"])
+            .stdin(Stdio::null())
+            .kill_on_drop(true)
+            .output(),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(!output.status.success());
+    assert_eq!(std::fs::read(&manifest_path).unwrap(), b"{}");
     let mut host = tokio::process::Command::new(&exe)
         .arg(&caller)
         .stdin(Stdio::piped())

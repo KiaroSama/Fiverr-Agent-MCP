@@ -33,7 +33,7 @@ fn connection(root: &Root) -> Result<Connection> {
     connection
         .busy_timeout(Duration::from_secs(3))
         .map_err(|_| storage_error())?;
-    connection.execute_batch("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA secure_delete=ON; CREATE TABLE IF NOT EXISTS session (id INTEGER PRIMARY KEY CHECK(id=1), metadata TEXT NOT NULL, cookie TEXT);").map_err(|_| storage_error())?;
+    connection.execute_batch("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA secure_delete=ON; PRAGMA foreign_keys=ON; PRAGMA trusted_schema=OFF; CREATE TABLE IF NOT EXISTS session (id INTEGER PRIMARY KEY CHECK(id=1), metadata TEXT NOT NULL, cookie TEXT);").map_err(|_| storage_error())?;
     Ok(connection)
 }
 pub(super) fn load(store: &Store) -> Result<Option<(State, Option<String>)>> {

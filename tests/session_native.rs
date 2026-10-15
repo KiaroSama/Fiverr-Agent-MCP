@@ -43,6 +43,25 @@ fn paired_native_observation_is_account_bound_and_never_cookie_authentication() 
     assert!(native::pair(&store, "invalid", "fixture_owner").is_err());
     assert!(native::pair(&store, ID, "../invalid").is_err());
 }
+#[test]
+fn native_pairing_and_receive_never_cross_mode_account_or_route_boundaries() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = Store::open(Root::explicit(temp.path()).unwrap()).unwrap();
+    let caller = format!("chrome-extension://{ID}/");
+    assert!(native::receive(&store, &caller, b"{}").is_err());
+    assert!(native::manifest(&store).is_err());
+    native::pair(&store, ID, "fixture_owner").unwrap();
+    fiverr_agent_mcp::network::Settings::change(&store, true, |_| Ok(())).unwrap();
+    assert!(native::receive(&store, &caller, b"{}").is_err());
+    let file = store.root.safe_path("config", "cookie.txt").unwrap();
+    store
+        .root
+        .write_new(&file, b"session=synthetic-mode")
+        .unwrap();
+    session::import_cookie(&store, &file, "fixture_owner").unwrap();
+    assert!(native::receive(&store, &caller, b"{}").is_err());
+    assert!(native::manifest(&store).is_err());
+}
 #[tokio::test(start_paused = true)]
 async fn native_frame_deadlines_and_invalid_lengths_fail_closed() {
     let (_sender, mut receiver) = tokio::io::duplex(32);
@@ -92,6 +111,13 @@ async fn native_length_framing_is_exact_bounded_and_rejects_eof() {
     assert!(native::read_frame(&mut receiver).await.is_err());
     sender.shutdown().await.unwrap();
     assert!(native::read_frame(&mut receiver).await.is_err());
+    let (mut writer, reader) = tokio::io::duplex(1024);
+    drop(reader);
+    assert!(
+        native::write_frame(&mut writer, &json!({"ok":false}))
+            .await
+            .is_err()
+    );
     let mut output = [0; 1];
     assert_eq!(receiver.read(&mut output).await.unwrap(), 0);
 }
