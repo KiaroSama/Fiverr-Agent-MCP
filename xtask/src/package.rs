@@ -30,6 +30,17 @@ fn public_payload(root: &Path) -> Result<Files> {
     for name in REQUIRED {
         files.insert(name.to_owned(), validate::regular(root, name)?);
     }
+    for name in [
+        "manifest.json",
+        "popup.html",
+        "popup.css",
+        "popup.js",
+        "observation.js",
+        "README.md",
+    ] {
+        let path = format!("extension/{name}");
+        files.insert(path.clone(), validate::regular(root, &path)?);
+    }
     for directory in [
         "docs",
         "third_party",

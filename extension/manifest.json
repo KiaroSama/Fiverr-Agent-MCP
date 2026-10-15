@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Fiverr Agent MCP Session Observation",
+  "version": "0.1.0",
+  "description": "Send one owner-requested Fiverr account observation to the paired local native host. Not OAuth.",
+  "permissions": ["activeTab", "scripting", "nativeMessaging"],
+  "action": {
+    "default_title": "Observe Fiverr account",
+    "default_popup": "popup.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+  }
+}

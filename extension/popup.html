@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fiverr session observation</title>
+  <link rel="stylesheet" href="popup.css">
+  <script type="module" src="popup.js"></script>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Fiverr Agent MCP · Unofficial</p>
+    <h1>Observe your account</h1>
+    <p>Open your signed-in Fiverr gig-management page, then send a one-time observation to your paired local app.</p>
+    <button id="connect" type="button" aria-describedby="privacy">Connect this tab</button>
+    <p id="status" role="status" aria-live="polite" aria-atomic="true">Not connected. No observation sent.</p>
+    <p id="privacy" class="note">Browser observation, not OAuth or proof of account ownership. Page content is untrusted. No cookies, tokens, messages, or page bodies are read or sent. No background scanning.</p>
+    <p class="note">Pair this extension ID with your expected username in the owner CLI first. Keep this popup open until a result appears.</p>
+  </main>
+</body>
+</html>

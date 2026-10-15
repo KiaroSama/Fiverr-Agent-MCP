@@ -43,7 +43,7 @@ pub fn dispatch(store: &Store, name: &str, args: Value) -> Result<Value> {
     crate::server::validation::arguments(name, &args)?;
     match name {
         "fiverr_status" | "fiverr_health" => Ok(envelope(
-            json!({"alive":true,"version":env!("CARGO_PKG_VERSION"),"route":Settings::load(store)?.sanitized(),"live_verified":false}),
+            json!({"alive":true,"version":env!("CARGO_PKG_VERSION"),"route":Settings::load(store)?.sanitized(),"session":crate::session::status(store)?,"live_verified":false}),
             json!({"source":"local_runtime"}),
         )),
         "fiverr_capabilities" | "fiverr_account_capabilities" => Ok(envelope(

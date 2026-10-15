@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$Target,[Parameter(Mandatory)][string]$Sha)
+param([Parameter(Mandatory)][string]$Target,[Parameter(Mandatory)][string]$Sha,[switch]$ValidationOnly)
 $ErrorActionPreference='Stop'
 [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
 $root=Split-Path $PSScriptRoot -Parent
@@ -43,6 +43,10 @@ if ($IsLinux) {
     Owned 1200 240 cargo @('nextest','run','--locked','--workspace','--all-features','--profile','ci','--test-threads','2','--no-tests','fail','--no-fail-fast')
 }
 Owned 300 90 cargo @('test','--locked','--workspace','--doc','--all-features','--jobs','2')
+if ($ValidationOnly) {
+    Write-Output 'Source/test validation completed. Final native build/package/activation blocked: approved signing inputs are not configured.'
+    return
+}
 Owned 1800 300 cargo @('build','--locked','--release','--package','fiverr-agent-mcp','--jobs','2')
 $binary=Join-Path $env:CARGO_TARGET_DIR ('release/fiverr-agent-mcp'+$(if($IsWindows){'.exe'}else{''}))
 if ($IsWindows) {

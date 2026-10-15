@@ -250,14 +250,19 @@ async fn owner_management_commands_preserve_other_state_and_refuse_model_consent
         .await["data"]["completed"],
         false
     );
-    for command in [
-        Command::Auth {
-            command: Auth::RemoveLocalSession,
-        },
-        Command::Auth {
-            command: Auth::SignIn,
-        },
-    ] {
+    assert_eq!(
+        run(
+            &store,
+            Command::Auth {
+                command: Auth::RemoveLocalSession
+            }
+        )
+        .await["configured"],
+        false
+    );
+    for command in [Command::Auth {
+        command: Auth::SignIn,
+    }] {
         assert!(
             cli::execute(store.root.clone(), store.clone(), command)
                 .await

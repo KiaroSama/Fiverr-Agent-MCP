@@ -6,9 +6,10 @@ use crate::{
 use serde_json::{Value, json};
 pub fn status(store: &Store) -> Result<Value> {
     let settings = Settings::load(store)?;
+    let session = crate::session::status(store)?;
     Ok(envelope(
-        json!({"workspace_account":settings.account_id,"live_authenticated":false,"session":"not_verified","browser_configured":settings.browser_executable.is_some(),"roles":"unknown","mira_eligibility":"unknown","human_sign_in_required":true,"permission_required":true,"route_assurance":"not_verified"}),
-        json!({"source":"local_settings","live_verified":false}),
+        json!({"workspace_account":settings.account_id,"live_authenticated":session["live_authenticated"],"session":session,"browser_configured":settings.browser_executable.is_some(),"roles":"unknown","mira_eligibility":"unknown","human_sign_in_required":true,"permission_required":true,"route_assurance":"not_verified"}),
+        json!({"source":"local_session_status","live_verified":false}),
     ))
 }
 pub fn handoff(operation: &str, args: &Value) -> Result<Value> {

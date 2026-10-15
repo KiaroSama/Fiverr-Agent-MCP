@@ -1,5 +1,7 @@
 # Architecture and interfaces
 
+Session adapters live in `src/session/`: separate private transactional persistence, fixed selected-route cookie read, bounded account-page parser and one-message native host. CLI owns import/pair/forget, while MCP only receives sanitized status. The extension is a minimal necessary browser API adapter; Rust owns validation and storage. It cannot issue arbitrary JS/HTTP/CDP or grant automation permission. Session state is outside workspace backup and route/account/revision-fenced. Caller origin is a browser allowlist, not cryptographic local-process identity.
+
 One Rust application crate plus one Rust xtask crate. No business runtime wrapper. Core holds stable errors, validated IDs/provenance and exact Money. Storage adapts installation-owned files/SQLite. Network owns route/profile policy. Browser owns configured lifecycle, profile leases and narrow observations. Services own local workflows/action preparation/analysis. Server adapts official rmcp stdio/HTTP. CLI owns terminal-only route/registration/approval controls.
 
 Both MCP transports call the same dispatch/advertised argument validation and domain validators. Dynamic tools contain only implemented local/manual functions; capability inventory separately lists unsupported dedicated platform operations. Tools return data/warnings/provenance or stable error code/message; schemas/annotations are hints, not authorization. Resources expose scoped records/actions and local policy/capabilities; the only prompt adapts the existing licensed optimizer.

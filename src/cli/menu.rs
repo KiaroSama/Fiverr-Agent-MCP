@@ -10,7 +10,7 @@ const ITEMS: &[&str] = &[
     "Add one proxy",
     "Direct connection (explicit)",
     "Block connections",
-    "Sign in to Fiverr (unavailable)",
+    "Sign in to Fiverr (cookie / browser extension)",
     "Register MCP in your client",
     "Local proxy settings (default port 1595)",
     "Select local proxy from settings",
@@ -47,8 +47,18 @@ pub fn preview(store: &Store, screen: &mut impl Console) -> Result<()> {
         ),
         Style::Plain,
     )?;
+    let session = crate::session::status(store)?;
+    let state = session["state"].as_str().unwrap_or("not_configured");
     screen.write(
-        "  Account: Not connected | Live Fiverr access: not verified\n",
+        &format!(
+            "  Account: {} | Session: {} | Automation permission: not verified\n",
+            if session["account_observed"] == true {
+                "Observed"
+            } else {
+                "Not connected"
+            },
+            safe_text(state)
+        ),
         Style::Warning,
     )?;
     screen.write("\nFiverr Main menu:\n", Style::Accent)?;
@@ -62,7 +72,7 @@ pub fn preview(store: &Store, screen: &mut impl Console) -> Result<()> {
         Style::Muted,
     )
 }
-fn ask(
+pub(super) fn ask(
     screen: &mut impl Console,
     label: &str,
     default: &str,
@@ -88,7 +98,7 @@ fn ask(
         input.to_owned()
     }))
 }
-fn path(root: &Root, input: &str) -> std::path::PathBuf {
+pub(super) fn path(root: &Root, input: &str) -> std::path::PathBuf {
     let input = input.trim();
     let input = if input.len() >= 2
         && ((input.starts_with('"') && input.ends_with('"'))
@@ -134,8 +144,31 @@ fn result(screen: &mut impl Console, value: &Value) -> Result<()> {
             Style::Warning,
         );
     }
+    if let Some(state) = data.get("state").and_then(Value::as_str) {
+        return screen.write(
+            &format!(
+                "Session: {}. Account observed: {}. Automation permission: not verified.\n",
+                safe_text(state),
+                data["account_observed"] == true
+            ),
+            Style::Warning,
+        );
+    }
     if data.get("live_authenticated").is_some() || data.get("live_verified").is_some() {
-        return screen.write("Local runtime available. Account: Not connected; live Fiverr access is not verified.\n", Style::Warning);
+        let observed = data
+            .get("session")
+            .is_some_and(|s| s["account_observed"] == true);
+        return screen.write(
+            &format!(
+                "Local runtime available. Account: {}; automation permission is not verified.\n",
+                if observed {
+                    "Observed"
+                } else {
+                    "Not connected"
+                }
+            ),
+            Style::Warning,
+        );
     }
     if data.get("mode") == Some(&json!("manual_handoff")) {
         return screen.write(
@@ -228,17 +261,13 @@ fn select(store: &Store, screen: &mut impl Console) -> Result<Option<Command>> {
         command: Proxy::Select { id: p.id.clone() },
     }))
 }
-fn sign_in_unavailable(screen: &mut impl Console) -> Result<Option<Command>> {
-    screen.write("Sign-in unavailable: no verified Fiverr integration/auth adapter is implemented. Changing the route does not enable connected sign-in. No browser was opened and no account connection was created.\n", Style::Warning)?;
-    Ok(None)
-}
 async fn browser(root: &Root, screen: &mut impl Console) -> Result<Option<Command>> {
-    screen.write("\nAccount and browser:\n  1. Sign in to Fiverr (unavailable)\n  2. Account status\n  3. Configure browser executable\n  4. Browser status\n  5. Logout (manual handoff)\n", Style::Accent)?;
+    screen.write("\nAccount and browser:\n  1. Sign in to Fiverr (cookie / browser extension)\n  2. Account status\n  3. Configure browser executable\n  4. Browser status\n  5. Logout (manual handoff)\n", Style::Accent)?;
     let Some(pick) = ask(screen, "Selection", "0", false)? else {
         return Ok(None);
     };
     Ok(Some(match pick.as_str() {
-        "1" => return sign_in_unavailable(screen),
+        "1" => return session::menu(root, screen),
         "2" => Command::Auth {
             command: Auth::Status,
         },
@@ -358,7 +387,7 @@ pub async fn run(root: &Root, store: &Store, screen: &mut impl Console) -> Resul
                     }
                     "4" => Some(Command::Direct),
                     "5" => Some(Command::Block),
-                    "6" => sign_in_unavailable(screen)?,
+                    "6" => session::menu(root, screen)?,
                     "7" => ask(screen, "Existing client JSON configuration path", "", false)?.map(
                         |p| Command::Register {
                             file: path(root, &p),

@@ -52,7 +52,7 @@ async fn real_windows_launcher_handles_missing_binary_modes_root_and_plain_previ
     assert_eq!(value["data"]["route"]["mode"], "blocked");
     let signin = launch(root, &["-SignIn"]).await;
     assert_eq!(signin.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&signin.stderr).contains("ROUTE_BLOCKED"));
+    assert!(String::from_utf8_lossy(&signin.stderr).contains("HUMAN_ACTION_REQUIRED"));
     assert_eq!(
         launch(root, &["-Status", "-Preview"]).await.status.code(),
         Some(1)

@@ -282,8 +282,48 @@ fn actual_menu_exercises_every_main_option_with_hidden_input_consent_and_failure
     menu.choose("5");
     menu.expect("Operation complete");
     assert!(state(&store).mode == Mode::Blocked);
+    let cookie = root.safe_path("config", "session-input.txt").unwrap();
+    root.write_new(&cookie, b"session=synthetic-menu-private")
+        .unwrap();
     menu.choose("6");
-    menu.expect("Sign-in unavailable");
+    menu.send("Session action [0] {back=0, quit=exit}: ", "1");
+    menu.send(
+        "Private cookie file path [] {back=0, quit=exit}: ",
+        "config/session-input.txt",
+    );
+    menu.send(
+        "Expected Fiverr username [] {back=0, quit=exit}: ",
+        "fixture_owner",
+    );
+    menu.expect("Session: credential_saved");
+    menu.choose("6");
+    menu.send("Session action [0] {back=0, quit=exit}: ", "2");
+    menu.expect("ROUTE_BLOCKED");
+    menu.choose("6");
+    menu.send("Session action [0] {back=0, quit=exit}: ", "3");
+    menu.send(
+        "Extension ID from browser [] {back=0, quit=exit}: ",
+        "abcdefghijklmnopabcdefghijklmnop",
+    );
+    menu.send(
+        "Expected Fiverr username [] {back=0, quit=exit}: ",
+        "fixture_owner",
+    );
+    menu.expect("Session: extension_paired");
+    menu.choose("6");
+    menu.send("Session action [0] {back=0, quit=exit}: ", "4");
+    menu.expect("FILE_POLICY_VIOLATION"); // test binary is outside this temporary installation
+    menu.choose("6");
+    menu.send("Session action [0] {back=0, quit=exit}: ", "5");
+    menu.expect("Session: extension_paired");
+    menu.choose("6");
+    menu.send("Session action [0] {back=0, quit=exit}: ", "6");
+    menu.expect("Session: not_configured");
+    assert!(
+        !fiverr_agent_mcp::session::status(&store).unwrap()["configured"]
+            .as_bool()
+            .unwrap()
+    );
     menu.choose("7");
     menu.send(
         "Existing client JSON configuration path [] {back=0, quit=exit}: ",
@@ -381,7 +421,6 @@ fn actual_menu_exercises_all_account_and_workspace_submenu_operations() {
     let store = Store::open(root.clone()).unwrap();
     let mut menu = Menu::start(&root);
     for (choice, expected) in [
-        ("1", "Sign-in unavailable"),
         ("2", "Not connected"),
         ("4", "Browser configured: false"),
         ("5", "Manual handoff only"),
@@ -390,6 +429,9 @@ fn actual_menu_exercises_all_account_and_workspace_submenu_operations() {
         menu.send("Selection [0] {back=0, quit=exit}: ", choice);
         menu.expect(expected);
     }
+    menu.choose("14");
+    menu.send("Selection [0] {back=0, quit=exit}: ", "1");
+    menu.send("Session action [0] {back=0, quit=exit}: ", "back");
     menu.choose("14");
     menu.send("Selection [0] {back=0, quit=exit}: ", "3");
     menu.send(
