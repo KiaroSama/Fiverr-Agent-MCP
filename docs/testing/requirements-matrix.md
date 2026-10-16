@@ -13,7 +13,9 @@ Status below is authored versus outstanding, not executed evidence. Every named 
 | FR011,012,016 | actions/bindings, owner CLI | actions.rs/file primitives | Executing/unknown remote dispatch/reconciliation, all file/approval scope races |
 | FR017 | licensed analysis/helper/skill/locks/notices | analysis.rs literal goldens | Native runtime and actual host skill loading |
 | FR018,019 | plugin/client manifests, registration/CLI/launchers | manifest/package/CLI | Full launcher/menu/registration concurrent failure tests and actual client schemas/loading |
-| FR020,021 | native CI/xtask/release/source/license | four-native matrix/package/security | Exact successful CI/source SHA/release;90/95coverage,fuzz,mutation not measured |
+| FR020,021 | native CI/xtask/release/source/license | four-native validation, signed Windows package/security | Source `db42d38` met90/95 line targets and caught two selected mutants; full coverage-guided fuzzing/mutation, other-platform signed packages and GitHub Release publication remain separate |
 | FR022,023 | public research/reference pins, local tracker routing | primary-source reads/static validation | Sources stay version-specific; local tracking not public issue generation |
+| FR024,025 | session/, owner CLI/menu, extension/native host | session credentials/HTML/wire/storage/CLI/PTY/JS fixtures | Live Fiverr compatibility, loaded-extension registration and platform permission remain unverified |
+| FR026 | public signing policy, Windows signing/package CI | pinned CMS/PE digest, tamper/revision/wrong-signer rejection, exact installed artifact | Windows private-trust delivery verified on `db42d38`; public CA trust and other-platform signing are not supplied |
 
 SC001 requires actual native package/roundtrip evidence. SC002 requires honest dispositions, not every unsupported tool becoming a stub. SC003 requires zero prohibited operations in negative cases. SC004 binds actual runs/assets to exact source SHA. SC005 keeps human credentials private and fixtures separate from live data. Full completion remains blocked by unperformed required acceptance, even if an experimental local package passes CI.
