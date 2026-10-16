@@ -2,7 +2,7 @@
 
 ## Two owner-selected session methods
 
-Menu option 6 and `auth sign-in` open the session menu. Choose local cookie-file import or pair the bundled browser extension. These are unofficial session adapters, not a Fiverr OAuth grant. Neither enables remote writes or establishes Fiverr automation permission. Live Fiverr compatibility has not been verified with an owner account.
+Menu option 6 and `auth sign-in` open the session menu. Headings/numbers use the existing cyan accent, action text is plain, privacy qualifications are yellow and the back/exit hint is muted; color-disabled output remains readable. Choose local cookie-file import or pair the bundled browser extension. These are unofficial session adapters, not a Fiverr OAuth grant. Neither enables remote writes or establishes Fiverr automation permission. Live Fiverr compatibility has not been verified with an owner account.
 
 ### Local cookie file
 

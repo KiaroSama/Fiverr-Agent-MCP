@@ -11,6 +11,7 @@ struct Screen {
     input: VecDeque<String>,
     output: String,
     styles: Vec<Style>,
+    writes: Vec<(String, Style)>,
 }
 impl Screen {
     fn script(input: &str) -> Self {
@@ -24,6 +25,7 @@ impl Console for Screen {
     fn write(&mut self, text: &str, style: Style) -> fiverr_agent_mcp::core::Result<()> {
         self.output.push_str(text);
         self.styles.push(style);
+        self.writes.push((text.to_owned(), style));
         Ok(())
     }
     fn read(&mut self, _secret: bool) -> fiverr_agent_mcp::core::Result<Option<String>> {
@@ -125,6 +127,49 @@ async fn login_never_reports_connected_and_error_does_not_close_menu() {
     assert!(screen.output.contains("Not connected"));
     assert!(!screen.output.contains("Sign-in complete"));
     assert!(screen.output.contains("Route configuration"));
+}
+#[tokio::test]
+async fn session_menu_uses_number_label_and_warning_styles_without_changing_actions() {
+    let (_temp, root, store) = workspace();
+    let mut screen = Screen::script("6\nback\nexit\n");
+    menu::run(&root, &store, &mut screen).await.unwrap();
+    let start = screen
+        .writes
+        .iter()
+        .position(|(text, _)| text == "\nFiverr session:\n")
+        .expect("session heading must be separate from its actions");
+    assert_eq!(screen.writes[start].1, Style::Accent);
+    let actions = [
+        "Import local cookie file (never paste cookies into chat)",
+        "Verify imported cookie using selected route",
+        "Pair logged-in browser extension",
+        "Generate native host manifest",
+        "Session status",
+        "Forget local session (not remote logout)",
+    ];
+    for (index, action) in actions.iter().enumerate() {
+        let offset = start + 1 + index * 3;
+        assert_eq!(
+            screen.writes[offset],
+            (format!("  {}. ", index + 1), Style::Accent)
+        );
+        assert_eq!(
+            screen.writes[offset + 1],
+            (action.to_string(), Style::Plain)
+        );
+        assert_eq!(screen.writes[offset + 2], ("\n".to_owned(), Style::Plain));
+    }
+    assert_eq!(
+        screen.writes[start + 19],
+        ("\n  Saved cookies are not verified login; extension observations are not authentication.\n".to_owned(), Style::Warning)
+    );
+    assert_eq!(
+        screen.writes[start + 20],
+        ("  back=0 | quit/exit=close\n".to_owned(), Style::Muted)
+    );
+    assert!(screen.output.contains("Session action [0]"));
+    assert!(!screen.output.contains('\u{1b}'));
+    assert!(Settings::load(&store).unwrap().profiles.is_empty());
 }
 #[tokio::test]
 async fn all_existing_workspace_and_account_forms_preserve_authority_and_report_errors() {
