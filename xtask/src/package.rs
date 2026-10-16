@@ -229,6 +229,19 @@ fn licenses(root: &Path, target: &str) -> Result<Files> {
             );
             found += 1;
         }
+        if found == 0 && name == "selectors" && version == "0.38.0" {
+            let bytes = validate::regular(root, "third_party/selectors/LICENSE-MPL-2.0")?;
+            if validate::digest(&bytes)
+                != "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85"
+            {
+                return Err("pinned selectors license hash mismatch".into());
+            }
+            files.insert(
+                format!("licenses/dependencies/{name}-{version}/LICENSE-MPL-2.0"),
+                bytes,
+            );
+            found += 1;
+        }
         if found == 0 {
             return Err(format!("no distributable license text for {name}-{version}").into());
         }

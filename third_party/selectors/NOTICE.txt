@@ -1,0 +1,10 @@
+selectors 0.38.0 — The Servo Project Developers
+
+Registry package declares MPL-2.0 but omits a license text file.
+Exact package source: https://github.com/servo/stylo/tree/572ecba2d1600e7c3d490586692a209faf703baa/selectors
+Revision/path verified from the package's .cargo_vcs_info.json.
+The unmodified official Mozilla Public License 2.0 text is retained as LICENSE-MPL-2.0.
+Source: https://www.mozilla.org/media/MPL/2.0/index.815ca599c9df.txt
+Checked: 2026-10-16. SHA256: fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85
+
+No selectors source was modified. Corresponding source is available at the exact upstream revision above and from the selectors 0.38.0 registry package; Cargo.lock records the package checksum. Preserve MPL notices and source availability when distributing the linked application.
