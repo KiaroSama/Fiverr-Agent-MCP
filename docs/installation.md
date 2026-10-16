@@ -2,11 +2,15 @@
 
 ## Native package
 
-Choose the archive matching Windows x64, Linux x64, macOS ARM64 or macOS Intel. Extract everything, not just the executable. Verify SHA256SUMS and release JSON against the exact source SHA and successful native job. No native archive is verified merely because the source compiles elsewhere.
+Choose a verified archive matching your host. The current signing-enabled delivery path produces Windows x64; Linux/macOS remain source-validation targets until their signing prerequisites are resolved. Extract everything, not just the executable. Verify SHA256SUMS and release JSON against the exact source SHA and successful native job. No native archive is verified merely because the source compiles elsewhere.
 
 Standard layout: bin/fiverr-agent-mcp.exe (Windows) or bin/fiverr-agent-mcp (Unix), fiverr.install.json, launchers, docs, examples, config templates, notices and dependency licenses. The executable derives the root from bin/marker. For an explicit nonstandard installation, supply global `--root` with an existing absolute writable directory. Relative roots, linked/reparse ancestors, unsupported marker and read-only storage fail rather than fall back to OS temp.
 
 Run `--help`, `--version` or `version` without creating state. `status`, `desktop-config` and `capabilities` are JSON commands. Run.ps1 requires PowerShell7 and performs no compiler/tool installation; run.sh is POSIX. Direct executable startup works without a launcher.
+
+## Windows signing and trust
+
+The Windows executable uses the owner-authorized self-signed `KiaroSama` code-signing identity. Public certificate and SHA256 pin are in `config/signing-public.json`. Verify signature integrity and the expected signer as well as package hashes. A self-signed certificate is not publicly trusted and does not guarantee removal of Windows/SmartScreen warnings. Do not install it into a trusted-root store merely to suppress a warning; this project does not do so automatically. The native `version` command includes publisher and source identity. Private keys/passwords are never shipped.
 
 ## Launcher menu
 
