@@ -1,6 +1,16 @@
 # Verification report
 
-Checked 2026-10-13. Evidence is revision-specific, not a certificate of complete Fiverr access.
+Checked 2026-10-16. Evidence is revision-specific, not a certificate of complete Fiverr access. Older receipts below are historical and do not describe the current installed version unless explicitly stated.
+
+## Session adapters: source validation, delivery blocked
+
+Source `157860fda6b8c2bda75be578139e381bdd5eb6bc` passed [manual CI run38825724789](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/38825724789): Windows167/167, Linux172/172 and both macOS169/169, zero skipped. Linux line coverage measured5161/5544 application (93.09163059163059%) and2697/2838 safety (95.03171247357294%); session modules are included. Both selected validator mutants were caught. Locked dependency advisory/license/source checks passed.
+
+Actual CLI import/verify refusal/forget, six session menu actions, relocated native-host framing/manifest and exact extension extractor/response validation ran with synthetic fixtures. Live Fiverr account/markup, loaded-extension registration and automation permission remain unverified. No local Rust build/application/test ran.
+
+This run deliberately used source/test validation only: final release compilation, distribution packaging, signing, publication and installation did not run because approved signer/key/trust inputs are absent. The installed executable remains the previously accepted `d449754`, SHA256 `ac9979af11707a47d08b9cb729dcf75bbd0a30dc4c666355731ca65e52f92610`, with configuration/private state unchanged. `feature/account-sessions` remains for unfinished signed delivery. Green validation is not a completed signed build.
+
+Subsequent documentation-only corrections carry `[skip ci]`; test evidence belongs to source SHA `157860f`, not an unexecuted documentation SHA.
 
 ## Verified native baseline
 
