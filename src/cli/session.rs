@@ -32,7 +32,27 @@ pub async fn execute(store: &Store, command: Session) -> Result<Value> {
     }
 }
 pub fn menu(root: &Root, screen: &mut impl Console) -> Result<Option<Command>> {
-    screen.write("\nFiverr session:\n  1. Import local cookie file (never paste cookies into chat)\n  2. Verify imported cookie using selected route\n  3. Pair logged-in browser extension\n  4. Generate native host manifest\n  5. Session status\n  6. Forget local session (not remote logout)\n",Style::Accent)?;
+    screen.write("\nFiverr session:\n", Style::Accent)?;
+    for (index, label) in [
+        "Import local cookie file (never paste cookies into chat)",
+        "Verify imported cookie using selected route",
+        "Pair logged-in browser extension",
+        "Generate native host manifest",
+        "Session status",
+        "Forget local session (not remote logout)",
+    ]
+    .iter()
+    .enumerate()
+    {
+        screen.write(&format!("  {}. ", index + 1), Style::Accent)?;
+        screen.write(label, Style::Plain)?;
+        screen.write("\n", Style::Plain)?;
+    }
+    screen.write(
+        "\n  Saved cookies are not verified login; extension observations are not authentication.\n",
+        Style::Warning,
+    )?;
+    screen.write("  back=0 | quit/exit=close\n", Style::Muted)?;
     let Some(choice) = super::menu::ask(screen, "Session action", "0", false)? else {
         return Ok(None);
     };
