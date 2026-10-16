@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       validation_only:
-        description: 'Validate source/tests only; final signed build and delivery remain blocked'
+        description: 'Validate only; false also creates the owner-signed Windows distribution'
         type: boolean
         default: true
 permissions:
@@ -20,6 +20,7 @@ jobs:
     name: native-${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    environment: ${{ matrix.os == 'windows-2025' && 'windows-signing' || 'native-validation' }}
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -65,10 +66,17 @@ jobs:
           NATIVE_TARGET: ${{ matrix.target }}
           VALIDATION_ONLY: ${{ inputs.validation_only }}
         run: |
-          if ($env:VALIDATION_ONLY -ne 'true') { throw 'Final build blocked: approved owner signing inputs and verification are not configured.' }
-          ./scripts/ci-native.ps1 -Target $env:NATIVE_TARGET -Sha $env:SOURCE_SHA -ValidationOnly
+          ./scripts/ci-native.ps1 -Target $env:NATIVE_TARGET -Sha $env:SOURCE_SHA -ValidationOnly:($env:VALIDATION_ONLY -eq 'true')
+      - name: Sign and verify the exact Windows package
+        if: runner.os == 'Windows' && inputs.validation_only != true
+        timeout-minutes: 8
+        env:
+          FIVERR_WINDOWS_PFX_BASE64: ${{ secrets.FIVERR_WINDOWS_PFX_BASE64 }}
+          FIVERR_WINDOWS_PFX_PASSWORD: ${{ secrets.FIVERR_WINDOWS_PFX_PASSWORD }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: ./scripts/ci-package-windows.ps1 -Sha $env:SOURCE_SHA
       - name: Publish verified distribution
-        if: inputs.validation_only != true
+        if: runner.os == 'Windows' && inputs.validation_only != true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: fiverr-${{ matrix.target }}

@@ -17,7 +17,11 @@ fn main() {
         Arguments::parse()
     };
     if matches!(arguments.command, Some(Command::Version)) {
-        println!("fiverr-agent-mcp {}", env!("CARGO_PKG_VERSION"));
+        println!(
+            "fiverr-agent-mcp {} | Publisher: KiaroSama | Source: {}",
+            env!("CARGO_PKG_VERSION"),
+            option_env!("SOURCE_SHA").unwrap_or("development")
+        );
         return;
     }
     let command = arguments.command.unwrap_or(Command::Menu);

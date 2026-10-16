@@ -43,8 +43,8 @@ if ($IsLinux) {
     Owned 1200 240 cargo @('nextest','run','--locked','--workspace','--all-features','--profile','ci','--test-threads','2','--no-tests','fail','--no-fail-fast')
 }
 Owned 300 90 cargo @('test','--locked','--workspace','--doc','--all-features','--jobs','2')
-if ($ValidationOnly) {
-    Write-Output 'Source/test validation completed. Final native build/package/activation blocked: approved signing inputs are not configured.'
+if ($ValidationOnly -or -not $IsWindows) {
+    Write-Output 'Source/test validation completed; this target has no requested signed distribution in this run.'
     return
 }
 Owned 1800 300 cargo @('build','--locked','--release','--package','fiverr-agent-mcp','--jobs','2')
@@ -62,4 +62,4 @@ if ($IsWindows) {
     }
     Remove-Item -LiteralPath $privacyRoot -Recurse -Force
 }
-Owned 300 90 $xtask @('package','--target',$Target,'--sha',$Sha,'--binary',$binary,'--out',(Join-Path $root 'dist'))
+Write-Output 'Windows release compiled; protected signing and package verification follow in the signing step.'

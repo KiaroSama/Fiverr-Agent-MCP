@@ -24,7 +24,7 @@
 ## Install and connect
 
 1. Obtain a native archive for your actual OS/architecture from a successful [CI run](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml), or from [Releases](https://github.com/KiaroSama/Fiverr-Agent-MCP/releases) when a verified release exists. CI artifacts are experimental and expire; a release is not implied. Verify the exact source SHA/checksums and native CI; authored workflows are not release evidence.
-2. Extract the entire archive into a writable directory. Keep bin/, fiverr.install.json, docs/ and notices together. Release users need no Rust, Cargo, Node, npm, Python or uv.
+2. For the current Windows delivery, also verify the pinned self-signed owner signature; see [signing and trust](docs/installation.md#windows-signing-and-trust). This is private cryptographic identity, not public CA trust or a SmartScreen guarantee. Other targets remain validation-only until appropriate signing is available. Extract the entire archive into a writable directory. Keep bin/, fiverr.install.json, docs/ and notices together. Release users need no Rust, Cargo, Node, npm, Python or uv.
 3. Run the extracted binary's `desktop-config` command and merge its `Fiverr-Agent-mcp` entry into your compatible client configuration. Plugin installation, runtime registration and account sign-in are separate operations.
 
 ### Claude Desktop on Windows

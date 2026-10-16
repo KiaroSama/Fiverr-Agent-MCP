@@ -2,7 +2,7 @@
 
 ## Unreleased — 2026-10-16
 
-Added explicit private cookie-file import/selected-route verification and a user-gesture Chromium extension/native account-observation bridge, with session menu/CLI/status/forget and account/route/revision fencing. Native fixture validation passed on source `157860f`; live Fiverr and loaded-extension registration remain unverified. Final signed distribution and installation are blocked until approved signing inputs are configured. Existing installed executable is unchanged.
+Added explicit private cookie-file import/selected-route verification and a user-gesture Chromium extension/native account-observation bridge, with session menu/CLI/status/forget and account/route/revision fencing. Native fixture validation passed on source `157860f`; live Fiverr and loaded-extension registration remain unverified. Owner-authorized project signing key and protected Windows signing inputs are now provisioned. Windows full CI signs and verifies the pinned self-signed identity before packaging; public OS trust is not claimed. Other-platform signing and actual installation evidence remain revision-specific.
 
 ## 0.1.0 — experimental source, 2026-10-12
 

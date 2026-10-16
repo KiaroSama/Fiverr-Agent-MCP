@@ -30,6 +30,10 @@ fn public_payload(root: &Path) -> Result<Files> {
     for name in REQUIRED {
         files.insert(name.to_owned(), validate::regular(root, name)?);
     }
+    files.insert(
+        "config/signing-public.json".into(),
+        validate::regular(root, "config/signing-public.json")?,
+    );
     for name in [
         "manifest.json",
         "popup.html",
