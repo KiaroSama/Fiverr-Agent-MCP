@@ -47,14 +47,14 @@ jobs:
         with:
           toolchain: 1.99.0
           components: rustfmt, clippy, llvm-tools-preview
-      - uses: taiki-e/install-action@ab6895351a88b908e96a4697860d4ffea5e57dbe
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283
         env:
           # The Windows wrapper checks USERPROFILE; main.sh writes under HOME.
           USERPROFILE: ${{ env.HOME }}
         with:
           tool: cargo-nextest@0.9.148
           fallback: none
-      - uses: taiki-e/install-action@ab6895351a88b908e96a4697860d4ffea5e57dbe
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283
         if: runner.os == 'Linux'
         with:
           tool: cargo-llvm-cov@0.9.1
