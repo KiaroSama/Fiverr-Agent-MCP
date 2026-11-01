@@ -175,7 +175,7 @@ fn shared_dispatch_reports_handoffs_and_rejects_unimplemented_or_hostile_input()
     );
     assert_eq!(
         service::dispatch(&store, "fiverr_settings_get", json!({})).unwrap()["data"]["mode"],
-        "blocked"
+        "direct"
     );
     for name in ["fiverr_account_get", "fiverr_session_status"] {
         assert_eq!(

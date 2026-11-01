@@ -45,7 +45,13 @@ async fn real_owner_terminal_accepts_explicit_consent_and_keeps_model_routes_sep
     let output = terminal(&root, &["menu"], b"1\n14\n2\n13\n12\ninvalid\n0\n").await;
     assert!(output.contains("menu_closed"));
     assert!(output.contains("Choose 1-15"));
-    assert!(output.contains("Sign in to Fiverr"));
+    assert!(output.contains("Account status (no login required)"));
+    assert!(!output.contains("Sign in to Fiverr"));
+    fiverr_agent_mcp::network::Settings::change(&store, true, |s| {
+        s.mode = fiverr_agent_mcp::network::Mode::Blocked;
+        Ok(())
+    })
+    .unwrap();
     let decline = terminal(&root, &["direct"], b"n\n").await;
     assert!(decline.contains("Owner declined"));
     assert_eq!(
