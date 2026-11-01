@@ -1,7 +1,7 @@
 {
   "revision":0,
   "route_generation":0,
-  "mode":"blocked",
+  "mode":"direct",
   "selected_profile_id":null,
   "profiles":[],
   "local_proxy":"socks5h://127.0.0.1:1595",

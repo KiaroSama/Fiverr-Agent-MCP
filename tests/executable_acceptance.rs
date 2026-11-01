@@ -45,7 +45,7 @@ async fn native_entrypoint_roots_itself_preserves_exit_codes_and_writes_private_
         String::from_utf8_lossy(&status.stderr)
     );
     let value: Value = serde_json::from_slice(&status.stdout).unwrap();
-    assert_eq!(value["data"]["route"]["mode"], "blocked");
+    assert_eq!(value["data"]["route"]["mode"], "direct");
     assert!(
         root.path()
             .join(".state/workspace/workspace.sqlite3")

@@ -1,4 +1,4 @@
-param([switch]$Status, [switch]$Preview, [switch]$SignIn,
+param([switch]$Status, [switch]$Preview,
     [Parameter(ValueFromRemainingArguments=$true)][string[]]$Arguments)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
@@ -8,7 +8,6 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
     $forward = @()
     if ($Status) { $forward += '-Status' }
     if ($Preview) { $forward += '-Preview' }
-    if ($SignIn) { $forward += '-SignIn' }
     & $pwsh.Source -NoLogo -NoProfile -File $PSCommandPath @forward @Arguments
     exit $LASTEXITCODE
 }
@@ -30,8 +29,8 @@ try {
         $log = Join-Path $logs ('run_'+$stamp+'_UTC_'+[guid]::NewGuid().ToString('N')+'.log')
         Write-Event 'INFO' 'Native launcher started'
     } catch { [Console]::Error.WriteLine('Launcher file logging unavailable; native startup will validate its own logging.'); $log = $null }
-    if (@(@($Status,$Preview,$SignIn) | Where-Object { $_ }).Count -gt 1) { throw 'Choose only one launcher mode: Status, Preview or SignIn.' }
-    if (($Status -or $Preview -or $SignIn) -and $Arguments.Count -gt 0) { throw 'Launcher mode switches cannot be combined with native command arguments.' }
+    if ($Status -and $Preview) { throw 'Choose only one launcher mode: Status or Preview.' }
+    if (($Status -or $Preview) -and $Arguments.Count -gt 0) { throw 'Launcher mode switches cannot be combined with native command arguments.' }
     $binary = Join-Path $root 'bin/fiverr-agent-mcp.exe'
     if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) { throw 'Native executable missing. Download the verified Windows package; no compilation or automatic dependency installation occurs.' }
     $temp = Join-Path $root '.cache/tmp'
@@ -39,7 +38,7 @@ try {
     $env:TEMP = $temp; $env:TMP = $temp; $env:TMPDIR = $temp
     $env:XDG_CACHE_HOME = Join-Path $root '.cache'
     Write-Event 'DEBUG' 'Rooted child temporary paths configured'
-    [string[]]$native = if ($Status) { @('status') } elseif ($Preview) { @('preview') } elseif ($SignIn) { @('auth','sign-in') } elseif ($Arguments.Count -gt 0) { $Arguments } else { @('menu') }
+    [string[]]$native = if ($Status) { @('status') } elseif ($Preview) { @('preview') } elseif ($Arguments.Count -gt 0) { $Arguments } else { @('menu') }
     & $binary --root $root @native
     $code = $LASTEXITCODE
     Write-Event $(if ($code -eq 0) { 'INFO' } else { 'ERROR' }) ('Native process exited with code '+$code)

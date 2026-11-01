@@ -48,7 +48,7 @@ Keep the verified Windows executable at `bin/fiverr-agent-mcp.exe` beside the in
 }
 ```
 
-Save the Claude Desktop configuration and fully quit/restart Claude Desktop. Stdio does not need a separately running HTTP server, token, Node.js, Python or Rust. Initial outbound access remains blocked; connecting MCP does not sign in to Fiverr. See the [Windows example](examples/clients/claude-desktop.windows.json) and [official local-server guide](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
+Save the Claude Desktop configuration and fully quit/restart Claude Desktop. Stdio does not need a separately running HTTP server, token, Node.js, Python or Rust. Fresh installations use direct outbound networking without login or proxy setup. Existing saved Direct, Proxy or Blocked choices are preserved; connecting MCP does not sign in to Fiverr. See the [Windows example](examples/clients/claude-desktop.windows.json) and [official local-server guide](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
 
 Windows example, from the installation directory:
 
@@ -72,22 +72,22 @@ The listener defaults to `http://127.0.0.1:1597/mcp`. Token protection is on by 
 
 ## Launcher
 
-`run.ps1` opens the native management menu on Windows (`run.sh` on Unix). Its Agensi/Upwork-style palette and layout provide proxy import/selection/addition, explicit direct/block, Sign in, MCP registration, local-proxy settings, HTTP startup/port, diagnostics and account/workspace submenus. `run.ps1 -Preview` is non-interactive; `-Status` remains JSON. Hidden proxy input and plain redirected/NO_COLOR output are supported. See [launcher controls](docs/installation.md#launcher-menu).
+`run.ps1` opens the native management menu on Windows (`run.sh` on Unix). Its Agensi/Upwork-style palette and layout provide proxy import/selection/addition, direct/block controls, account status without login, MCP registration, local-proxy settings, HTTP startup/port, diagnostics and account/workspace submenus. `run.ps1 -Preview` is non-interactive; `-Status` remains JSON. Hidden proxy input and plain redirected/NO_COLOR output are supported. See [launcher controls](docs/installation.md#launcher-menu).
 
-The Sign in entry opens the session menu: import a private local cookie file and verify it through the selected native route, or pair the bundled browser extension. These adapters are implemented and fixture-tested, but live Fiverr compatibility remains unverified. Changing the route alone does not sign in; neither method is an official OAuth grant or automation permission.
+No login is required for the local workspace. Login, cookie import, extension pairing and logout choices are absent from the launcher; option 6 shows account status. Proxy use is optional: fresh installations start in Direct mode, option 1 selects a saved proxy, option 4 explicitly returns to Direct and option 5 blocks outbound connections. Existing saved routes and private session data are not reset.
 
 ## What exists
 
 - Account-scoped SQLite local drafts/imports/history, bounded search/pagination, snapshots, reminders and JSON/CSV/Markdown/HTML exports. Imported data is not a live refresh; an empty local collection is not an empty Fiverr account.
 - Exact integer money with explicit currency/scale. The adapted existing optimizer supplies keyword, exact pricing, supplied-dataset and observed-metric analysis, preserving missing values and licensing.
-- Explicit proxy profiles, initial outbound block, no direct fallback, generation cancellation and owner-only direct enablement. Browser routing is a separate unverified prerequisite.
+- Direct networking by default on fresh installations, optional explicit proxy profiles, preserved saved routes, explicit blocking, no proxy-failure fallback and generation cancellation. Switching a saved route to Direct requires owner consent. Browser routing is a separate unverified prerequisite.
 - Human-reviewed preparation and single-use manual handoff journal, file hashes and draft-version binding. No real message, delivery, Gig publication, checkout or payout is dispatched.
 
 The full [capability inventory](capabilities.json) gives each requested workflow an independent implementation/verification/availability/effect/mode disposition. Unsupported dedicated workflows are named explicitly, not presented as working generic aliases. [Capability guide](docs/capabilities.md).
 
 ## Account access is currently gated
 
-Menu option 6 supports two explicit owner-selected session methods: private local cookie-file import with selected-route verification, and a bundled user-gesture browser extension/native account-observation bridge. Saved credentials are not authentication; positive account evidence must match the expected username and expires after five minutes. Extension DOM observations are not independent server authentication. See [authentication/setup](docs/authentication.md) and [extension installation](extension/README.md). A configured browser, local account name or passing synthetic fixture does not prove live Fiverr access. Automation permission and strict browser routing remain unverified.
+Optional low-level `auth`/`session` commands remain for compatibility, but the launcher no longer offers login or session setup. These commands include private local cookie-file import with selected-route verification and a bundled user-gesture browser extension/native account-observation bridge. Saved credentials are not authentication; positive account evidence must match the expected username and expires after five minutes. Extension DOM observations are not independent server authentication. See [authentication/setup](docs/authentication.md) and [extension installation](extension/README.md). A configured browser, local account name or passing synthetic fixture does not prove live Fiverr access. Automation permission and strict browser routing remain unverified.
 
 No official comprehensive Fiverr account API/OAuth/MCP was verified. Fiverr's current Terms restrict automated access; owning an account is not platform permission. [Platform research](docs/research/platform-access.md) and [authentication](docs/authentication.md) explain the prerequisites. No CAPTCHA bypass, anti-detection, cookie extraction, arbitrary JavaScript/CDP/shell/URL proxy, mass messaging or automatic financial actions.
 

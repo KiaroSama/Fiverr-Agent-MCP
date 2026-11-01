@@ -51,6 +51,11 @@ fn dedicated_profile_lease_is_exclusive_and_released_without_deletion() {
 async fn sign_in_never_launches_from_blocked_unverified_route() {
     let tmp = tempfile::tempdir().unwrap();
     let store = Store::open(Root::explicit(&tmp.path().canonicalize().unwrap()).unwrap()).unwrap();
+    fiverr_agent_mcp::network::Settings::change(&store, true, |s| {
+        s.mode = fiverr_agent_mcp::network::Mode::Blocked;
+        Ok(())
+    })
+    .unwrap();
     assert_eq!(
         sign_in(&store).await.unwrap_err().code,
         ErrorCode::RouteBlocked
