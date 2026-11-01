@@ -36,7 +36,7 @@ impl Default for Settings {
         Self {
             revision: 0,
             route_generation: 0,
-            mode: Mode::Blocked,
+            mode: Mode::Direct,
             selected_profile_id: None,
             profiles: vec![],
             local_proxy: "socks5h://127.0.0.1:1595".into(),

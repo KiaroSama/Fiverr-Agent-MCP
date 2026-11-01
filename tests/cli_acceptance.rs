@@ -33,7 +33,7 @@ async fn owner_management_commands_preserve_other_state_and_refuse_model_consent
     for command in [Command::Status, Command::Doctor] {
         assert_eq!(
             run(&store, command).await["data"]["route"]["mode"],
-            "blocked"
+            "direct"
         );
     }
     assert!(run(&store, Command::Capabilities).await.is_object());
@@ -171,7 +171,7 @@ async fn owner_management_commands_preserve_other_state_and_refuse_model_consent
                 .is_err()
         );
     }
-    assert!(Settings::load(&store).unwrap().mode == Mode::Blocked);
+    assert!(Settings::load(&store).unwrap().mode == Mode::Direct);
     assert_eq!(
         run(
             &store,

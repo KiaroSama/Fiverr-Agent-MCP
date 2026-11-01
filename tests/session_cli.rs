@@ -41,6 +41,11 @@ async fn actual_session_cli_and_native_frames_preserve_secret_boundary() {
     let temp = tempfile::tempdir().unwrap();
     let root = Root::explicit(temp.path()).unwrap();
     let store = Store::open(root.clone()).unwrap();
+    fiverr_agent_mcp::network::Settings::change(&store, true, |s| {
+        s.mode = fiverr_agent_mcp::network::Mode::Blocked;
+        Ok(())
+    })
+    .unwrap();
     let file = root.safe_path("config", "cookie.txt").unwrap();
     root.write_new(&file, b"session=synthetic-cli-private")
         .unwrap();

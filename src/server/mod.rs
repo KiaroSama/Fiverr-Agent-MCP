@@ -97,7 +97,7 @@ impl ServerHandler for Handler {
         let value=match uri.as_str(){
             "fiverr://capabilities"=>catalog::capabilities(),
             "fiverr://account"=>service::account::status(&self.store),
-            "fiverr://policy"=>Ok(json!({"outbound_default":"blocked","approval":"owner_control_only","financial_execution":false,"platform_automation":"permission_and_route_assurance_required","arbitrary_execution":false})),
+            "fiverr://policy"=>Ok(json!({"outbound_default":crate::network::Settings::default().mode,"approval":"owner_control_only","financial_execution":false,"platform_automation":"permission_and_route_assurance_required","arbitrary_execution":false})),
             value if value.starts_with("fiverr://records/")=>{
                 let parts:Vec<_>=value.trim_start_matches("fiverr://records/").split('/').collect();
                 if parts.len()!=2{return Err(ErrorData::resource_not_found("Unknown resource URI.",None));}

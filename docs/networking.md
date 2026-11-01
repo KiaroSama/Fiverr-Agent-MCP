@@ -1,6 +1,6 @@
 # Routing and proxy controls
 
-First launch is blocked. `proxy list` exposes sanitized profiles only. Import UTF-8 text using label|URL, URL lines or supported legacy host:port:user:password lines; BOM/comments/blank lines are accepted. Parse the entire bounded file before persisting. Imports do not select a route. Credential values are supplied in a root-contained private file, not command arguments.
+Fresh installations default to Direct: no proxy or login setup is required for the local workspace. Previously saved Direct, Proxy and Blocked choices remain unchanged; upgrading does not silently enable Direct or replace a selected proxy. Explicit blocking and blocked backup restore remain available. `proxy list` exposes sanitized profiles only. Import UTF-8 text using label|URL, URL lines or supported legacy host:port:user:password lines; BOM/comments/blank lines are accepted. Parse the entire bounded file before persisting. Imports do not select a route. Credential values are supplied in a root-contained private file, not command arguments.
 
 Supported schemes: HTTP, HTTPS, SOCKS5 and SOCKS5h. SOCKS5 is normalized to SOCKS5h for remote destination DNS. SOCKS4/4a are explicitly unsupported. A named proxy host can still require local bootstrap DNS; this is distinct from destination DNS and does not guarantee resolver geography. IPv6 endpoints require URL form. No credential-bearing URI is displayed/logged.
 

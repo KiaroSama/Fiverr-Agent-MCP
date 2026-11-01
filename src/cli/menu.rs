@@ -10,7 +10,7 @@ const ITEMS: &[&str] = &[
     "Add one proxy",
     "Direct connection (explicit)",
     "Block connections",
-    "Sign in to Fiverr (cookie / browser extension)",
+    "Account status (no login required)",
     "Register MCP in your client",
     "Local proxy settings (default port 1595)",
     "Select local proxy from settings",
@@ -47,19 +47,9 @@ pub fn preview(store: &Store, screen: &mut impl Console) -> Result<()> {
         ),
         Style::Plain,
     )?;
-    let session = crate::session::status(store)?;
-    let state = session["state"].as_str().unwrap_or("not_configured");
     screen.write(
-        &format!(
-            "  Account: {} | Session: {} | Automation permission: not verified\n",
-            if session["account_observed"] == true {
-                "Observed"
-            } else {
-                "Not connected"
-            },
-            safe_text(state)
-        ),
-        Style::Warning,
+        "  Local workspace | No login required | Proxy optional\n",
+        Style::Plain,
     )?;
     screen.write("\nFiverr Main menu:\n", Style::Accent)?;
     for (i, item) in ITEMS.iter().enumerate() {
@@ -262,12 +252,11 @@ fn select(store: &Store, screen: &mut impl Console) -> Result<Option<Command>> {
     }))
 }
 async fn browser(root: &Root, screen: &mut impl Console) -> Result<Option<Command>> {
-    screen.write("\nAccount and browser:\n  1. Sign in to Fiverr (cookie / browser extension)\n  2. Account status\n  3. Configure browser executable\n  4. Browser status\n  5. Logout (manual handoff)\n", Style::Accent)?;
+    screen.write("\nAccount and browser:\n  2. Account status\n  3. Configure browser executable\n  4. Browser status\n", Style::Accent)?;
     let Some(pick) = ask(screen, "Selection", "0", false)? else {
         return Ok(None);
     };
     Ok(Some(match pick.as_str() {
-        "1" => return session::menu(root, screen),
         "2" => Command::Auth {
             command: Auth::Status,
         },
@@ -284,10 +273,7 @@ async fn browser(root: &Root, screen: &mut impl Console) -> Result<Option<Comman
         "4" => Command::Browser {
             command: Browser::Status,
         },
-        "5" => Command::Auth {
-            command: Auth::Logout,
-        },
-        _ => return Err(invalid("Enter an account/browser number from 1 to 5.")),
+        _ => return Err(invalid("Enter an account/browser number from 2 to 4.")),
     }))
 }
 async fn workspace(screen: &mut impl Console) -> Result<Option<Command>> {
@@ -387,7 +373,9 @@ pub async fn run(root: &Root, store: &Store, screen: &mut impl Console) -> Resul
                     }
                     "4" => Some(Command::Direct),
                     "5" => Some(Command::Block),
-                    "6" => session::menu(root, screen)?,
+                    "6" => Some(Command::Auth {
+                        command: Auth::Status,
+                    }),
                     "7" => ask(screen, "Existing client JSON configuration path", "", false)?.map(
                         |p| Command::Register {
                             file: path(root, &p),

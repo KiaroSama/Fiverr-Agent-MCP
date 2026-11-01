@@ -46,16 +46,17 @@ async fn real_windows_launcher_handles_missing_binary_modes_root_and_plain_previ
     );
     let text = String::from_utf8(preview.stdout).unwrap();
     assert!(text.contains("Fiverr Main menu:"));
-    assert!(text.contains("Sign in to Fiverr"));
+    assert!(text.contains("Account status (no login required)"));
+    assert!(!text.contains("Sign in to Fiverr"));
     assert!(!text.contains('\u{1b}'));
     assert!(!text.ends_with("null\r\n"));
     let status = launch(root, &["-Status"]).await;
     assert!(status.status.success());
     let value: serde_json::Value = serde_json::from_slice(&status.stdout).unwrap();
-    assert_eq!(value["data"]["route"]["mode"], "blocked");
+    assert_eq!(value["data"]["route"]["mode"], "direct");
     let signin = launch(root, &["-SignIn"]).await;
     assert_eq!(signin.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&signin.stderr).contains("HUMAN_ACTION_REQUIRED"));
+    assert!(!String::from_utf8_lossy(&signin.stdout).contains("Fiverr session"));
     assert_eq!(
         launch(root, &["-Status", "-Preview"]).await.status.code(),
         Some(1)

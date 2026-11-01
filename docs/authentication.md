@@ -1,8 +1,12 @@
 # Authentication and account scope
 
-## Two owner-selected session methods
+## No-login launcher and compatibility commands
 
-Menu option 6 and `auth sign-in` open the session menu. Headings/numbers use the existing cyan accent, action text is plain, privacy qualifications are yellow and the back/exit hint is muted; color-disabled output remains readable. Choose local cookie-file import or pair the bundled browser extension. These are unofficial session adapters, not a Fiverr OAuth grant. Neither enables remote writes or establishes Fiverr automation permission. Live Fiverr compatibility has not been verified with an owner account.
+The local workspace needs no login. Launcher option 6 shows account status; login, session setup and logout actions and the PowerShell `-SignIn` shortcut have been removed. Existing private session data is preserved, not automatically forgotten. Direct networking is the fresh-install default and proxy use is optional; neither grants account access. Local MCP HTTP token authentication is unchanged.
+
+## Optional compatibility session methods
+
+The low-level `auth sign-in` command still opens the compatibility session menu. Headings/numbers use the existing cyan accent, action text is plain, privacy qualifications are yellow and the back/exit hint is muted; color-disabled output remains readable. Choose local cookie-file import or pair the bundled browser extension. These are unofficial session adapters, not a Fiverr OAuth grant. Neither enables remote writes or establishes Fiverr automation permission. Live Fiverr compatibility has not been verified with an owner account.
 
 ### Local cookie file
 

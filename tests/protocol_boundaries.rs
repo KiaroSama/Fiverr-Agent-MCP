@@ -110,6 +110,13 @@ async fn modern_stdio_exercises_resources_prompts_tools_and_operational_errors()
             error,
             "{method}: {response}"
         );
+        if method == "resources/read" && params["uri"] == "fiverr://policy" {
+            let policy: Value =
+                serde_json::from_str(response["result"]["contents"][0]["text"].as_str().unwrap())
+                    .unwrap();
+            assert_eq!(policy["outbound_default"], "direct");
+            assert_eq!(policy["approval"], "owner_control_only");
+        }
         if method == "resources/list" {
             assert_eq!(response["result"]["resources"].as_array().unwrap().len(), 3);
         }

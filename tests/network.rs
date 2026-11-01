@@ -19,7 +19,8 @@ fn proxy_import_is_atomic_bounded_and_remotely_resolving() {
 fn block_and_generation_changes_never_construct_a_fallback() {
     let tmp = tempfile::tempdir().unwrap();
     let store = Store::open(Root::explicit(&tmp.path().canonicalize().unwrap()).unwrap()).unwrap();
-    assert!(RouteClient::new(store.clone()).is_err());
+    assert!(Settings::load(&store).unwrap().mode == Mode::Direct);
+    assert!(RouteClient::new(store.clone()).is_ok());
     Settings::change(&store, true, |s| {
         s.mode = Mode::Direct;
         Ok(())
@@ -32,6 +33,29 @@ fn block_and_generation_changes_never_construct_a_fallback() {
     })
     .unwrap();
     assert_eq!(client.check().unwrap_err().code, ErrorCode::RouteBlocked);
+}
+#[test]
+fn saved_routes_survive_reopen_without_default_migration() {
+    for mode in [Mode::Blocked, Mode::Proxy, Mode::Direct] {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = Root::explicit(&tmp.path().canonicalize().unwrap()).unwrap();
+        let store = Store::open(root.clone()).unwrap();
+        Settings::change(&store, true, |s| {
+            s.mode = mode.clone();
+            Ok(())
+        })
+        .unwrap();
+        let before = serde_json::to_value(Settings::load(&store).unwrap()).unwrap();
+        drop(store);
+        let reopened = Store::open(root).unwrap();
+        assert_eq!(
+            serde_json::to_value(Settings::load(&reopened).unwrap()).unwrap(),
+            before
+        );
+        if mode != Mode::Direct {
+            assert!(RouteClient::new(reopened).is_err());
+        }
+    }
 }
 #[test]
 fn production_destination_allowlist_rejects_internal_and_credential_urls() {
