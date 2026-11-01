@@ -55,7 +55,7 @@ async fn real_windows_launcher_handles_missing_binary_modes_root_and_plain_previ
     let value: serde_json::Value = serde_json::from_slice(&status.stdout).unwrap();
     assert_eq!(value["data"]["route"]["mode"], "direct");
     let signin = launch(root, &["-SignIn"]).await;
-    assert_eq!(signin.status.code(), Some(1));
+    assert_eq!(signin.status.code(), Some(2));
     assert!(!String::from_utf8_lossy(&signin.stdout).contains("Fiverr session"));
     assert_eq!(
         launch(root, &["-Status", "-Preview"]).await.status.code(),
