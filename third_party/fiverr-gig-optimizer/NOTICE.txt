@@ -7,8 +7,8 @@ Original skill identity: fiverr-gig-optimizer (metadata 1.1, plugin 1.1.0)
 
 Source-code copyright: (c) 2026 fiverr-gig-optimizer contributors.
 Original helper source is MIT licensed. Preserve the unmodified LICENSE in
-this directory with substantial helper adaptations. New project code remains
-GPL-3.0-only subject to its root license; this does not erase upstream MIT rights.
+this directory with substantial helper adaptations. New project code is
+GPL-3.0-or-later subject to its root license; this does not erase upstream MIT rights.
 
 Upstream LICENSE-DATA expressly licenses all data and documentation, including
 all Markdown, under Creative Commons Attribution 4.0 International, despite
