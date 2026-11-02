@@ -1,6 +1,16 @@
 name: Deep validation
 on:
   workflow_dispatch:
+    inputs:
+      http_deadline_only:
+        description: 'Run only the retained-response deadline regression'
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      http_deadline_only:
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -22,7 +32,13 @@ jobs:
         with:
           tool: cargo-nextest@0.9.148
           fallback: none
+      - name: Run retained-response regression
+        if: inputs.http_deadline_only
+        run: |
+          & ./scripts/ci-owned.ps1 -Executable cargo -ArgumentsJson '["nextest","run","--locked","--package","fiverr-agent-mcp","--lib","--profile","ci","--test-threads","1","--no-tests","fail","-E","test(response_deadline_releases_capacity_before_any_body_poll)"]' -Directory $env:GITHUB_WORKSPACE -Wall 900 -Idle 180
+          if ($LASTEXITCODE -ne 0) { throw 'Retained-response deadline regression failed' }
       - name: Run implemented adversarial archive validators
+        if: inputs.http_deadline_only != true
         run: |
           & ./scripts/ci-owned.ps1 -Executable cargo -ArgumentsJson '["nextest","run","--locked","--package","xtask","--profile","ci","--test-threads","2","--no-tests","fail","--no-fail-fast"]' -Directory $env:GITHUB_WORKSPACE -Wall 900 -Idle 180
           if ($LASTEXITCODE -ne 0) { throw 'Adversarial validators failed' }

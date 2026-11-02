@@ -131,6 +131,39 @@ async fn idle_response_expires_and_releases_its_owned_permit() {
 }
 
 #[tokio::test(start_paused = true)]
+async fn response_deadline_releases_capacity_before_any_body_poll() {
+    let app = Router::new().route(
+        "/healthz",
+        get(|| async {
+            Body::from_stream(futures::stream::pending::<
+                std::result::Result<Vec<u8>, std::io::Error>,
+            >())
+        }),
+    );
+    let (_temp, app, bearer, capacity) = protected(app);
+    let retained = app
+        .clone()
+        .oneshot(request(&bearer, Body::empty()))
+        .await
+        .unwrap();
+    assert_eq!(retained.status(), StatusCode::OK);
+    assert_eq!(capacity.available_permits(), 0);
+    tokio::task::yield_now().await;
+    tokio::time::advance(Duration::from_secs(31)).await;
+    tokio::task::yield_now().await;
+    assert_eq!(
+        capacity.available_permits(),
+        1,
+        "The response deadline must release capacity without downstream polling"
+    );
+    let next = app.oneshot(request(&bearer, Body::empty())).await.unwrap();
+    assert_eq!(next.status(), StatusCode::OK);
+    drop(next);
+    drop(retained);
+    assert_eq!(capacity.available_permits(), 1);
+}
+
+#[tokio::test(start_paused = true)]
 async fn expired_unpolled_and_dropped_responses_release_capacity() {
     let (_temp, app, bearer, capacity) =
         protected(Router::new().route("/healthz", get(|| async { "alive" })));
