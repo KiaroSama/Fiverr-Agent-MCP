@@ -2,6 +2,10 @@ name: CI
 on:
   workflow_dispatch:
     inputs:
+      http_deadline_only:
+        description: 'Run only the retained-response regression before a production repair'
+        type: boolean
+        default: false
       validation_only:
         description: 'Validate only; false also creates the owner-signed Windows distribution'
         type: boolean
@@ -12,11 +16,16 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  http-deadline:
+    if: inputs.http_deadline_only
+    uses: ./.github/workflows/deep.yml
+    with:
+      http_deadline_only: true
   security:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.head_ref != 'feature/fiverr-native' && github.head_ref != 'fix/workspace-continuation' && github.head_ref != 'test/coverage-acceptance')
+    if: inputs.http_deadline_only != true
     uses: ./.github/workflows/security.yml
   native:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.head_ref != 'feature/fiverr-native' && github.head_ref != 'fix/workspace-continuation' && github.head_ref != 'test/coverage-acceptance')
+    if: inputs.http_deadline_only != true
     name: native-${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
