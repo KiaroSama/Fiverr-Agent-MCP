@@ -156,6 +156,7 @@ fn run_inner(
         #[cfg(windows)]
         job,
     };
+    eprintln!("Owned command pid={} wall={wall}s idle={idle}s", child.id());
     let (sender, receiver) = mpsc::sync_channel(128);
     let stdout_reader = reader(
         child.stdout.take().ok_or("stdout not captured")?,

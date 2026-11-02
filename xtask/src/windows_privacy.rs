@@ -55,7 +55,7 @@ pub fn verify(root: &Path) -> Result<()> {
                 let mut control = 0u16;
                 let mut revision = 0;
                 if GetSecurityDescriptorControl(descriptor, &mut control, &mut revision) == 0
-                    || control & SE_DACL_PROTECTED as u16 == 0
+                    || control & SE_DACL_PROTECTED == 0
                     || acl.is_null()
                     || (*acl).AceCount == 0
                 {
