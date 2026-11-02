@@ -4,9 +4,9 @@
 
 Choose a verified archive matching your host. The current signing-enabled delivery path produces Windows x64; Linux/macOS remain source-validation targets until their signing prerequisites are resolved. Extract everything, not just the executable. Verify SHA256SUMS and release JSON against the exact source SHA and successful native job. No native archive is verified merely because the source compiles elsewhere.
 
-Standard layout: bin/fiverr-agent-mcp.exe (Windows) or bin/fiverr-agent-mcp (Unix), fiverr.install.json, launchers, docs, examples, config templates, notices and dependency licenses. The executable derives the root from bin/marker. For an explicit nonstandard installation, supply global `--root` with an existing absolute writable directory. Relative roots, linked/reparse ancestors, unsupported marker and read-only storage fail rather than fall back to OS temp.
+Standard layout: bin/fiverr-agent-mcp.exe (Windows) or bin/fiverr-agent-mcp (Unix), fiverr.install.json, docs, examples, config templates, notices and dependency licenses. The executable derives the root from bin/marker. For an explicit nonstandard installation, supply global `--root` with an existing absolute writable directory. Relative roots, linked/reparse ancestors, unsupported marker and read-only storage fail rather than fall back to OS temp.
 
-Run `--help`, `--version` or `version` without creating state. `status`, `desktop-config` and `capabilities` are JSON commands. Run.ps1 requires PowerShell7 and performs no compiler/tool installation; run.sh is POSIX. Direct executable startup works without a launcher.
+Run `--help`, `--version` or `version` without creating state. `status`, `desktop-config` and `capabilities` are JSON commands. Launch the native executable directly; PowerShell/POSIX launcher scripts are retired. No compiler or scripting runtime is required for normal application use.
 
 ## Windows signing and trust
 
@@ -14,11 +14,11 @@ The Windows executable uses the owner-authorized self-signed `KiaroSama` code-si
 
 ## Launcher menu
 
-Run `run.ps1` on Windows or `run.sh` on Unix, or execute the native binary with `menu`. The native menu follows the Agensi/Upwork console layout: bright cyan heading/numbers, green default/success, yellow warnings, red errors and readable connection/proxy/account summaries. `NO_COLOR` or `TERM=dumb` disables color; redirected preview is plain text.
+Run `bin/fiverr-agent-mcp.exe` on Windows or `bin/fiverr-agent-mcp` on Unix, optionally with `menu`. The native menu follows the Agensi/Upwork console layout: bright cyan heading/numbers, green default/success, yellow warnings, red errors and readable connection/proxy/account summaries. `NO_COLOR` or `TERM=dumb` disables color; redirected preview is plain text.
 
 The main menu exposes proxy selection/import/addition, direct/block controls, account status without login, client registration, local-proxy settings/activation, local HTTP startup/port and diagnostics. Account/browser and workspace submenus expose the existing account status, browser configuration, actions, backup, logs, diagnostics export, cache inspection and HTTP settings. Destructive or authority-changing operations retain their existing owner-terminal consent and prerequisites. Starting HTTP occupies this terminal until stopped.
 
-`run.ps1 -Preview` prints the menu without waiting for input; `-Status` prints JSON. The `-SignIn` shortcut has been removed. Existing native arguments are still accepted, but launcher switches cannot be combined. Windows PowerShell forwards once to installed PowerShell7; no dependency is installed automatically. Paths resolve relative to the installation, not the caller's directory. Enter selects proxy selection; `0`/`back` cancels a form, `quit`/`exit` closes the main menu and EOF exits without applying a default action.
+Native `preview` prints the menu without waiting for input; `status` prints JSON. Former wrapper switches (`-Preview`, `-Status`, `-SignIn`) are not native commands. No scripting wrapper or automatic dependency installation is used. Paths resolve relative to the installation, not the caller's directory. Enter selects proxy selection; `0`/`back` cancels a form, `quit`/`exit` closes the main menu and EOF exits without applying a default action.
 
 Proxy import accepts the existing URL and `Label | URL` formats plus the reference `scheme://host:port:username:password:label` form (IPv6 in brackets). Prefer standard percent-encoded URLs when fields contain separators. Imports remain bounded to256KiB/100profiles, validate all lines and preserve the active route. Reimporting the same name/endpoint skips it; a conflicting name cancels the transaction. Proxy URLs typed in the menu are hidden; credentials never appear in summaries, command arguments or logs. Keep real lists private. Quoted relative paths and ordinary absolute Windows drive paths inside the installation are accepted; Windows canonical/verbatim spelling does not make an owned file external. Outside paths, dot/traversal components and linked/reparse paths remain refused.
 

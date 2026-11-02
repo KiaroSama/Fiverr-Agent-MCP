@@ -72,7 +72,7 @@ The listener defaults to `http://127.0.0.1:1597/mcp`. Token protection is on by 
 
 ## Launcher
 
-`run.ps1` opens the native management menu on Windows (`run.sh` on Unix). Its Agensi/Upwork-style palette and layout provide proxy import/selection/addition, direct/block controls, account status without login, MCP registration, local-proxy settings, HTTP startup/port, diagnostics and account/workspace submenus. `run.ps1 -Preview` is non-interactive; `-Status` remains JSON. Hidden proxy input and plain redirected/NO_COLOR output are supported. See [launcher controls](docs/installation.md#launcher-menu).
+Run `bin/fiverr-agent-mcp.exe` on Windows (`bin/fiverr-agent-mcp` on Unix) to open the Rust management menu directly. PowerShell/POSIX launcher scripts are retired; use native `preview` for non-interactive output and `status` for JSON. The existing palette, proxy controls, account status, registration, HTTP startup and workspace commands remain. Hidden proxy input and plain redirected/NO_COLOR output are supported. See [launcher controls](docs/installation.md#launcher-menu).
 
 No login is required for the local workspace. Login, cookie import, extension pairing and logout choices are absent from the launcher; option 6 shows account status. Proxy use is optional: fresh installations start in Direct mode, option 1 selects a saved proxy, option 4 explicitly returns to Direct and option 5 blocks outbound connections. Existing saved routes and private session data are not reset.
 
@@ -93,7 +93,7 @@ No official comprehensive Fiverr account API/OAuth/MCP was verified. Fiverr's cu
 
 ## Privacy and logs
 
-State, browser profiles, exports, logs and temporary paths resolve under the installation, not caller CWD. Direct binary startup uses an early same-executable rooted-environment restart; launchers also set child paths. Private state must remain private when moving/backing up an installation.
+State, browser profiles, exports, logs and temporary paths resolve under the installation, not caller CWD. Direct binary startup uses an early same-executable rooted-environment restart; no scripting runtime is required for launch. Private state must remain private when moving/backing up an installation.
 
 Each execution writes a new UTF-8 UTC log under logs/, named `fiverr-agent-mcp_YYYY-MM-DD_HH-mm-ss_UTC_<id>.log`. Structured JSON entries carry timestamp, level, category, message and sanitized context. INFO/WARNING/ERROR/DEBUG are supported; no private message bodies, tokens, cookies, passwords or credential URLs are logged. Bridge stdout contains protocol frames only. Logs are capped per file and retention attempts skip active locked files. Inspect metadata with `logs inspect`; do not attach raw state, profiles or authorization files to an issue. [Privacy/file policy](docs/privacy-and-files.md).
 

@@ -58,6 +58,7 @@ pub fn report(input: &str, output: &str) -> Result<()> {
             "src/service/actions.rs",
             "src/service/bindings.rs",
             "src/server/http.rs",
+            "src/server/response_lifetime.rs",
             "src/server/framing.rs",
             "src/server/validation.rs",
         ]

@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased — 2026-11-01
+## Unreleased — 2026-11-02
+
+Added independent HTTP response-deadline ownership after a native test reproduced capacity retention without downstream polling. Rust now owns CI orchestration, process cleanup, Windows signing and package/release gates; direct native startup replaces PowerShell/POSIX launchers. The optional browser extension still requires JavaScript, so Rust-only migration is not complete. Updated compatible SDK/runtime/archive dependencies; native acceptance is revision-specific.
+
+## Connection setup — 2026-11-01
 
 Removed login/session/logout choices from the launcher and the PowerShell SignIn shortcut; option 6 now shows account status. Fresh installations default to Direct with optional proxy selection. Existing saved routes and private session data remain intact; selected-proxy failures never fall back to Direct. Explicit blocking, blocked backup restore and local MCP HTTP authentication remain unchanged. Low-level session commands remain available for compatibility.
 

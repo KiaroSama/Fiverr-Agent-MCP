@@ -57,30 +57,34 @@ fn terminate(child: &mut std::process::Child) -> Result<()> {
 }
 
 #[cfg(windows)]
-fn terminate(child: &mut std::process::Child) -> Result<()> {
-    // The trusted PowerShell wrapper owns a kill-on-close non-breakaway Job.
-    if child.try_wait()?.is_none() {
-        child.kill()?;
-    }
-    Ok(())
+fn terminate(child: &mut Owner) -> Result<()> {
+    child.job.terminate()
 }
 
-struct Owner(std::process::Child);
+#[cfg(unix)]
+type NativeChild = std::process::Child;
+#[cfg(windows)]
+type NativeChild = crate::windows_process::Child;
+struct Owner {
+    child: NativeChild,
+    #[cfg(windows)]
+    job: crate::windows_process::Job,
+}
 impl std::ops::Deref for Owner {
-    type Target = std::process::Child;
+    type Target = NativeChild;
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.child
     }
 }
 impl std::ops::DerefMut for Owner {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.child
     }
 }
 impl Drop for Owner {
     fn drop(&mut self) {
-        let _ = terminate(&mut self.0);
-        let _ = self.0.wait();
+        let _ = terminate(self);
+        let _ = self.child.wait();
     }
 }
 
@@ -100,33 +104,23 @@ fn run_inner(
     idle: u64,
     minimal: bool,
 ) -> Result<Output> {
-    #[cfg(windows)]
-    let mut command = {
-        let pwsh = std::env::var_os("CI_PWSH")
-            .ok_or("CI_PWSH must name the absolute PowerShell executable")?;
-        let mut value = Command::new(pwsh);
-        value.args(["-NoLogo", "-NoProfile", "-NonInteractive", "-File"]);
-        value.arg(crate::root().join("scripts/ci-owned.ps1"));
-        value.args([
-            "-Executable",
-            executable,
-            "-ArgumentsJson",
-            &serde_json::to_string(args)?,
-        ]);
-        value.arg("-Directory").arg(cwd);
-        value.args(["-Wall", &wall.to_string(), "-Idle", &idle.to_string()]);
-        value
-    };
-    #[cfg(not(windows))]
-    let mut command = {
-        let mut value = Command::new(executable);
-        value.args(args);
-        value
-    };
+    let mut command = Command::new(executable);
+    command.args(args);
+    command
+        .env_remove("FIVERR_WINDOWS_PFX_BASE64")
+        .env_remove("FIVERR_WINDOWS_PFX_PASSWORD");
+    let browser = crate::root().join(".ci-work/browser-path");
+    if browser.is_file() {
+        command.env(
+            "FIVERR_FIXTURE_BROWSER",
+            std::fs::read_to_string(browser)?.trim(),
+        );
+    }
     if minimal {
         #[cfg(windows)]
         {
-            command.arg("-MinimalPath");
+            let system = std::env::var_os("SystemRoot").ok_or("SystemRoot missing")?;
+            command.env("PATH", Path::new(&system).join("System32"));
         }
         #[cfg(unix)]
         {
@@ -148,14 +142,20 @@ fn run_inner(
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000);
     }
-    let mut child = Owner(
-        command
-            .current_dir(cwd)
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?,
-    );
+    command
+        .current_dir(cwd)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(windows)]
+    let (child, job) = crate::windows_process::Job::spawn(&mut command)?;
+    #[cfg(not(windows))]
+    let child = command.spawn()?;
+    let mut child = Owner {
+        child,
+        #[cfg(windows)]
+        job,
+    };
     let (sender, receiver) = mpsc::sync_channel(128);
     let stdout_reader = reader(
         child.stdout.take().ok_or("stdout not captured")?,

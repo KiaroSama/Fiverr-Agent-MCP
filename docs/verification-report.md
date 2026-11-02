@@ -1,6 +1,14 @@
 # Verification report
 
-Checked 2026-10-16. Evidence is revision-specific, not a certificate of complete Fiverr access. Older receipts below are historical and do not describe the current installed version unless explicitly stated.
+Checked 2026-11-02. Evidence is revision-specific, not a certificate of complete Fiverr access. Older receipts below are historical and do not describe the current installed version unless explicitly stated.
+
+## Response lifetime and Rust tooling follow-up
+
+Test-only source `359a276af85d22c415fe6a8843105e420f36764a` compiled in [targeted native CI41365782264](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/41365782264) and failed the new capacity assertion before any response-body poll/drop: available0, expected1. This is the new response-lifetime counterexample, not a reopening of accepted export/snapshot/reminder repairs. Conditional owned cleanup and Rust tooling migration are authored; their final integrated acceptance is not established by this red run. Browser extension JavaScript remains an explicit incomplete Rust-only boundary. No local Rust build/test/application ran.
+
+## Installed connection-setup baseline
+
+Source `c687ad6535f9353ebf4e8ac7194b4d371c7e6401` passed [manual CI41348661519](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/41348661519): Windows169/169, Linux174/174 and both macOS171/171, zero skipped. Linux measured5144/5555 application lines (92.60126%) and2698/2838 safety lines (95.06695%); both selected mutants were caught. Exact signed Windows executable SHA256 `50ebec08cbb8298effdaf0163466630d2f1dc10121d1f6cafdeadceafc365f37` was installed after471 payload hashes/187 source-member comparisons and pinned cryptographic verification, preserving client configuration/private state. This remains the installed baseline until the new batch passes delivery gates.
 
 ## Current signed Windows delivery
 

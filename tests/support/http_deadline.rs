@@ -20,6 +20,7 @@ fn protected(
             store,
             port: 1597,
             capacity: capacity.clone(),
+            cancel: CancellationToken::new(),
         },
         guard,
     ));
@@ -53,6 +54,7 @@ async fn slow_handler_expires_without_retaining_a_request_permit() {
                 store,
                 port: 1597,
                 capacity: capacity.clone(),
+                cancel: CancellationToken::new(),
             },
             guard,
         ));
