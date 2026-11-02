@@ -38,8 +38,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           if [ '${{ inputs.windows_diagnostics }}' = true ] && [ '${{ inputs.validation_only }}' != true ]; then
-            printf '%s
-' 'Windows timing diagnostics require validation_only=true' >&2
+            printf '%s' 'Windows timing diagnostics require validation_only=true' >&2
             exit 1
           fi
           gh api --method POST "repos/$GH_REPO/statuses/$SOURCE_SHA" -f state=pending -f context='CI / native acceptance' -f description='Manual validation is running' -f target_url="$RUN_URL" --silent
