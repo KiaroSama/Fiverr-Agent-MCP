@@ -278,7 +278,7 @@ fn snapshot(store: &Store, name: &str) -> Result<Snapshot> {
         ));
     }
     settings.effective_port(None, None)?;
-    if settings.profiles.len() > 100 {
+    if settings.profiles.len() > profiles::MAX_PROFILES {
         return Err(invalid("Backup proxy profile limit exceeded."));
     }
     for profile in &settings.profiles {

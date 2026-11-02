@@ -63,7 +63,16 @@ impl Settings {
             let mut settings: Self = old
                 .map(|v| serde_json::from_value(v).map_err(|_| storage_error()))
                 .unwrap_or(Ok(Self::default()))?;
+            let previous_count = settings.profiles.len();
             let result = f(&mut settings)?;
+            // Legacy over-limit settings must remain readable and repairable by deletion.
+            if settings.profiles.len() > profiles::MAX_PROFILES
+                && settings.profiles.len() > previous_count
+            {
+                return Err(invalid(
+                    "Proxy profile limit exceeded; remove profiles before adding more.",
+                ));
+            }
             settings.revision = settings.revision.checked_add(1).ok_or_else(|| {
                 invalid("Settings revision is exhausted; preserve state and contact support.")
             })?;

@@ -20,6 +20,19 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  status-start:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 2
+    permissions:
+      statuses: write
+    steps:
+      - name: Mark exact commit pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: gh api --method POST "repos/$GH_REPO/statuses/$SOURCE_SHA" -f state=pending -f context='CI / native acceptance' -f description='Manual validation is running' -f target_url="$RUN_URL" --silent
   http-deadline:
     if: inputs.http_deadline_only || inputs.proxy_capacity_only
     uses: ./.github/workflows/deep.yml
@@ -126,3 +139,33 @@ jobs:
             .ci-work/owner-*/*.bin
           if-no-files-found: warn
           retention-days: 7
+  status-finish:
+    if: always()
+    needs: [status-start, http-deadline, security, native]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 2
+    permissions:
+      statuses: write
+    steps:
+      - name: Publish actual aggregate result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          START_RESULT: ${{ needs.status-start.result }}
+          FOCUSED_RESULT: ${{ needs.http-deadline.result }}
+          NATIVE_RESULT: ${{ needs.native.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
+          FOCUSED: ${{ inputs.http_deadline_only || inputs.proxy_capacity_only }}
+        run: |
+          state=failure
+          if [ "$START_RESULT" = success ]; then
+            if [ "$FOCUSED" = true ] && [ "$FOCUSED_RESULT" = success ]; then
+              state=success
+            elif [ "$FOCUSED" != true ] && [ "$NATIVE_RESULT" = success ] && [ "$SECURITY_RESULT" = success ]; then
+              state=success
+            fi
+          fi
+          gh api --method POST "repos/$GH_REPO/statuses/$SOURCE_SHA" -f state="$state" -f context="CI / native acceptance" -f description="Manual validation completed: $state" -f target_url="$RUN_URL" --silent
+          test "$state" = success

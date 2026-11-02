@@ -3,6 +3,8 @@ use percent_encoding::percent_decode_str;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+pub const MAX_PROFILES: usize = 100;
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Profile {
@@ -122,7 +124,7 @@ pub fn parse_import(text: &str) -> Result<Vec<Profile>> {
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        if profiles.len() >= 100 {
+        if profiles.len() >= MAX_PROFILES {
             return Err(invalid("Proxy import contains more than 100 profiles."));
         }
         let parsed = (|| {

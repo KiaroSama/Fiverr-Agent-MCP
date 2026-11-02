@@ -2,6 +2,8 @@
 
 ## Unreleased — 2026-11-02
 
+Enforced the100-profile recovery limit on transactional profile growth while preserving legacy over-limit inspection/deletion and fail-closed selection. Added focused regression and atomic import/local-selection/concurrent-growth coverage. Manual native CI now publishes its actual aggregate status on the exact commit. Integrated reviewed database/parser/SDK/archive and workflow dependency updates, subject to revision-specific native acceptance.
+
 Added independent HTTP response-deadline ownership after a native test reproduced capacity retention without downstream polling. Rust now owns CI orchestration, process cleanup, Windows signing and package/release gates; direct native startup remains available. Restored the optional Windows PowerShell 7 launcher at the owner's request, including Preview/Status, rooted logging and packaged delivery; CI/signing/process tooling stays Rust. The optional browser extension still requires JavaScript, so Rust-only migration is not complete. Updated compatible SDK/runtime/archive dependencies; native acceptance is revision-specific.
 
 ## Connection setup — 2026-11-01

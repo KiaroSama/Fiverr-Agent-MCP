@@ -1,5 +1,11 @@
 # Testing and evidence
 
+## Proxy collection recovery
+
+A test-only native run at `d3e7328` reproduced accepted growth to101 profiles after a100-profile backup control passed. The repair checks final versus previous profile count inside the existing immediate settings transaction, before counter updates; one shared100-profile limit covers import and recovery validation. Automatically discovered proxy_capacity tests cover add/import/local selection, exact logical rollback, idempotent imports, legacy102-to100 deletion, selected-profile fail-closed removal, backup/empty restore and two synchronized concurrent growth attempts. These are synthetic local fixtures, not proxy reachability tests.
+
+Manual CI publishes an aggregate commit status with a link to its exact run. Pending is posted at startup; success requires every applicable native/dependency job (or the explicitly selected focused regression) to succeed. Failed/cancelled prerequisites never become green. No push/PR/scheduled trigger is added.
+
 ## Restored Windows launcher
 
 The optional run.ps1 thin adapter is retained by owner request; application/CI/signing logic stays Rust. Native Windows CI exercises the actual PowerShell wrapper from an unrelated CWD with spaces: missing binary, Preview, Status, conflicting options/native arguments, removed SignIn, default menu refusal without an owner terminal, exit codes and distinct root-local UTF-8 logs. The native executable regression remains separately covered. This restoration does not claim full Rust-only migration completion.
