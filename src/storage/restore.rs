@@ -91,7 +91,7 @@ fn snapshot(store: &Store, name: &str) -> Result<Snapshot> {
     )?;
     store.root.write_new(&path, &bytes)?;
     let staging = Staging(path);
-    let connection = Connection::open_with_flags(
+    let mut connection = Connection::open_with_flags(
         &staging.0,
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )
