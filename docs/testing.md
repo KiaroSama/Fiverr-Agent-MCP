@@ -1,5 +1,9 @@
 # Testing and evidence
 
+## Restored Windows launcher
+
+The optional run.ps1 thin adapter is retained by owner request; application/CI/signing logic stays Rust. Native Windows CI exercises the actual PowerShell wrapper from an unrelated CWD with spaces: missing binary, Preview, Status, conflicting options/native arguments, removed SignIn, default menu EOF, exit codes and distinct root-local UTF-8 logs. The native executable regression remains separately covered. This restoration does not claim full Rust-only migration completion.
+
 ## Rust tooling migration
 
 Rust xtask replaces project-owned PowerShell CI/signing/process scripts. Windows associates each child with a non-breakaway kill-on-close Job at process creation; Unix retains owned process groups. Native cryptography imports the protected PFX in memory, signs through Windows Authenticode and independently checks CMS/PE digest, exact certificate pin, validity and code-signing usage. Signing credentials are stripped from every child environment. Existing source/runtime CI is the parity baseline; final migration acceptance requires the actual native matrix and signed-package negatives. Workflow command launch uses GitHub's shell runner, so a literally shell-free CI environment is not claimed. The optional browser extension still uses JavaScript; full Rust-only capability parity remains unresolved.

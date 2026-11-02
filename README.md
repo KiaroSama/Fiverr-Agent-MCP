@@ -72,7 +72,7 @@ The listener defaults to `http://127.0.0.1:1597/mcp`. Token protection is on by 
 
 ## Launcher
 
-Run `bin/fiverr-agent-mcp.exe` on Windows (`bin/fiverr-agent-mcp` on Unix) to open the Rust management menu directly. PowerShell/POSIX launcher scripts are retired; use native `preview` for non-interactive output and `status` for JSON. The existing palette, proxy controls, account status, registration, HTTP startup and workspace commands remain. Hidden proxy input and plain redirected/NO_COLOR output are supported. See [launcher controls](docs/installation.md#launcher-menu).
+Run `bin/fiverr-agent-mcp.exe` on Windows (`bin/fiverr-agent-mcp` on Unix) to open the Rust management menu directly. The optional Windows PowerShell 7 launcher is restored: `pwsh -NoProfile -File ./run.ps1` opens the same menu, `-Preview` prints it and `-Status` returns JSON. Native `preview`/`status` remain available; no login shortcut is restored. The existing palette, proxy controls, account status, registration, HTTP startup and workspace commands remain. Hidden proxy input and plain redirected/NO_COLOR output are supported. See [launcher controls](docs/installation.md#launcher-menu).
 
 No login is required for the local workspace. Login, cookie import, extension pairing and logout choices are absent from the launcher; option 6 shows account status. Proxy use is optional: fresh installations start in Direct mode, option 1 selects a saved proxy, option 4 explicitly returns to Direct and option 5 blocks outbound connections. Existing saved routes and private session data are not reset.
 
