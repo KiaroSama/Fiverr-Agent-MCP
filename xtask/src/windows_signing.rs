@@ -100,6 +100,18 @@ pub fn verify(file: &Path, p: &Value) -> Result<Value> {
                 pe.cms.len() as u32,
                 1,
             ))?;
+            let mut count = 0u32;
+            let mut count_size = size_of::<u32>() as u32;
+            check(CryptMsgGetParam(
+                message,
+                CMSG_SIGNER_COUNT_PARAM,
+                0,
+                &mut count as *mut _ as _,
+                &mut count_size,
+            ))?;
+            if count != 1 || count_size != size_of::<u32>() as u32 {
+                return Err("expected exactly one Authenticode signer".into());
+            }
             let mut oid = [0u8; 128];
             let mut length = oid.len() as u32;
             check(CryptMsgGetParam(
@@ -156,19 +168,6 @@ pub fn verify(file: &Path, p: &Value) -> Result<Value> {
         content.truncate(size as usize);
         if pe_signature::content_digest(&content)? != pe.digest {
             return Err("signed PE digest mismatch".into());
-        }
-        let mut second_size = 0;
-        if CryptVerifyMessageSignature(
-            &params,
-            1,
-            pe.cms.as_ptr(),
-            pe.cms.len() as u32,
-            std::ptr::null_mut(),
-            &mut second_size,
-            std::ptr::null_mut(),
-        ) != 0
-        {
-            return Err("multiple signers refused".into());
         }
     }
     Ok(
