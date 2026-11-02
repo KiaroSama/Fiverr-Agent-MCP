@@ -1,8 +1,19 @@
 mod archives;
+mod ci;
 mod coverage;
 mod package;
+#[cfg(any(windows, test))]
+#[cfg_attr(not(windows), allow(dead_code))]
+mod pe_signature;
 mod process;
+mod release;
 mod validate;
+#[cfg(windows)]
+mod windows_privacy;
+#[cfg(windows)]
+mod windows_process;
+#[cfg(windows)]
+mod windows_signing;
 
 use std::{collections::BTreeMap, env, path::PathBuf};
 
@@ -61,6 +72,30 @@ fn execute() -> Result<()> {
     let args: Vec<_> = env::args().skip(1).collect();
     let command = args.first().ok_or("expected xtask command")?;
     match command.as_str() {
+        "ci-native" => {
+            let values = options(&args[1..])?;
+            ci::native(
+                required(&values, "--target")?,
+                required(&values, "--sha")?,
+                required(&values, "--validation-only")?.parse()?,
+            )
+        }
+        "ci-dependencies" => ci::dependencies(),
+        "release-verify" => {
+            let values = options(&args[1..])?;
+            release::verify(required(&values, "--run")?, required(&values, "--sha")?)
+        }
+        "release-publish" => {
+            let values = options(&args[1..])?;
+            release::publish(required(&values, "--sha")?)
+        }
+        #[cfg(windows)]
+        "sign-package" => {
+            let values = options(&args[1..])?;
+            let revision = required(&values, "--sha")?;
+            sha(revision)?;
+            windows_signing::package(revision)
+        }
         "validate-manifests" => validate::manifests(&root()),
         "verify-capabilities" => validate::capabilities(&root()),
         "coverage-report" => {

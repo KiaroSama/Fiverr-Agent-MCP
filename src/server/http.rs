@@ -21,11 +21,17 @@ use tokio_util::sync::CancellationToken;
 #[cfg(test)]
 #[path = "../../tests/support/http_deadline.rs"]
 mod deadline_tests;
+#[path = "response_lifetime.rs"]
+mod response_lifetime;
+#[cfg(test)]
+#[path = "../../tests/support/response_lifetime.rs"]
+mod response_lifetime_tests;
 #[derive(Clone)]
 struct Access {
     store: Store,
     port: u16,
     capacity: Arc<tokio::sync::Semaphore>,
+    cancel: CancellationToken,
 }
 pub fn token(store: &Store) -> Result<String> {
     store.update_value("http_token", |old| {
@@ -128,24 +134,15 @@ async fn guard(State(access): State<Access>, request: Request, next: Next) -> Re
     let request = Request::from_parts(parts, Body::from(bytes));
     match tokio::time::timeout(Duration::from_secs(30), next.run(request)).await {
         Ok(response) => {
-            use futures::StreamExt;
             let (mut parts, body) = response.into_parts();
             parts.headers.insert(
                 header::CACHE_CONTROL,
                 axum::http::HeaderValue::from_static("no-store"),
             );
-            let stream = futures::stream::unfold(
-                (body.into_data_stream(), permit, tokio::time::Instant::now()),
-                |(mut stream, permit, start)| async move {
-                    let remaining = Duration::from_secs(30).checked_sub(start.elapsed())?;
-                    let item = tokio::time::timeout(remaining, stream.next())
-                        .await
-                        .ok()
-                        .flatten()?;
-                    Some((item, (stream, permit, start)))
-                },
-            );
-            Response::from_parts(parts, Body::from_stream(stream))
+            Response::from_parts(
+                parts,
+                response_lifetime::bounded(body, permit, access.cancel),
+            )
         }
         Err(_) => refuse(StatusCode::REQUEST_TIMEOUT, "Request deadline exceeded."),
     }
@@ -155,7 +152,7 @@ pub fn router(store: Store, port: u16, cancel: CancellationToken) -> Router {
         store: store.clone(),
     };
     let mut config = StreamableHttpServerConfig::default()
-        .with_cancellation_token(cancel)
+        .with_cancellation_token(cancel.clone())
         .with_json_response(true);
     config.max_request_body_bytes = 1024 * 1024;
     config.allowed_hosts = vec![format!("127.0.0.1:{port}")];
@@ -174,6 +171,7 @@ pub fn router(store: Store, port: u16, cancel: CancellationToken) -> Router {
                 store,
                 port,
                 capacity: Arc::new(tokio::sync::Semaphore::new(16)),
+                cancel,
             },
             guard,
         ))
