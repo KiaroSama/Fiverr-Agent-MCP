@@ -2,7 +2,7 @@
 
 ## Unreleased — 2026-11-02
 
-Added independent HTTP response-deadline ownership after a native test reproduced capacity retention without downstream polling. Rust now owns CI orchestration, process cleanup, Windows signing and package/release gates; direct native startup replaces PowerShell/POSIX launchers. The optional browser extension still requires JavaScript, so Rust-only migration is not complete. Updated compatible SDK/runtime/archive dependencies; native acceptance is revision-specific.
+Added independent HTTP response-deadline ownership after a native test reproduced capacity retention without downstream polling. Rust now owns CI orchestration, process cleanup, Windows signing and package/release gates; direct native startup remains available. Restored the optional Windows PowerShell 7 launcher at the owner's request, including Preview/Status, rooted logging and packaged delivery; CI/signing/process tooling stays Rust. The optional browser extension still requires JavaScript, so Rust-only migration is not complete. Updated compatible SDK/runtime/archive dependencies; native acceptance is revision-specific.
 
 ## Connection setup — 2026-11-01
 

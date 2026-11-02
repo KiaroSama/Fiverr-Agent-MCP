@@ -10,7 +10,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const REQUIRED: [&str; 10] = [
+const REQUIRED: [&str; 11] = [
+    "run.ps1",
     "fiverr.install.json",
     "plugin.json",
     ".claude-plugin/plugin.json",
