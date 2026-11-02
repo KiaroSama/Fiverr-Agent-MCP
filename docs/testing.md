@@ -2,7 +2,7 @@
 
 ## Restored Windows launcher
 
-The optional run.ps1 thin adapter is retained by owner request; application/CI/signing logic stays Rust. Native Windows CI exercises the actual PowerShell wrapper from an unrelated CWD with spaces: missing binary, Preview, Status, conflicting options/native arguments, removed SignIn, default menu EOF, exit codes and distinct root-local UTF-8 logs. The native executable regression remains separately covered. This restoration does not claim full Rust-only migration completion.
+The optional run.ps1 thin adapter is retained by owner request; application/CI/signing logic stays Rust. Native Windows CI exercises the actual PowerShell wrapper from an unrelated CWD with spaces: missing binary, Preview, Status, conflicting options/native arguments, removed SignIn, default menu refusal without an owner terminal, exit codes and distinct root-local UTF-8 logs. The native executable regression remains separately covered. This restoration does not claim full Rust-only migration completion.
 
 ## Rust tooling migration
 

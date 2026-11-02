@@ -112,8 +112,8 @@ async fn powershell_launcher_restores_modes_errors_and_rooted_utf8_logs() {
     }
     assert_eq!(run(root, &["-SignIn"], true).await.status.code(), Some(2));
     let menu = run(root, &[], true).await;
-    assert!(menu.status.success(), "{:?}", menu);
-    assert!(String::from_utf8_lossy(&menu.stdout).contains("Fiverr Main menu:"));
+    assert_eq!(menu.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&menu.stderr).contains("interactive owner terminal"));
     let mut launcher_logs = 0;
     for entry in std::fs::read_dir(root.join("logs")).unwrap() {
         let path = entry.unwrap().path();
