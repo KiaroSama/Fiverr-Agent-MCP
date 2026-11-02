@@ -2,6 +2,9 @@ name: Deep validation
 on:
   workflow_dispatch:
     inputs:
+      browser_startup_only:
+        type: boolean
+        default: false
       proxy_capacity_only:
         type: boolean
         default: false
@@ -11,6 +14,9 @@ on:
         default: false
   workflow_call:
     inputs:
+      browser_startup_only:
+        type: boolean
+        default: false
       proxy_capacity_only:
         type: boolean
         default: false
@@ -21,6 +27,7 @@ permissions:
   contents: read
 jobs:
   adversarial-packaging:
+    if: inputs.browser_startup_only != true
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     defaults:
@@ -57,3 +64,56 @@ jobs:
         run: |
           .ci-work/owner cargo build --locked --package xtask --jobs 2
           target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package xtask --profile ci --test-threads 2 --no-tests fail --no-fail-fast
+
+  browser-startup:
+    if: inputs.browser_startup_only
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        os: [windows-2025, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Bind owned storage and process bounds
+        run: |
+          mkdir -p .ci-work
+          rustc +stable --edition 2024 scripts/ci-bootstrap.rs -o .ci-work/bootstrap
+          .ci-work/bootstrap
+          rustc +stable --edition 2024 scripts/ci-owner.rs -o .ci-work/owner
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          toolchain: 1.99.0
+      - uses: taiki-e/install-action@68a389c788b2cd04016ce8c80ee23b80d2ab3d68
+        env:
+          USERPROFILE: ${{ env.HOME }}
+        with:
+          tool: cargo-nextest@0.9.148
+          fallback: none
+      - name: Run bounded native browser startup cases
+        timeout-minutes: 25
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            export FIVERR_FIXTURE_BROWSER='C:/Program Files/Google/Chrome/Application/chrome.exe'
+          else
+            export FIVERR_FIXTURE_BROWSER='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+          fi
+          test -f "$FIVERR_FIXTURE_BROWSER"
+          .ci-work/owner cargo nextest run --locked --package fiverr-agent-mcp --profile ci --test-threads 2 --no-tests fail --no-fail-fast --success-output immediate -E 'test(native_browser_reads_fixed_fixture_without_exposing_credentials) | test(exact_extension_extractor_rejects_unsafe_or_unknown_account_fixtures)'
+      - name: Retain every diagnostic outcome
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: browser-startup-${{ matrix.os }}
+          include-hidden-files: true
+          path: |
+            target/nextest/ci/junit.xml
+            .ci-work/owner-*/*.bin
+          if-no-files-found: error
+          retention-days: 14
