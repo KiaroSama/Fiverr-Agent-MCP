@@ -2,12 +2,18 @@ name: Deep validation
 on:
   workflow_dispatch:
     inputs:
+      proxy_capacity_only:
+        type: boolean
+        default: false
       http_deadline_only:
         description: 'Run only the retained-response deadline regression'
         type: boolean
         default: false
   workflow_call:
     inputs:
+      proxy_capacity_only:
+        type: boolean
+        default: false
       http_deadline_only:
         type: boolean
         default: false
@@ -36,13 +42,18 @@ jobs:
         with:
           tool: cargo-nextest@0.9.148
           fallback: none
+      - name: Run proxy recovery regression
+        if: inputs.proxy_capacity_only
+        run: |
+          .ci-work/owner cargo build --locked --package xtask --jobs 2
+          target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package fiverr-agent-mcp --test proxy_capacity --profile ci --test-threads 1 --no-tests fail
       - name: Run retained-response regression
         if: inputs.http_deadline_only
         run: |
           .ci-work/owner cargo build --locked --package xtask --jobs 2
           target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package fiverr-agent-mcp --lib --profile ci --test-threads 1 --no-tests fail -E 'test(response_deadline_releases_capacity_before_any_body_poll)'
       - name: Run implemented adversarial archive validators
-        if: inputs.http_deadline_only != true
+        if: inputs.http_deadline_only != true && inputs.proxy_capacity_only != true
         run: |
           .ci-work/owner cargo build --locked --package xtask --jobs 2
           target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package xtask --profile ci --test-threads 2 --no-tests fail --no-fail-fast
