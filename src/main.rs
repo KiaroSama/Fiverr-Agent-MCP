@@ -48,7 +48,7 @@ fn main() {
             "INFO",
             "STORAGE",
             "Application started",
-            serde_json::json!({"version":env!("CARGO_PKG_VERSION"),"bridge":bridge}),
+            serde_json::json!({"version":env!("CARGO_PKG_VERSION"),"bridge":bridge,"temporary_mode":fiverr_agent_mcp::bootstrap::temporary_mode(std::env::var_os("FIVERR_AGENT_TEMP_MODE").as_deref())?}),
         );
         let store = Store::open(root.clone())?;
         let runtime = tokio::runtime::Builder::new_multi_thread()

@@ -62,7 +62,7 @@
         ]
       },
       "licenses": {
-        "native_project_code": "GPL-3.0-only",
+        "native_project_code": "GPL-3.0-or-later",
         "upstream_helper_source": "MIT",
         "adapted_instructions_and_data": "CC-BY-4.0",
         "label_discrepancy": "Upstream SKILL.md/plugin labels MIT while LICENSE-DATA explicitly covers all Markdown/data as CC-BY-4.0; retain separate attribution."

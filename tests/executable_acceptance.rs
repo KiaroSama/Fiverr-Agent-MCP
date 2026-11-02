@@ -3,7 +3,20 @@ use serde_json::{Value, json};
 use std::{path::Path, time::Duration};
 
 async fn command(root: &Root, args: &[&str], rooted: bool) -> std::process::Output {
+    command_with_mode(root, args, rooted, None).await
+}
+
+async fn command_with_mode(
+    root: &Root,
+    args: &[&str],
+    rooted: bool,
+    mode: Option<&str>,
+) -> std::process::Output {
     let mut child = tokio::process::Command::new(env!("CARGO_BIN_EXE_fiverr-agent-mcp"));
+    child.env_remove("FIVERR_AGENT_TEMP_MODE");
+    if let Some(mode) = mode {
+        child.env("FIVERR_AGENT_TEMP_MODE", mode);
+    }
     child
         .arg("--root")
         .arg(root.path())
@@ -27,6 +40,58 @@ async fn command(root: &Root, args: &[&str], rooted: bool) -> std::process::Outp
         .unwrap()
         .unwrap()
 }
+#[test]
+fn temporary_policy_defaults_and_rejects_unknown_values() {
+    use std::ffi::OsStr;
+    assert_eq!(bootstrap::temporary_mode(None).unwrap(), "rooted");
+    assert_eq!(
+        bootstrap::temporary_mode(Some(OsStr::new("rooted"))).unwrap(),
+        "rooted"
+    );
+    assert_eq!(
+        bootstrap::temporary_mode(Some(OsStr::new("system"))).unwrap(),
+        "system"
+    );
+    for value in ["", "SYSTEM", "external"] {
+        assert!(bootstrap::temporary_mode(Some(OsStr::new(value))).is_err());
+    }
+}
+
+#[tokio::test]
+async fn explicit_system_temp_keeps_workspace_private_and_invalid_policy_fails() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = Root::explicit(&temp.path().canonicalize().unwrap()).unwrap();
+    let output = command_with_mode(&root, &["status"], false, Some("system")).await;
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        root.path()
+            .join(".state/workspace/workspace.sqlite3")
+            .is_file()
+    );
+    let logs: Vec<_> = std::fs::read_dir(root.path().join("logs"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    assert!(
+        logs.iter()
+            .any(|p| std::fs::read_to_string(p).unwrap().lines().any(|line| {
+                let v: Value = serde_json::from_str(line).unwrap();
+                v["context"]["temporary_mode"] == "system"
+            }))
+    );
+    let output = command_with_mode(&root, &["status"], false, Some("invalid")).await;
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains("FIVERR_AGENT_TEMP_MODE must be rooted or system")
+    );
+}
+
 #[tokio::test]
 async fn native_entrypoint_roots_itself_preserves_exit_codes_and_writes_private_logs() {
     let temp = tempfile::tempdir().unwrap();

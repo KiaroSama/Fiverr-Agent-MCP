@@ -16,7 +16,7 @@ Reviewed 2026-10-11/12. Exact reviewed commits are in references.lock.json; thes
 | mattsse/chromiumoxide | v0.9.1 | launch/config/source example | Rust CDP lifecycle with explicit root/env/profile/sandbox. Reject hide/anti-detection, unmanaged/default profile and flag-only strict containment claims. |
 | nextest-rs/nextest | cargo-nextest-0.9.148 | official runner docs/release | Bounded suites/JUnit/fail-on-zero discovery; no assumed execution from compilation. |
 
-Original code uses GPL-3.0-only. Concepts are reimplemented where possible; any substantial adapted third-party material retains its own license/notice. No owner account/config/secrets or private working notes are incorporated.
+Original code uses GPL-3.0-or-later. Concepts are reimplemented where possible; any substantial adapted third-party material retains its own license/notice. No owner account/config/secrets or private working notes are incorporated.
 
 ## Other maintained usage
 

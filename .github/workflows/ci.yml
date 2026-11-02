@@ -10,6 +10,10 @@ on:
         description: 'Run only the retained-response regression before a production repair'
         type: boolean
         default: false
+      windows_diagnostics:
+        description: Record normal Windows cases plus two finite diagnostic samples
+        type: boolean
+        default: false
       validation_only:
         description: 'Validate only; false also creates the owner-signed Windows distribution'
         type: boolean
@@ -32,7 +36,18 @@ jobs:
           GH_REPO: ${{ github.repository }}
           SOURCE_SHA: ${{ github.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: gh api --method POST "repos/$GH_REPO/statuses/$SOURCE_SHA" -f state=pending -f context='CI / native acceptance' -f description='Manual validation is running' -f target_url="$RUN_URL" --silent
+        run: |
+          if [ '${{ inputs.windows_diagnostics }}' = true ] && [ '${{ inputs.validation_only }}' != true ]; then
+            printf '%s
+' 'Windows timing diagnostics require validation_only=true' >&2
+            exit 1
+          fi
+          gh api --method POST "repos/$GH_REPO/statuses/$SOURCE_SHA" -f state=pending -f context='CI / native acceptance' -f description='Manual validation is running' -f target_url="$RUN_URL" --silent
+          if [ '${{ inputs.http_deadline_only || inputs.proxy_capacity_only }}' != true ]; then
+            for context in native-x86_64-pc-windows-msvc native-x86_64-unknown-linux-gnu native-aarch64-apple-darwin native-x86_64-apple-darwin 'security / dependencies'; do
+              gh api --method POST "repos/$GH_REPO/statuses/$SOURCE_SHA" -f state=pending -f context="CI / $context" -f description='Actual job is pending' -f target_url="$RUN_URL" --silent
+            done
+          fi
   http-deadline:
     if: inputs.http_deadline_only || inputs.proxy_capacity_only
     uses: ./.github/workflows/deep.yml
@@ -47,7 +62,7 @@ jobs:
     name: native-${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
-    environment: ${{ matrix.os == 'windows-2025' && 'windows-signing' || 'native-validation' }}
+    environment: ${{ matrix.os == 'windows-2025' && inputs.validation_only != true && 'windows-signing' || 'native-validation' }}
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -99,6 +114,22 @@ jobs:
         run: |
           .ci-work/owner cargo build --locked --package xtask --jobs 2
           target/debug/xtask ci-native --target "$NATIVE_TARGET" --sha "$SOURCE_SHA" --validation-only "$VALIDATION_ONLY"
+      - name: Record finite Windows diagnostic samples
+        if: always() && runner.os == 'Windows' && inputs.windows_diagnostics
+        timeout-minutes: 15
+        run: target/debug/xtask ci-windows-diagnostics
+      - name: Retain Windows diagnostic evidence
+        if: always() && runner.os == 'Windows' && inputs.windows_diagnostics
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: windows-timing-diagnostics
+          include-hidden-files: true
+          path: |
+            .ci-work/windows-diagnostics*
+            .ci-work/owner-*/*.bin
+            target/nextest/ci/junit.xml
+          if-no-files-found: error
+          retention-days: 14
       - name: Sign and verify the exact Windows package
         if: runner.os == 'Windows' && inputs.validation_only != true
         timeout-minutes: 8
@@ -146,6 +177,7 @@ jobs:
     timeout-minutes: 2
     permissions:
       statuses: write
+      actions: read
     steps:
       - name: Publish actual aggregate result
         env:
@@ -166,6 +198,15 @@ jobs:
             elif [ "$FOCUSED" != true ] && [ "$NATIVE_RESULT" = success ] && [ "$SECURITY_RESULT" = success ]; then
               state=success
             fi
+          fi
+          if [ "$FOCUSED" != true ]; then
+            gh api --paginate "repos/$GH_REPO/actions/runs/${{ github.run_id }}/jobs?filter=latest&per_page=100" --jq '.jobs[] | select((.name | startswith("native-")) or .name == "security / dependencies") | [.name, .conclusion, .html_url] | @tsv' > jobs.tsv
+            test "$(wc -l < jobs.tsv)" -eq 5
+            while IFS=$'\t' read -r name conclusion url; do
+              job_state=failure
+              if [ "$conclusion" = success ]; then job_state=success; fi
+              gh api --method POST "repos/$GH_REPO/statuses/$SOURCE_SHA" -f state="$job_state" -f context="CI / $name" -f description="Actual job: $conclusion" -f target_url="$url" --silent
+            done < jobs.tsv
           fi
           gh api --method POST "repos/$GH_REPO/statuses/$SOURCE_SHA" -f state="$state" -f context="CI / native acceptance" -f description="Manual validation completed: $state" -f target_url="$RUN_URL" --silent
           test "$state" = success

@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased — 2026-11-02
+## Unreleased — 2026-11-03
+
+Added bounded Windows readiness/launcher phase diagnostics and finite optional CI samples without relaxed deadlines or hidden retries. Individual actual native/dependency commit contexts accompany aggregate status. Completed neutral Windows setup and rooted/system-temp examples; explicit system temporary policy preserves persistent rooting. Original project licensing is now GPL-3.0-or-later; third-party terms remain unchanged. Timing cause requires actual diagnostic evidence.
 
 Enforced the100-profile recovery limit on transactional profile growth while preserving legacy over-limit inspection/deletion and fail-closed selection. Added focused regression and atomic import/local-selection/concurrent-growth coverage. Manual native CI now publishes its actual aggregate status on the exact commit. Integrated reviewed database/parser/SDK/archive and workflow dependency updates, subject to revision-specific native acceptance.
 

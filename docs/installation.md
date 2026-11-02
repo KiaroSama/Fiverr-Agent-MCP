@@ -26,7 +26,7 @@ Proxy import accepts the existing URL and `Label | URL` formats plus the referen
 
 ## Stdio runtime
 
-Configure an absolute executable command and args `["bridge"]`. No HTTP listener is required. `desktop-config` generates the real installation paths plus TEMP/TMP/TMPDIR/XDG_CACHE_HOME. The public Windows example has the owner's requested sample installation path; regenerate it for another directory. Unix clients use the corresponding native executable, not PowerShell or a Node shim.
+Configure an absolute executable command and args `["bridge"]`. No HTTP listener is required. `desktop-config` generates the real installation paths plus TEMP/TMP/TMPDIR/XDG_CACHE_HOME. Public examples use neutral C:/Apps/Fiverr-Agent-MCP paths; replace them with the actual installation. Rooted temp is default. To retain normal inherited OS temporary/cache environment, use the system-temp example with FIVERR_AGENT_TEMP_MODE=system and omit rooted TEMP/TMP/TMPDIR overrides. Invalid/empty policy values fail. Persistent state/logs/profiles/exports remain rooted in either mode. Unix clients use the corresponding native executable, not PowerShell or a Node shim.
 
 `register <absolute-file>` and `unregister <absolute-file>` require local terminal consent and only alter this installation's Fiverr-Agent-mcp entry, preserving other entries with a backup. JSON validation is not proof of real host loading; review the generated entry before registration.
 

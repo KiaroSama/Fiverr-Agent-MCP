@@ -27,10 +27,92 @@ async fn run(root: &std::path::Path, arguments: &[&str], wrapper: bool) -> std::
         .stdin(Stdio::null())
         .kill_on_drop(true);
     command.creation_flags(0x08000000);
-    tokio::time::timeout(Duration::from_secs(10), command.output())
-        .await
-        .unwrap_or_else(|_| panic!("Launcher deadline exceeded for {arguments:?}"))
-        .unwrap()
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+    };
+    use tokio::io::AsyncReadExt;
+    let phase = if !wrapper {
+        "native"
+    } else if root.join("bin/fiverr-agent-mcp.exe").is_file() {
+        "installed_binary"
+    } else {
+        "missing_binary"
+    };
+    let started = std::time::Instant::now();
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = command.spawn().unwrap();
+    eprintln!("launcher phase={phase} event=spawned arguments={arguments:?}");
+    let out_count = Arc::new(AtomicUsize::new(0));
+    let err_count = Arc::new(AtomicUsize::new(0));
+    let preview_seen = Arc::new(AtomicBool::new(false));
+    async fn drain(
+        mut stream: impl tokio::io::AsyncRead + Unpin,
+        count: Arc<AtomicUsize>,
+        preview: Arc<AtomicBool>,
+    ) -> std::io::Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        let mut buffer = [0; 4096];
+        loop {
+            let size = stream.read(&mut buffer).await?;
+            if size == 0 {
+                return Ok(bytes);
+            }
+            count.fetch_add(size, Ordering::Relaxed);
+            if bytes.len() + size > 65536 {
+                return Err(std::io::Error::other("Launcher stream exceeded 64 KiB"));
+            }
+            bytes.extend_from_slice(&buffer[..size]);
+            if bytes
+                .windows(b"Fiverr Main menu:".len())
+                .any(|part| part == b"Fiverr Main menu:")
+            {
+                preview.store(true, Ordering::Relaxed);
+            }
+        }
+    }
+    let mut out = tokio::spawn(drain(
+        child.stdout.take().unwrap(),
+        out_count.clone(),
+        preview_seen.clone(),
+    ));
+    let mut err = tokio::spawn(drain(
+        child.stderr.take().unwrap(),
+        err_count.clone(),
+        Arc::new(AtomicBool::new(false)),
+    ));
+    let mut exit_code = None;
+    let result = tokio::time::timeout(Duration::from_secs(10), async {
+        let status = child.wait().await.unwrap();
+        exit_code = Some(status.code());
+        let (stdout, stderr) = tokio::join!(&mut out, &mut err);
+        std::process::Output {
+            status,
+            stdout: stdout.unwrap().unwrap(),
+            stderr: stderr.unwrap().unwrap(),
+        }
+    })
+    .await;
+    eprintln!(
+        "launcher phase={phase} elapsed_ms={} exit={exit_code:?} stdout_bytes={} stderr_bytes={} native_preview_reached={} deadline={}",
+        started.elapsed().as_millis(),
+        out_count.load(Ordering::Relaxed),
+        err_count.load(Ordering::Relaxed),
+        preview_seen.load(Ordering::Relaxed),
+        result.is_err()
+    );
+    match result {
+        Ok(output) => output,
+        Err(_) => {
+            let _ = child.kill().await;
+            let _ = child.wait().await;
+            out.abort();
+            err.abort();
+            let _ = out.await;
+            let _ = err.await;
+            panic!("Launcher deadline exceeded phase={phase} for {arguments:?}");
+        }
+    }
 }
 #[tokio::test]
 async fn native_windows_entrypoint_handles_modes_root_and_plain_preview() {

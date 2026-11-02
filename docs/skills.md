@@ -15,7 +15,7 @@ revision `cf4d6005bd53647a8f9f7ea564bb2a92176c1e08`.
   [Skill](https://github.com/Ahad690/fiverr-gig-optimizer/blob/cf4d6005bd53647a8f9f7ea564bb2a92176c1e08/skills/fiverr-gig-optimizer/SKILL.md)
   and [plugin](https://github.com/Ahad690/fiverr-gig-optimizer/blob/cf4d6005bd53647a8f9f7ea564bb2a92176c1e08/.claude-plugin/plugin.json).
 - Source code: MIT, copyright2026 fiverr-gig-optimizer contributors. Native
-  scoring/pricing/lookup adapts that source while new project code is GPL-3.0-only;
+  scoring/pricing/lookup adapts that source while new project code is GPL-3.0-or-later;
   original copyright and MIT grant remain with the adaptation.
 - Documentation/data: upstream LICENSE-DATA expressly covers all Markdown/data
   as CC-BY-4.0 despite MIT skill/plugin labels. This package conservatively

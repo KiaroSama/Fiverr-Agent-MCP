@@ -81,6 +81,7 @@ fn execute() -> Result<()> {
             )
         }
         "ci-dependencies" => ci::dependencies(),
+        "ci-windows-diagnostics" => ci::windows_diagnostics(),
         "release-verify" => {
             let values = options(&args[1..])?;
             release::verify(required(&values, "--run")?, required(&values, "--sha")?)

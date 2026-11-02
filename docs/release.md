@@ -1,6 +1,6 @@
 # Release contract
 
-Release only an experimental/prerelease while live account readiness is unverified. Public destination: KiaroSama/Fiverr-Agent-MCP. Original code GPL-3.0-only; adapted upstream notices remain separate.
+Release only an experimental/prerelease while live account readiness is unverified. Public destination: KiaroSama/Fiverr-Agent-MCP. Original code GPL-3.0-or-later; adapted upstream notices remain separate.
 
 Manual CI defaults to `validation_only:true` for native source/test/security/coverage validation. With `validation_only:false`, Windows additionally builds once, signs through the branch-restricted `windows-signing` environment, verifies the pinned owner certificate and PE content digest, checks tamper/wrong-signer rejection, packages and verifies the extracted signed executable. Only the signing step receives the two encrypted signing inputs; no private material enters distribution archives. Other native targets remain validation-only until their approved platform signing contracts exist. Green validation alone is not final package or installation evidence.
 

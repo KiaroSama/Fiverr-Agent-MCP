@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Deterministic helpers adapted from Ahad690/fiverr-gig-optimizer, revision
 // cf4d6005bd53647a8f9f7ea564bb2a92176c1e08 (MIT source).
 // Copyright (c) 2026 fiverr-gig-optimizer contributors.

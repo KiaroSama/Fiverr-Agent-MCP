@@ -5,5 +5,5 @@
   "description": "Reviewed third-party Fiverr optimizer instructions for an explicitly installed native local workspace.",
   "author": {"name": "KiaroSama"},
   "repository": "https://github.com/KiaroSama/Fiverr-Agent-MCP",
-  "license": "GPL-3.0-only AND MIT AND CC-BY-4.0"
+  "license": "GPL-3.0-or-later AND MIT AND CC-BY-4.0"
 }

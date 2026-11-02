@@ -55,12 +55,19 @@ pub async fn launch(
         .kill_on_drop(true);
     #[cfg(windows)]
     command.creation_flags(0x08000000);
+    let started = std::time::Instant::now();
+    let mut phase = "readiness";
+    let mut readiness_seen = false;
     let mut child = command.spawn().map_err(|_| {
         error(
             ErrorCode::FeatureUnavailable,
             "Fixture browser process failed to start.",
         )
     })?;
+    eprintln!(
+        "fixture_browser phase=spawned elapsed_ms={} child_alive=true",
+        started.elapsed().as_millis()
+    );
     // Chrome writes this readiness contract even when GUI-build stderr is silent.
     let ready = async {
         let mut ticks = tokio::time::interval(Duration::from_millis(50));
@@ -77,6 +84,13 @@ pub async fn launch(
             }
             let path = profile.join("DevToolsActivePort");
             if path.exists() {
+                if !readiness_seen {
+                    readiness_seen = true;
+                    eprintln!(
+                        "fixture_browser phase=readiness_file elapsed_ms={}",
+                        started.elapsed().as_millis()
+                    );
+                }
                 let text = root.read_bounded(&path, 4096)?;
                 let text = std::str::from_utf8(&text)
                     .map_err(|_| invalid("Invalid browser readiness encoding."))?;
@@ -98,6 +112,11 @@ pub async fn launch(
                         request_timeout: Duration::from_secs(5),
                         ..Default::default()
                     };
+                    phase = "connect_readiness_file";
+                    eprintln!(
+                        "fixture_browser phase={phase} elapsed_ms={}",
+                        started.elapsed().as_millis()
+                    );
                     return Browser::connect_with_config(
                         format!("ws://127.0.0.1:{port}{}", lines[1]),
                         config,
@@ -135,6 +154,11 @@ pub async fn launch(
                     request_timeout: Duration::from_secs(5),
                     ..Default::default()
                 };
+                phase = "connect_stderr";
+                eprintln!(
+                    "fixture_browser phase={phase} elapsed_ms={}",
+                    started.elapsed().as_millis()
+                );
                 return Browser::connect_with_config(endpoint.to_string(), config)
                     .await
                     .map_err(|_| {
@@ -148,8 +172,20 @@ pub async fn launch(
         }
     };
     match tokio::time::timeout(Duration::from_secs(20), ready).await {
-        Ok(Ok((browser, handler))) => Ok((browser, handler, child)),
+        Ok(Ok((browser, handler))) => {
+            eprintln!(
+                "fixture_browser phase=connected elapsed_ms={}",
+                started.elapsed().as_millis()
+            );
+            Ok((browser, handler, child))
+        }
         result => {
+            let child_alive = matches!(child.try_wait(), Ok(None));
+            eprintln!(
+                "fixture_browser phase={phase} elapsed_ms={} readiness_seen={readiness_seen} child_alive={child_alive} deadline={}",
+                started.elapsed().as_millis(),
+                result.is_err()
+            );
             let _ = child.kill().await;
             let _ = child.wait().await;
             if let Ok(bytes) = root.read_bounded(&stderr_path, 16384) {

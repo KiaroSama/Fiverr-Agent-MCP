@@ -7,7 +7,7 @@ name = "fiverr-agent-mcp"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.99"
-license = "GPL-3.0-only"
+license = "GPL-3.0-or-later"
 repository = "https://github.com/KiaroSama/Fiverr-Agent-MCP"
 description = "Portable account-controlled Fiverr workspace and fail-closed native MCP"
 

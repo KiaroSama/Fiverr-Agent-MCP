@@ -251,6 +251,61 @@ fn mutation() -> Result<()> {
     Ok(())
 }
 
+pub fn windows_diagnostics() -> Result<()> {
+    if !cfg!(windows) {
+        return Err("Windows diagnostic samples require a native Windows runner".into());
+    }
+    let mut outcomes = Vec::new();
+    let initial = target_dir()?.join("nextest/ci/junit.xml");
+    if !initial.is_file() {
+        return Err("Normal native sample JUnit missing; diagnostic invocation not started".into());
+    }
+    fs::copy(initial, root().join(".ci-work/windows-diagnostics-1.xml"))?;
+    // The normal matrix is sample 1. These are finite samples, never retries.
+    for sample in 2..=3 {
+        let result = cargo(
+            600,
+            180,
+            &[
+                "nextest",
+                "run",
+                "--locked",
+                "--package",
+                "fiverr-agent-mcp",
+                "--profile",
+                "ci",
+                "--test-threads",
+                "2",
+                "--no-tests",
+                "fail",
+                "--no-fail-fast",
+                "--success-output",
+                "immediate",
+                "-E",
+                "test(native_browser_reads_fixed_fixture_without_exposing_credentials) | test(powershell_launcher_restores_modes_errors_and_rooted_utf8_logs)",
+            ],
+        );
+        let junit = target_dir()?.join("nextest/ci/junit.xml");
+        if junit.is_file() {
+            fs::copy(
+                junit,
+                root().join(format!(".ci-work/windows-diagnostics-{sample}.xml")),
+            )?;
+        }
+        outcomes.push(serde_json::json!({"sample":sample,"success":result.is_ok(),"error":result.err().map(|e| e.to_string())}));
+    }
+    fs::write(
+        root().join(".ci-work/windows-diagnostics.json"),
+        serde_json::to_vec_pretty(&outcomes)?,
+    )?;
+    if outcomes.iter().any(|v| v["success"] != true) {
+        return Err(
+            "Finite diagnostic sample failed; all outcomes retained, no retry performed".into(),
+        );
+    }
+    Ok(())
+}
+
 pub fn dependencies() -> Result<()> {
     for (tool, version) in [("cargo-audit", "0.22.2"), ("cargo-deny", "0.20.2")] {
         let output = owned(30, 15, tool, &["--version"])?;

@@ -10,7 +10,7 @@ pub fn desktop(root: &Root, entry_only: bool) -> Value {
     } else {
         "fiverr-agent-mcp"
     });
-    let entry = json!({"command":executable,"args":["bridge"],"env":{"TEMP":root.path().join(".cache/tmp"),"TMP":root.path().join(".cache/tmp"),"TMPDIR":root.path().join(".cache/tmp"),"XDG_CACHE_HOME":root.path().join(".cache")}});
+    let entry = json!({"command":executable,"args":["bridge"],"env":{"FIVERR_AGENT_TEMP_MODE":"rooted","TEMP":root.path().join(".cache/tmp"),"TMP":root.path().join(".cache/tmp"),"TMPDIR":root.path().join(".cache/tmp"),"XDG_CACHE_HOME":root.path().join(".cache")}});
     if entry_only {
         json!({"Fiverr-Agent-mcp":entry})
     } else {

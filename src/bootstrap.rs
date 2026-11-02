@@ -20,6 +20,9 @@ pub fn environment(root: &Root) -> [(&'static str, OsString); 4] {
 // Restart before SQLite, TLS, logging or Tokio can create threads/read OS temp paths.
 // Equality checks are authoritative; a forged marker cannot bypass containment.
 pub fn rooted_process(root: &Root) -> Result<Option<i32>> {
+    if temporary_mode(std::env::var_os("FIVERR_AGENT_TEMP_MODE").as_deref())? == "system" {
+        return Ok(None);
+    }
     let variables = environment(root);
     if variables
         .iter()
@@ -43,6 +46,17 @@ pub fn rooted_process(root: &Root) -> Result<Option<i32>> {
         Ok(Some(status.code().unwrap_or(1)))
     }
 }
+pub fn temporary_mode(value: Option<&std::ffi::OsStr>) -> Result<&'static str> {
+    match value {
+        None => Ok("rooted"),
+        Some(value) if value == "rooted" => Ok("rooted"),
+        Some(value) if value == "system" => Ok("system"),
+        _ => Err(crate::core::invalid(
+            "FIVERR_AGENT_TEMP_MODE must be rooted or system.",
+        )),
+    }
+}
+
 fn failure() -> crate::core::AppError {
     error(
         ErrorCode::StorageUnavailable,

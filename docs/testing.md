@@ -1,5 +1,11 @@
 # Testing and evidence
 
+## Finite Windows diagnostics
+
+Manual windows_diagnostics=true adds exactly two explicitly counted narrow samples after the normal native suite (sample1); no automatic retries. Use validation_only=true, http_deadline_only=false and proxy_capacity_only=false. Every sample outcome/JUnit and owner streams are retained. Browser phases report spawn/readiness-file/connect/deadline/child liveness and elapsed time; launcher diagnostics distinguish missing/installed binary, stream byte counts, native preview marker, child exit and deadline. Existing20s browser/10s launcher limits remain. Passing samples do not establish a causal repair of an intermittent failure.
+
+Individual native/dependency legacy statuses derive from actual current-run job conclusions and link to each job. Full and focused runs remain distinct; unrun Release/Deep is not green. Explicit rooted/system/invalid temporary policy cases run through the actual native entrypoint, with persistent workspace/log assertions.
+
 ## Proxy collection recovery
 
 A test-only native run at `d3e7328` reproduced accepted growth to101 profiles after a100-profile backup control passed. The repair checks final versus previous profile count inside the existing immediate settings transaction, before counter updates; one shared100-profile limit covers import and recovery validation. Automatically discovered proxy_capacity tests cover add/import/local selection, exact logical rollback, idempotent imports, legacy102-to100 deletion, selected-profile fail-closed removal, backup/empty restore and two synchronized concurrent growth attempts. These are synthetic local fixtures, not proxy reachability tests.

@@ -1,6 +1,6 @@
 # Third-party notices
 
-Original Fiverr Agent MCP code is Copyright (C) 2026 KiaroSama, licensed GPL-3.0-only. See LICENSE. This is unofficial software, not endorsed by Fiverr or the referenced projects. No warranty is provided.
+Original Fiverr Agent MCP code is Copyright (C) 2026 KiaroSama, licensed GPL-3.0-or-later. See LICENSE. This is unofficial software, not endorsed by Fiverr or the referenced projects. No warranty is provided.
 
 ## Existing Fiverr optimizer
 
@@ -12,9 +12,9 @@ The existing instruction/copy-guidance adaptation is attributed to that same pro
 
 Cargo.lock pins executable, test and packaging dependencies. Native packages generate licenses/dependencies.json and distribute actual license texts from the resolved normal/build dependency graph. Missing license texts fail packaging; an SPDX label alone is not a substitute. Audits and compatibility checks run in CI.
 
-The locked rmcp/rmcp-macros3.5.1 package lacks its workspace license text in the registry archive. The exact pinned upstream LICENSE, including the Apache-2.0/MIT transition statement, is retained in third_party/rust-sdk/ with a source/hash notice and included in native dependency notices. The fallback is restricted to those exact versions; other missing license texts still fail packaging.
+The historical rmcp/rmcp-macros3.5.1 package lacked its workspace license text in the registry archive. The exact pinned upstream LICENSE, including the Apache-2.0/MIT transition statement, is retained in third_party/rust-sdk/ with a source/hash notice and included in native dependency notices. The fallback is restricted to those exact versions; other missing license texts still fail packaging.
 
-The locked selectors0.38.0 package declares MPL-2.0 but omits the license text. The official unmodified Mozilla MPL2.0 text is retained in third_party/selectors/ with exact upstream source revision and attribution. Packaging accepts this fallback only for selectors0.38.0 and the pinned license hash; no selectors source was modified. Source remains available at the documented upstream revision/registry package.
+The selectors0.38.0 and0.41.0 packages declare MPL-2.0 but omits the license text. The official unmodified Mozilla MPL2.0 text is retained in third_party/selectors/ with exact upstream source revision and attribution. Packaging accepts this fallback only for selectors0.38.0/0.41.0 and the pinned license hash; no selectors source was modified. Source remains available at the documented upstream revision/registry package.
 
 The application uses the official modelcontextprotocol/rust-sdk (Apache-2.0 with retained upstream MIT transition notices), reqwest (MIT OR Apache-2.0), chromiumoxide (MIT OR Apache-2.0), Tokio (MIT), rusqlite (MIT), serde (MIT OR Apache-2.0), Axum (MIT) and their locked dependencies. SQLite is bundled by libsqlite3-sys and retains the applicable upstream notices. Final package inventories, not this illustrative list, identify resolved versions/licenses.
 
