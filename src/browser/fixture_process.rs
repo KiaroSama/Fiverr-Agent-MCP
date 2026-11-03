@@ -187,6 +187,43 @@ pub async fn launch(
             Ok((browser, handler, child))
         }
         result => {
+            #[cfg(windows)]
+            if let Some(pid) = child.id() {
+                let mut probe = tokio::process::Command::new("pwsh");
+                probe.args(["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", &format!("$p=Get-Process -Id {pid} -ErrorAction Stop; $p | Select-Object Id,CPU,WorkingSet64,HandleCount,StartTime | ConvertTo-Json -Compress; $p.Threads | Select-Object Id,ThreadState,WaitReason | ConvertTo-Json -Compress; Get-Command cdb -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source")]).stdin(Stdio::null()).kill_on_drop(true).creation_flags(0x08000000);
+                if let Ok(Ok(output)) =
+                    tokio::time::timeout(Duration::from_secs(2), probe.output()).await
+                {
+                    eprintln!(
+                        "fixture_browser owned_process={}",
+                        String::from_utf8_lossy(&output.stdout)
+                    );
+                }
+            }
+            #[cfg(windows)]
+            if let Some(pid) = child.id() {
+                let debugger =
+                    Path::new("C:/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe");
+                if debugger.is_file() {
+                    let mut probe = tokio::process::Command::new(debugger);
+                    probe
+                        .args(["-pv", "-p", &pid.to_string(), "-c", "~*kb;qd"])
+                        .stdin(Stdio::null())
+                        .kill_on_drop(true)
+                        .creation_flags(0x08000000);
+                    if let Ok(Ok(output)) =
+                        tokio::time::timeout(Duration::from_secs(3), probe.output()).await
+                    {
+                        eprintln!(
+                            "fixture_browser owned_stack={}",
+                            String::from_utf8_lossy(&output.stdout)
+                                .chars()
+                                .take(16000)
+                                .collect::<String>()
+                        );
+                    }
+                }
+            }
             if let Ok(file) = std::fs::File::open(&native_log) {
                 use std::io::{Read, Seek, SeekFrom};
                 let mut file = file;
