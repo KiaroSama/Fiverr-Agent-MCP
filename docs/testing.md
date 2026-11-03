@@ -59,4 +59,8 @@ Public CLI management, actual native entrypoint/rooted child and failure exits, 
 
 ## Browser startup investigation
 
-Deep validation browser_startup_only=true runs only the two existing browser fixtures on native Windows and Intel macOS, with unchanged deadlines and two workers. Owned Chromium file logging captures a bounded sanitized tail on startup failure; no live account or sandbox-disable flag is used. Every outcome is retained; this focused run is not full native/signing acceptance.
+Deep validation browser_startup_only=true runs only the two existing browser fixtures on native Windows and Intel macOS, with unchanged deadlines and two workers. No live account or sandbox-disable flag is used. Temporary native-file/debugger probes used during diagnosis were removed after evidence collection. Every outcome is retained; this focused run is not full native/signing acceptance.
+
+## Browser resource accounting
+
+A Chromium fixture starts a multi-process browser, not a one-thread unit test. The two browser-runtime/extractor cases now reserve the full configured test-worker budget on Windows and Intel macOS. Other tests retain two-way concurrency, and the browser20s readiness/per-case limits and zero retries are unchanged. Instrumented normal-suite runs reproduced startup/readiness failures while isolated browser runs passed; the one-variable weighted run41557352699 passed Windows184/184 and Intel185/185. This supports resource isolation as a reliability correction, not a claim that every underlying host delay has been identified or that one passing run proves permanent flake elimination. Failure phase diagnostics remain available; final acceptance is revision-specific.
