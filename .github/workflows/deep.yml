@@ -2,6 +2,10 @@ name: Deep validation
 on:
   workflow_dispatch:
     inputs:
+      maintenance_only:
+        description: 'Run only the all-plan persisted identity and token regressions'
+        type: boolean
+        default: false
       browser_startup_only:
         type: boolean
         default: false
@@ -14,6 +18,10 @@ on:
         default: false
   workflow_call:
     inputs:
+      maintenance_only:
+        description: 'Run only the all-plan persisted identity and token regressions'
+        type: boolean
+        default: false
       browser_startup_only:
         type: boolean
         default: false
@@ -59,8 +67,13 @@ jobs:
         run: |
           .ci-work/owner cargo build --locked --package xtask --jobs 2
           target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package fiverr-agent-mcp --lib --profile ci --test-threads 1 --no-tests fail -E 'test(response_deadline_releases_capacity_before_any_body_poll)'
+      - name: Run all-plan maintenance regressions
+        if: inputs.maintenance_only
+        run: |
+          .ci-work/owner cargo build --locked --package xtask --jobs 2
+          target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package fiverr-agent-mcp --test http_token_lifecycle --test persisted_identity --profile ci --test-threads 2 --no-tests fail --no-fail-fast
       - name: Run implemented adversarial archive validators
-        if: inputs.http_deadline_only != true && inputs.proxy_capacity_only != true
+        if: inputs.http_deadline_only != true && inputs.proxy_capacity_only != true && inputs.maintenance_only != true
         run: |
           .ci-work/owner cargo build --locked --package xtask --jobs 2
           target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package xtask --profile ci --test-threads 2 --no-tests fail --no-fail-fast
