@@ -193,6 +193,10 @@ pub fn manifests(root: &Path) -> Result<()> {
 
 pub fn capabilities(root: &Path) -> Result<()> {
     let value = json(root, "capabilities.json")?;
+    capability_registry(root, &value)
+}
+
+fn capability_registry(root: &Path, value: &Value) -> Result<()> {
     if value["schema"] != 1 && value["schema_version"] != 1 {
         return Err("capability schema must be 1".into());
     }
@@ -269,6 +273,10 @@ pub fn capabilities(root: &Path) -> Result<()> {
     println!("Validated {} workflow capability entries", workflows.len());
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "capability_tests.rs"]
+mod capability_tests;
 
 #[cfg(test)]
 mod tests {
