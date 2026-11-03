@@ -116,7 +116,26 @@ fn windows_child_environment_honors_case_insensitive_removal() {
     loop {
         if let Some(status) = child.try_wait().unwrap() {
             job.terminate().unwrap();
-            assert!(status.success(), "dummy parent contract failed");
+            let mut stdout = String::new();
+            let mut stderr = String::new();
+            child
+                .stdout
+                .take()
+                .unwrap()
+                .take(8192)
+                .read_to_string(&mut stdout)
+                .unwrap();
+            child
+                .stderr
+                .take()
+                .unwrap()
+                .take(8192)
+                .read_to_string(&mut stderr)
+                .unwrap();
+            assert!(
+                status.success(),
+                "dummy parent contract failed: {stdout}\n{stderr}"
+            );
             break;
         }
         if Instant::now() >= deadline {

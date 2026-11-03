@@ -132,6 +132,8 @@ jobs:
           status=0
           if [ "$RUNNER_OS" = Windows ]; then
             target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package xtask --profile ci --test-threads 2 --no-tests fail --no-fail-fast -E 'test(windows_child_environment_honors_case_insensitive_removal)' || status=1
+          else
+            target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package xtask --profile ci --test-threads 2 --no-tests fail --no-fail-fast -E 'test(release::assets::tests)' || status=1
           fi
           target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package fiverr-agent-mcp --test capability_contract --profile ci --test-threads 2 --no-tests fail --no-fail-fast || status=1
           exit "$status"

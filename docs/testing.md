@@ -12,7 +12,9 @@ Deep validation `maintenance_only=true` selects only `http_token_lifecycle` and 
 
 The separate Deep `cli_only=true` selection runs registration-policy, real-reader/menu framing, action review and Windows wrapper-root regressions on Linux and Windows. It leaves production CLI unchanged for semantic-red proof. Windows-only junction cases require the native Windows job; Linux zero cases for that cfg-only binary do not substitute for it. Neither focused selection changes full acceptance contexts or authorizes live operations.
 
-Deep `boundary_only=true` selects the native Windows environment-removal child contract and the capability effect contract on Linux/Windows. Both outcomes are collected and either failure fails the job. The environment fixture reports only an allowlisted variable-presence boolean; no ambient values or signing inputs are printed. Its original-source checkpoint is separate from later integration acceptance.
+Deep `boundary_only=true` selects the native Windows environment-removal child contract and the capability effect contract on Linux/Windows. Both outcomes are collected and either failure fails the job. The environment fixture reports only an allowlisted variable-presence boolean; no ambient values or signing inputs are printed. Its original-source checkpoint is separate from later integration acceptance. The controlled mixed-case dummy parent reports bounded stdout/stderr on failure so a nested process setup error cannot be mistaken for a case-insensitive removal failure.
+
+The automatically discovered xtask release corpus calls the extracted validation function only: consistent dummy archives, exact asset names, duplicate checksum lines, embedded/external metadata, member hashes and executable receipt binding. Dummy executables are never run, signing is not simulated as cryptographic proof, and the fixtures never invoke release publication. The first extraction preserves incumbent checks to establish semantic-red evidence before strengthening validation.
 
 ## Proxy collection recovery
 

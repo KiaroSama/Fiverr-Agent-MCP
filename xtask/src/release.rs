@@ -1,6 +1,9 @@
 use crate::{Result, ci::owned, root, validate};
 use serde_json::Value;
-use std::{collections::BTreeMap, env, fs, path::Path};
+use std::{env, fs};
+
+#[path = "release_assets.rs"]
+mod assets;
 fn api(path: &str) -> Result<Value> {
     let result = owned(60, 30, "gh", &["api", path])?;
     Ok(serde_json::from_slice(&result.stdout)?)
@@ -57,54 +60,9 @@ pub fn verify(run: &str, sha: &str) -> Result<()> {
 pub fn publish(sha: &str) -> Result<()> {
     crate::sha(sha)?;
     let directory = root().join("verified-artifacts/fiverr-x86_64-pc-windows-msvc");
-    let release: Value = serde_json::from_slice(&fs::read(
-        directory.join("release-x86_64-pc-windows-msvc.json"),
-    )?)?;
-    if release["source_sha"] != sha
-        || release["product"] != crate::PRODUCT
-        || release["version"] != crate::VERSION
-    {
-        return Err("artifact identity mismatch".into());
-    }
-    let mut assets = BTreeMap::new();
-    for line in fs::read_to_string(directory.join("SHA256SUMS-x86_64-pc-windows-msvc.txt"))?.lines()
-    {
-        let (hash, name) = line.split_once("  ").ok_or("malformed checksum line")?;
-        if hash.len() != 64
-            || !hash.bytes().all(|c| c.is_ascii_hexdigit())
-            || Path::new(name).components().count() != 1
-            || !name
-                .bytes()
-                .all(|c| c.is_ascii_alphanumeric() || b"._-".contains(&c))
-        {
-            return Err("unsafe checksum entry".into());
-        }
-        let path = directory.join(name);
-        if validate::digest(&fs::read(&path)?) != hash {
-            return Err("archive checksum mismatch".into());
-        }
-        assets.insert(name.to_owned(), path);
-    }
-    if assets.len() != 3 {
-        return Err("incomplete signed distribution assets".into());
-    }
-    let receipt: Value =
-        serde_json::from_slice(&fs::read(directory.join("windows-signing-receipt.json"))?)?;
     let policy: Value =
         serde_json::from_slice(&validate::regular(&root(), "config/signing-public.json")?)?;
-    if receipt["source_sha"] != sha
-        || receipt["signature_valid"] != true
-        || receipt["certificate_sha256"] != policy["certificate_sha256"]
-    {
-        return Err("signing receipt mismatch".into());
-    }
-    for name in [
-        "release-x86_64-pc-windows-msvc.json",
-        "SHA256SUMS-x86_64-pc-windows-msvc.txt",
-        "windows-signing-receipt.json",
-    ] {
-        assets.insert(name.into(), directory.join(name));
-    }
+    let assets = assets::validate_assets(&directory, sha, &policy)?;
     let tag = format!("v{}", crate::VERSION);
     let tags = api(&format!("repos/{}/tags?per_page=100", env::var("GH_REPO")?))?;
     if tags
