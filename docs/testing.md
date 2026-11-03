@@ -6,6 +6,10 @@ Manual windows_diagnostics=true adds exactly two explicitly counted narrow sampl
 
 Individual native/dependency legacy statuses derive from actual current-run job conclusions and link to each job. Full and focused runs remain distinct; unrun Release/Deep is not green. Explicit rooted/system/invalid temporary policy cases run through the actual native entrypoint, with persistent workspace/log assertions.
 
+## All-plan maintenance regression selection
+
+Deep validation `maintenance_only=true` selects only `http_token_lifecycle` and `persisted_identity`, with two workers, fail-on-zero discovery and the existing owned900s wall/180s idle bounds. The test-first revision leaves production source unchanged: established-token authentication must not require an UPDATE, malformed persisted authority must not reset, and valid JSON must agree with authoritative record/action columns before reads or transitions. This focused workload is not full native/signing acceptance. Setup/compile errors are not semantic red evidence; final repairs require the complete applicable native matrix.
+
 ## Proxy collection recovery
 
 A test-only native run at `d3e7328` reproduced accepted growth to101 profiles after a100-profile backup control passed. The repair checks final versus previous profile count inside the existing immediate settings transaction, before counter updates; one shared100-profile limit covers import and recovery validation. Automatically discovered proxy_capacity tests cover add/import/local selection, exact logical rollback, idempotent imports, legacy102-to100 deletion, selected-profile fail-closed removal, backup/empty restore and two synchronized concurrent growth attempts. These are synthetic local fixtures, not proxy reachability tests.
