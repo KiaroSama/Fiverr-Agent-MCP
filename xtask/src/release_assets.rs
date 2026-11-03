@@ -43,6 +43,24 @@ pub(super) fn validate_assets(
     sha: &str,
     policy: &Value,
 ) -> Result<BTreeMap<String, PathBuf>> {
+    let head = crate::ci::owned(15, 10, "git", &["rev-parse", "HEAD"])?;
+    if std::str::from_utf8(&head.stdout)?.trim() != sha {
+        return Err("publication checkout differs from verified source".into());
+    }
+    validate_assets_against(
+        directory,
+        sha,
+        policy,
+        &crate::package::source(&crate::root())?,
+    )
+}
+
+fn validate_assets_against(
+    directory: &Path,
+    sha: &str,
+    policy: &Value,
+    expected_source: &archives::Files,
+) -> Result<BTreeMap<String, PathBuf>> {
     crate::sha(sha)?;
     let release: Value = serde_json::from_slice(&input(
         directory,

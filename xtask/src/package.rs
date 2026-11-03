@@ -326,24 +326,7 @@ pub fn build(root: &Path, binary: &str, out: &str, target: &str, sha: &str) -> R
         target,
         sha,
     )?;
-    let plugin: Files = files
-        .iter()
-        .filter(|(name, _)| {
-            name.starts_with("skills/")
-                || name.ends_with("plugin.json")
-                || name.ends_with("marketplace.json")
-                || name.starts_with("third_party/")
-                || name.starts_with("docs/")
-                || [
-                    "LICENSE",
-                    "THIRD_PARTY_NOTICES.md",
-                    "README.md",
-                    "skills.lock.json",
-                ]
-                .contains(&name.as_str())
-        })
-        .map(|(name, bytes)| (name.clone(), bytes.clone()))
-        .collect();
+    let plugin = plugin_payload(&files);
     let plugin_archive = out.join(format!("fiverr-gig-optimizer-{VERSION}-plugin.zip"));
     archives::write(&plugin_archive, &plugin)?;
     if archives::read(&plugin_archive)? != plugin {
@@ -381,7 +364,28 @@ pub fn build(root: &Path, binary: &str, out: &str, target: &str, sha: &str) -> R
     Ok(())
 }
 
-fn source(root: &Path) -> Result<Files> {
+pub(super) fn plugin_payload(files: &Files) -> Files {
+    files
+        .iter()
+        .filter(|(name, _)| {
+            name.starts_with("skills/")
+                || name.ends_with("plugin.json")
+                || name.ends_with("marketplace.json")
+                || name.starts_with("third_party/")
+                || name.starts_with("docs/")
+                || [
+                    "LICENSE",
+                    "THIRD_PARTY_NOTICES.md",
+                    "README.md",
+                    "skills.lock.json",
+                ]
+                .contains(&name.as_str())
+        })
+        .map(|(name, bytes)| (name.clone(), bytes.clone()))
+        .collect()
+}
+
+pub(super) fn source(root: &Path) -> Result<Files> {
     let output = process::run("git", &["ls-files".into(), "-z".into()], root, 15, 10)?;
     if !output.status.success() {
         return Err("source index inventory failed".into());

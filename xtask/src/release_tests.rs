@@ -8,6 +8,7 @@ const SHA: &str = "1111111111111111111111111111111111111111";
 struct Fixture {
     directory: PathBuf,
     native: Files,
+    source: Files,
     names: [String; 3],
     policy: Value,
 }
@@ -29,22 +30,31 @@ impl Fixture {
                 "bin/fiverr-agent-mcp.exe".into(),
                 b"synthetic executable, never executed".to_vec(),
             ),
+            (
+                "bin/fiverr-verify.exe".into(),
+                b"synthetic verifier, never executed".to_vec(),
+            ),
             ("README.md".into(), b"Synthetic public fixture".to_vec()),
+        ]);
+        let source = Files::from([
+            ("README.md".into(), b"Synthetic public fixture".to_vec()),
+            ("Cargo.toml".into(), b"synthetic manifest".to_vec()),
+            ("src/main.rs".into(), b"synthetic source".to_vec()),
         ]);
         let mut fixture = Self {
             directory,
             native,
+            source,
             names,
             policy: json!({"certificate_sha256":"dummy-public-pin"}),
         };
         fixture.write_native();
-        for name in [&fixture.names[1], &fixture.names[2]] {
-            archives::write(
-                &fixture.directory.join(name),
-                &Files::from([("README.md".into(), b"Synthetic public fixture".to_vec())]),
-            )
-            .unwrap();
-        }
+        archives::write(&fixture.directory.join(&fixture.names[1]), &fixture.source).unwrap();
+        archives::write(
+            &fixture.directory.join(&fixture.names[2]),
+            &crate::package::plugin_payload(&fixture.native),
+        )
+        .unwrap();
         fixture.sums();
         fixture.json(
             "windows-signing-receipt.json",
@@ -52,6 +62,7 @@ impl Fixture {
                 "source_sha":SHA, "signature_valid":true,
                 "certificate_sha256":"dummy-public-pin",
                 "file_sha256":validate::digest(&fixture.native["bin/fiverr-agent-mcp.exe"]),
+                "verifier":{"signature_valid":true,"certificate_sha256":"dummy-public-pin","file_sha256":validate::digest(&fixture.native["bin/fiverr-verify.exe"])},
             }),
         );
         fixture
@@ -98,7 +109,7 @@ impl Fixture {
         .unwrap();
     }
     fn validate(&self) -> Result<BTreeMap<String, PathBuf>> {
-        validate_assets(&self.directory, SHA, &self.policy)
+        validate_assets_against(&self.directory, SHA, &self.policy, &self.source)
     }
 }
 impl Drop for Fixture {
@@ -160,6 +171,45 @@ fn release_receipt_matches_packaged_executable() {
         fixture.validate().is_err(),
         "accepted stale executable receipt after archive checksum update"
     );
+}
+
+#[test]
+fn release_source_inventory_and_verifier_receipt_cannot_be_substituted() {
+    for case in [
+        "plugin_only_source",
+        "missing_verifier",
+        "changed_verifier",
+        "missing_verifier_receipt",
+    ] {
+        let mut fixture = Fixture::new();
+        match case {
+            "plugin_only_source" => {
+                let path = fixture.directory.join(&fixture.names[1]);
+                fs::remove_file(&path).unwrap();
+                archives::write(&path, &crate::package::plugin_payload(&fixture.native)).unwrap();
+            }
+            "missing_verifier_receipt" => {
+                let path = fixture.directory.join("windows-signing-receipt.json");
+                let mut value: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+                value.as_object_mut().unwrap().remove("verifier");
+                fixture.json("windows-signing-receipt.json", &value);
+            }
+            "missing_verifier" => {
+                fixture.native.remove("bin/fiverr-verify.exe");
+                fixture.write_native();
+            }
+            _ => {
+                fixture
+                    .native
+                    .get_mut("bin/fiverr-verify.exe")
+                    .unwrap()
+                    .push(b'!');
+                fixture.write_native();
+            }
+        }
+        fixture.sums();
+        assert!(fixture.validate().is_err(), "accepted {case}");
+    }
 }
 
 #[test]
