@@ -1,25 +1,24 @@
 mod archives;
+#[cfg(test)]
+mod bootstrap_owner_tests;
 mod ci;
 mod coverage;
 mod package;
-#[cfg(any(windows, test))]
-#[cfg_attr(not(windows), allow(dead_code))]
-mod pe_signature;
 mod process;
 mod release;
 mod validate;
-#[cfg(test)]
-mod workflow_tests;
-#[cfg(test)]
-mod bootstrap_owner_tests;
+#[cfg(windows)]
+mod windows_environment;
+#[cfg(all(windows, test))]
+mod windows_environment_tests;
 #[cfg(windows)]
 mod windows_privacy;
 #[cfg(windows)]
 mod windows_process;
-#[cfg(all(windows, test))]
-mod windows_environment_tests;
 #[cfg(windows)]
 mod windows_signing;
+#[cfg(test)]
+mod workflow_tests;
 
 use std::{collections::BTreeMap, env, path::PathBuf};
 

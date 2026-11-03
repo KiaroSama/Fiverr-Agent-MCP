@@ -221,8 +221,12 @@ fn capability_registry(root: &Path, value: &Value) -> Result<()> {
     if actual_tools.is_empty() {
         return Err("implemented tool inventory missing".into());
     }
+    if value["live_read_verified"] != false || value["live_write_verified"] != false {
+        return Err("live capability verification has no accepted adapter evidence".into());
+    }
     let mut names = BTreeSet::new();
     let mut requirements = BTreeSet::new();
+    let mut implemented_tools = BTreeSet::new();
     for workflow in workflows {
         let name = workflow
             .get("id")
@@ -239,6 +243,10 @@ fn capability_registry(root: &Path, value: &Value) -> Result<()> {
             "verification",
             "required_approval",
             "reason",
+            "effect",
+            "mode",
+            "adapter",
+            "account_scope",
         ] {
             if !workflow
                 .get(dimension)
@@ -246,6 +254,47 @@ fn capability_registry(root: &Path, value: &Value) -> Result<()> {
             {
                 return Err(format!("workflow {name} lacks {dimension}").into());
             }
+        }
+        for (field, allowed) in [
+            ("implementation", &["implemented", "not_implemented"][..]),
+            ("verification", &["not_verified", "fixture_verified"][..]),
+            ("availability", &["available", "not_implemented"][..]),
+            (
+                "effect",
+                &["read_only", "local_write", "financial_or_contractual"][..],
+            ),
+            ("mode", &["native", "manual_handoff", "unsupported"][..]),
+            (
+                "adapter",
+                &["local_workspace", "no_verified_account_adapter"][..],
+            ),
+            (
+                "required_approval",
+                &["host_tool_consent", "human_owner"][..],
+            ),
+        ] {
+            if !workflow[field]
+                .as_str()
+                .is_some_and(|value| allowed.contains(&value))
+            {
+                return Err(format!("workflow {name} has invalid {field}").into());
+            }
+        }
+        let implemented = workflow["implementation"] == "implemented";
+        if implemented != (workflow["availability"] == "available")
+            || implemented != (workflow["adapter"] == "local_workspace")
+            || (!implemented && workflow["verification"] != "not_verified")
+        {
+            return Err(format!("workflow {name} has contradictory availability/evidence").into());
+        }
+        let evidence = workflow["evidence"]
+            .as_array()
+            .ok_or("workflow evidence must be an array")?;
+        if evidence.is_empty() {
+            return Err("workflow evidence missing".into());
+        }
+        for path in evidence {
+            regular(root, path.as_str().ok_or("evidence path must be a string")?)?;
         }
         if !requirements.insert(
             workflow["requirement_id"]
@@ -260,6 +309,9 @@ fn capability_registry(root: &Path, value: &Value) -> Result<()> {
         if !actual_tools.contains(tool) {
             return Err(format!("workflow {name} maps to undiscovered tool {tool}").into());
         }
+        if implemented && !implemented_tools.insert(tool) {
+            return Err("duplicate implemented tool mapping".into());
+        }
         let tests = workflow["tests"]
             .as_array()
             .ok_or("workflow tests must be an array")?;
@@ -269,6 +321,11 @@ fn capability_registry(root: &Path, value: &Value) -> Result<()> {
         for test in tests {
             regular(root, test.as_str().ok_or("test mapping must be a string")?)?;
         }
+    }
+    if implemented_tools.iter().copied().collect::<BTreeSet<_>>()
+        != actual_tools.iter().map(String::as_str).collect()
+    {
+        return Err("implemented tool inventory is incomplete".into());
     }
     println!("Validated {} workflow capability entries", workflows.len());
     Ok(())

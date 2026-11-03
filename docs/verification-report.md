@@ -1,6 +1,14 @@
 # Verification report
 
-Checked 2026-11-02. Evidence is revision-specific, not a certificate of complete Fiverr access. Older receipts below are historical and do not describe the current installed version unless explicitly stated.
+Checked 2026-11-04. Evidence is revision-specific, not a certificate of complete Fiverr access. Older receipts below are historical and do not describe current maintenance changes.
+
+## Accepted baseline and current maintenance
+
+Accepted baseline `219ec3bcbdc08bccf49cd757419ac45a2a27b936` passed [manual full CI41559809201](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/41559809201): Windows184/184, Linux188/188 and both macOS185/185, zero skipped. Linux measured5230/5647 application lines (92.61555%) and2753/2893 safety lines (95.16073%); both selected mutants were caught. Windows signing, package and extracted smoke passed; other targets were source-validation only. Installed Windows executable SHA256 `1b3fec33d76ce852e8683646e80e8f995e64cee51fac71d0ffe7e26789eb7a3d` matched that accepted artifact. The browser resource-accounting correction preserved deadlines/retries; it did not establish every underlying OS delay's cause.
+
+Current maintenance is **not yet accepted**. Test-first checkpoints reproduced token write/corruption, persisted row identity, CLI framing/registration/root handling, CI context/child ownership, Windows environment, release-asset binding, capability metadata/validation and logging-degradation failures. [Latest characterization41723313530](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/41723313530) on `8d6925f` is deliberately red, not a full acceptance run. Real exclusive-SQLite contention occupied both runtime workers during the controlled lock; reads completed after rollback. Authored fixes, packaged verifier and further acceptance work require final reviewed exact-source native/sign/package CI. No new executable has been installed and no Release published.
+
+Owner-cancelled main-menu login/live-account acceptance is not a remaining requirement. Existing low-level session compatibility remains; actual client/extension loading, strict browser routing, permitted remote adapter/reconciliation, arbitrary filesystem races and other-platform final signing retain their specific unverified boundaries. Full Rust-only migration remains incomplete at browser API glue and external workflow runtimes; PS7 thin launcher is explicitly retained.
 
 ## Response lifetime and Rust tooling follow-up
 
@@ -60,6 +68,6 @@ The nine export/snapshot/reminder regressions and fixed native CLI reproduction 
 
 ## Required outstanding acceptance
 
-Real permitted manual Fiverr account sign-in/current typed production adapter and strict browser routing; remote executing/unknown-outcome postcondition reconciliation; complete platform privacy acceptance; broader coverage-guided fuzzing and mutation evidence beyond the bounded campaigns; actual client/plugin loading. Backup fixture coverage does not certify arbitrary databases, all filesystem races or platform privacy.
+The owner cancelled main-menu sign-in and live-login acceptance. Remaining conditional boundaries are a permitted typed production adapter and strict browser routing for any future automation; remote executing/unknown-outcome postcondition reconciliation; complete platform privacy acceptance; broader coverage-guided fuzzing and mutation evidence beyond the bounded campaigns; actual client/plugin loading and other-platform signed distribution. Backup fixture coverage does not certify arbitrary databases, all filesystem races or platform privacy.
 
 Capability implementation and verification are independent. Fixtures are not live account evidence, manual handoff is not remote success, and green native builds do not fulfill all account-backed workflows. No real messages, deliveries or financial mutations are dispatched merely for tests. GitHub release publication remains separate from CI artifact availability.

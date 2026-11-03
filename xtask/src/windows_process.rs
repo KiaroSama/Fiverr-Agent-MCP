@@ -179,23 +179,12 @@ impl Job {
                 if line.len() > 32767 || line[..line.len() - 1].contains(&0) {
                     return Err("invalid Windows command length/NUL".into());
                 }
-                let mut env: std::collections::BTreeMap<std::ffi::OsString, std::ffi::OsString> =
-                    std::env::vars_os().collect();
-                for (k, v) in command.get_envs() {
-                    if let Some(v) = v {
-                        env.insert(k.to_owned(), v.to_owned());
-                    } else {
-                        env.remove(k);
-                    }
-                }
-                let mut environment = Vec::<u16>::new();
-                for (k, v) in env {
-                    environment.extend(k.encode_wide());
-                    environment.push(61);
-                    environment.extend(v.encode_wide());
-                    environment.push(0);
-                }
-                environment.push(0);
+                let environment = crate::windows_environment::block(
+                    std::env::vars_os(),
+                    command
+                        .get_envs()
+                        .map(|(key, value)| (key.to_owned(), value.map(ToOwned::to_owned))),
+                )?;
                 let cwd = command
                     .get_current_dir()
                     .ok_or("owned command CWD missing")?

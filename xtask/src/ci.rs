@@ -169,6 +169,21 @@ pub fn native(target: &str, sha: &str, validation_only: bool) -> Result<()> {
             "2",
         ],
     )?;
+    cargo(
+        600,
+        180,
+        &[
+            "build",
+            "--locked",
+            "--release",
+            "--package",
+            "xtask",
+            "--bin",
+            "fiverr-verify",
+            "--jobs",
+            "2",
+        ],
+    )?;
     let binary = target_dir()?.join("release/fiverr-agent-mcp.exe");
     fs::create_dir_all(root().join(".ci-work/privacy acceptance"))?;
     owned(

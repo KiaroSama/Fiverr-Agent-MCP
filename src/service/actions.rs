@@ -82,14 +82,22 @@ pub fn prepare(store: &Store, kind: &str, args: &Value) -> Result<Value> {
 }
 fn read(tx: &rusqlite::Transaction<'_>, id: &str) -> Result<Action> {
     validate_id(id)?;
-    let text: Option<String> = tx
-        .query_row("SELECT json FROM actions WHERE id=?1", [id], |r| r.get(0))
+    let row: Option<(String, String)> = tx
+        .query_row("SELECT state,json FROM actions WHERE id=?1", [id], |r| {
+            Ok((r.get(0)?, r.get(1)?))
+        })
         .optional()
         .map_err(|_| storage_error())?;
-    serde_json::from_str(
-        &text.ok_or_else(|| error(ErrorCode::ResourceNotFound, "Prepared action not found."))?,
-    )
-    .map_err(|_| storage_error())
+    let (state, text) =
+        row.ok_or_else(|| error(ErrorCode::ResourceNotFound, "Prepared action not found."))?;
+    bound_action(id, &state, &text)
+}
+fn bound_action(id: &str, state: &str, text: &str) -> Result<Action> {
+    let action: Action = serde_json::from_str(text).map_err(|_| storage_error())?;
+    if action.id != id || action.state != state {
+        return Err(storage_error());
+    }
+    Ok(action)
 }
 fn write(tx: &rusqlite::Transaction<'_>, action: &Action) -> Result<()> {
     tx.execute(
@@ -160,14 +168,15 @@ pub fn list(store: &Store) -> Result<Value> {
     store.transaction(|tx| {
         let account=Settings::in_transaction(tx)?.account_id;
         let mut statement = tx
-            .prepare("SELECT json FROM actions WHERE json_extract(json,'$.account_id')=?1 ORDER BY id LIMIT 100")
+            .prepare("SELECT id,state,json FROM actions WHERE json_extract(json,'$.account_id')=?1 ORDER BY id LIMIT 100")
             .map_err(|_| storage_error())?;
         let rows = statement
-            .query_map([account], |r| r.get::<_, String>(0))
+            .query_map([account], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?)))
             .map_err(|_| storage_error())?;
         let data: Vec<Value> = rows
             .map(|r| {
-                serde_json::from_str(&r.map_err(|_| storage_error())?).map_err(|_| storage_error())
+                let (id, state, text) = r.map_err(|_| storage_error())?;
+                bound_action(&id, &state, &text)?.value()
             })
             .collect::<Result<_>>()?;
         Ok(envelope(

@@ -43,6 +43,9 @@ fn contradictory_existing_temporary_policy_is_not_silently_replaced() {
         json!({"FIVERR_AGENT_TEMP_MODE":false}),
         json!({"FIVERR_AGENT_TEMP_MODE":"system","TEMP":"rooted-temp"}),
         json!({"FIVERR_AGENT_TEMP_MODE":"rooted","TMP":"foreign-temp"}),
+        json!({"fiverr_agent_temp_mode":"system"}),
+        json!({"FIVERR_AGENT_TEMP_MODE":"system","tmp":"foreign-temp"}),
+        json!({"CUSTOM_OPTION":false}),
         json!("not-an-environment-object"),
     ]
     .into_iter()

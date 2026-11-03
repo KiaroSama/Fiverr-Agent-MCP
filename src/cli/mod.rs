@@ -1,3 +1,4 @@
+mod action_menu;
 pub mod console;
 mod management;
 pub mod menu;

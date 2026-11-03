@@ -22,8 +22,8 @@ jobs:
           rustc +stable --edition 2024 scripts/ci-owner.rs -o .ci-work/owner
       - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
         with:
-          toolchain: 1.99.0
-      - uses: taiki-e/install-action@68a389c788b2cd04016ce8c80ee23b80d2ab3d68
+          toolchain: 1.99.1
+      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2
         with:
           tool: cargo-audit@0.22.2,cargo-deny@0.20.2
           fallback: none

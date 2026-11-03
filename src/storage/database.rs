@@ -90,26 +90,38 @@ impl Store {
             Ok(result)
         })
     }
+    fn record_row(account: &str, kind: &str, id: &str, version: i64, text: &str) -> Result<Record> {
+        let record: Record = serde_json::from_str(text).map_err(|_| storage_error())?;
+        if record.account_id != account
+            || record.kind != kind
+            || record.id != id
+            || u64::try_from(version).ok() != Some(record.version)
+            || record.version == 0
+        {
+            return Err(storage_error());
+        }
+        Ok(record)
+    }
     pub fn get(&self, account: &str, kind: &str, id: &str) -> Result<Record> {
         validate_id(account)?;
         validate_kind(kind)?;
         validate_id(id)?;
         let connection = self.connection.lock().map_err(|_| storage_error())?;
-        let text: Option<String> = connection
+        let row: Option<(i64, String)> = connection
             .query_row(
-                "SELECT json FROM records WHERE account=?1 AND kind=?2 AND id=?3",
+                "SELECT version,json FROM records WHERE account=?1 AND kind=?2 AND id=?3",
                 params![account, kind, id],
-                |r| r.get(0),
+                |r| Ok((r.get(0)?, r.get(1)?)),
             )
             .optional()
             .map_err(|_| storage_error())?;
-        serde_json::from_str(&text.ok_or_else(|| {
+        let (version, text) = row.ok_or_else(|| {
             error(
                 ErrorCode::ResourceNotFound,
                 "Imported record or local draft was not found in this account.",
             )
-        })?)
-        .map_err(|_| storage_error())
+        })?;
+        Self::record_row(account, kind, id, version, &text)
     }
     pub fn save(&self, mut record: Record, expected: Option<u64>) -> Result<Record> {
         validate_id(&record.account_id)?;
@@ -125,7 +137,10 @@ impl Store {
             let old:Option<(i64,String)>=tx.query_row("SELECT version,json FROM records WHERE account=?1 AND kind=?2 AND id=?3",params![record.account_id,record.kind,record.id],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|storage_error())?;
             if old.as_ref().map(|v|u64::try_from(v.0).map_err(|_|storage_error())).transpose()?!=expected {return Err(error(ErrorCode::ActionStateChanged,"Record changed; reload its version before saving."));}
             if record.kind == "snapshot" && old.is_some() {return Err(error(ErrorCode::ActionStateChanged,"Snapshots are immutable; create a new snapshot instead of overwriting evidence."));}
-            if let Some((version,json))=&old {tx.execute("INSERT INTO history(account,kind,id,version,json) VALUES(?1,?2,?3,?4,?5)",params![record.account_id,record.kind,record.id,version,json]).map_err(|_|storage_error())?;}
+            if let Some((version,json))=&old {
+                Self::record_row(&record.account_id, &record.kind, &record.id, *version, json)?;
+                tx.execute("INSERT INTO history(account,kind,id,version,json) VALUES(?1,?2,?3,?4,?5)",params![record.account_id,record.kind,record.id,version,json]).map_err(|_|storage_error())?;
+            }
             record.version=match old{None=>1,Some((version,_))=>u64::try_from(version.checked_add(1).ok_or_else(storage_error)?).map_err(|_|storage_error())?};record.updated_at=now();
             tx.execute("INSERT INTO records(account,kind,id,version,json) VALUES(?1,?2,?3,?4,?5) ON CONFLICT(account,kind,id) DO UPDATE SET version=excluded.version,json=excluded.json",params![record.account_id,record.kind,record.id,i64::try_from(record.version).map_err(|_|storage_error())?,serde_json::to_string(&record).map_err(|_|storage_error())?]).map_err(|_|storage_error())?;
             super::capacity::retain_history(tx, &record.account_id, &record.kind, &record.id)?;
@@ -148,14 +163,19 @@ impl Store {
             ));
         }
         let connection = self.connection.lock().map_err(|_| storage_error())?;
-        let mut statement=connection.prepare("SELECT json FROM records WHERE account=?1 AND kind=?2 ORDER BY id LIMIT ?3 OFFSET ?4").map_err(|_|storage_error())?;
+        let mut statement=connection.prepare("SELECT id,version,json FROM records WHERE account=?1 AND kind=?2 ORDER BY id LIMIT ?3 OFFSET ?4").map_err(|_|storage_error())?;
         let rows = statement
             .query_map(params![account, kind, limit as i64, offset as i64], |r| {
-                r.get::<_, String>(0)
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, i64>(1)?,
+                    r.get::<_, String>(2)?,
+                ))
             })
             .map_err(|_| storage_error())?;
         rows.map(|r| {
-            serde_json::from_str(&r.map_err(|_| storage_error())?).map_err(|_| storage_error())
+            let (id, version, text) = r.map_err(|_| storage_error())?;
+            Self::record_row(account, kind, &id, version, &text)
         })
         .collect()
     }
@@ -177,7 +197,7 @@ impl Store {
             return Err(crate::core::invalid("Collection limit must be 1-100."));
         }
         let connection = self.connection.lock().map_err(|_| storage_error())?;
-        let mut statement=connection.prepare("SELECT json FROM records WHERE account=?1 AND kind=?2 AND id>?3 AND (?4=0 OR json_extract(json,'$.draft')=1) AND (?5='' OR instr(lower(json_extract(json,'$.payload')),lower(?5))>0) ORDER BY id LIMIT ?6").map_err(|_|storage_error())?;
+        let mut statement=connection.prepare("SELECT id,version,json FROM records WHERE account=?1 AND kind=?2 AND id>?3 AND (?4=0 OR json_extract(json,'$.draft')=1) AND (?5='' OR instr(lower(json_extract(json,'$.payload')),lower(?5))>0) ORDER BY id LIMIT ?6").map_err(|_|storage_error())?;
         let rows = statement
             .query_map(
                 params![
@@ -188,12 +208,19 @@ impl Store {
                     query.unwrap_or(""),
                     (limit + 1) as i64
                 ],
-                |r| r.get::<_, String>(0),
+                |r| {
+                    Ok((
+                        r.get::<_, String>(0)?,
+                        r.get::<_, i64>(1)?,
+                        r.get::<_, String>(2)?,
+                    ))
+                },
             )
             .map_err(|_| storage_error())?;
         let mut records = rows
             .map(|r| {
-                serde_json::from_str(&r.map_err(|_| storage_error())?).map_err(|_| storage_error())
+                let (id, version, text) = r.map_err(|_| storage_error())?;
+                Self::record_row(account, kind, &id, version, &text)
             })
             .collect::<Result<Vec<Record>>>()?;
         let more = records.len() > limit;
@@ -217,20 +244,24 @@ impl Store {
         let connection = self.connection.lock().map_err(|_| storage_error())?;
         let mut statement = connection
             .prepare(
-                "SELECT json FROM records WHERE account=?1 AND kind='task' AND id>?2 AND json_extract(json,'$.draft')=1 ORDER BY id",
+                "SELECT id,version,json FROM records WHERE account=?1 AND kind='task' AND id>?2 AND json_extract(json,'$.draft')=1 ORDER BY id",
             )
             .map_err(|_| storage_error())?;
         let rows = statement
             .query_map(params![account, after.unwrap_or("")], |row| {
-                row.get::<_, String>(0)
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
             })
             .map_err(|_| storage_error())?;
         let mut records = Vec::with_capacity(limit + 1);
         // Filter before limiting. The workspace cap bounds the scan; one SQL
         // statement keeps its read snapshot and only matching records accumulate.
         for row in rows {
-            let record: Record = serde_json::from_str(&row.map_err(|_| storage_error())?)
-                .map_err(|_| storage_error())?;
+            let (id, version, text) = row.map_err(|_| storage_error())?;
+            let record = Self::record_row(account, "task", &id, version, &text)?;
             let active =
                 record.payload["status"] != "done" && record.payload["status"] != "cancelled";
             let due = record.payload["due_at"]
@@ -251,12 +282,15 @@ impl Store {
     pub fn history(&self, account: &str, kind: &str, id: &str) -> Result<Vec<Record>> {
         self.get(account, kind, id)?;
         let connection = self.connection.lock().map_err(|_| storage_error())?;
-        let mut statement=connection.prepare("SELECT json FROM history WHERE account=?1 AND kind=?2 AND id=?3 ORDER BY version DESC LIMIT 100").map_err(|_|storage_error())?;
+        let mut statement=connection.prepare("SELECT version,json FROM history WHERE account=?1 AND kind=?2 AND id=?3 ORDER BY version DESC LIMIT 100").map_err(|_|storage_error())?;
         let rows = statement
-            .query_map(params![account, kind, id], |r| r.get::<_, String>(0))
+            .query_map(params![account, kind, id], |r| {
+                Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))
+            })
             .map_err(|_| storage_error())?;
         rows.map(|r| {
-            serde_json::from_str(&r.map_err(|_| storage_error())?).map_err(|_| storage_error())
+            let (version, text) = r.map_err(|_| storage_error())?;
+            Self::record_row(account, kind, id, version, &text)
         })
         .collect()
     }

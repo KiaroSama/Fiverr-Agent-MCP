@@ -120,16 +120,22 @@ fn licenses(root: &Path, target: &str) -> Result<Files> {
     let nodes = metadata["resolve"]["nodes"]
         .as_array()
         .ok_or("metadata resolve missing")?;
-    let application = packages
-        .iter()
-        .find(|package| package["name"] == PRODUCT)
-        .ok_or("application metadata missing")?;
-    let mut pending = vec![
-        application["id"]
-            .as_str()
-            .ok_or("package id missing")?
-            .to_owned(),
-    ];
+    let mut pending = Vec::new();
+    for name in [PRODUCT, "xtask"]
+        .into_iter()
+        .filter(|name| *name == PRODUCT || target.contains("windows"))
+    {
+        let package = packages
+            .iter()
+            .find(|package| package["name"] == name)
+            .ok_or("packaged metadata missing")?;
+        pending.push(
+            package["id"]
+                .as_str()
+                .ok_or("package id missing")?
+                .to_owned(),
+        );
+    }
     let mut selected = BTreeSet::new();
     while let Some(id) = pending.pop() {
         if !selected.insert(id.clone()) {
@@ -163,7 +169,7 @@ fn licenses(root: &Path, target: &str) -> Result<Files> {
             .is_some_and(|id| selected.contains(id))
     }) {
         let name = package["name"].as_str().ok_or("dependency name missing")?;
-        if name == PRODUCT {
+        if [PRODUCT, "xtask"].contains(&name) {
             continue;
         }
         let version = package["version"]
@@ -290,7 +296,18 @@ pub fn build(root: &Path, binary: &str, out: &str, target: &str, sha: &str) -> R
     } else {
         "bin/fiverr-agent-mcp"
     };
-    files.insert(binary_name.into(), fs::read(binary)?);
+    files.insert(binary_name.into(), fs::read(&binary)?);
+    if target.contains("windows") {
+        let utility = binary
+            .parent()
+            .ok_or("binary parent missing")?
+            .join("fiverr-verify.exe");
+        let utility = utility.canonicalize()?;
+        if !utility.starts_with(root.canonicalize()?) || !utility.is_file() {
+            return Err("verifier must be workspace-contained".into());
+        }
+        files.insert("bin/fiverr-verify.exe".into(), fs::read(utility)?);
+    }
     let entries: BTreeMap<_, _> = files
         .iter()
         .map(|(path, bytes)| (path.clone(), validate::digest(bytes)))
@@ -457,6 +474,12 @@ pub fn verify(root: &Path, archive: &str, target: &str, sha: &str) -> Result<()>
             "bin/fiverr-agent-mcp".into()
         },
     ]);
+    if target.contains("windows") {
+        if !files.contains_key("bin/fiverr-verify.exe") {
+            return Err("packaged verifier missing".into());
+        }
+        allowed.insert("bin/fiverr-verify.exe".into());
+    }
     for name in files.keys() {
         if !allowed.contains(name) && !name.starts_with("licenses/dependencies/") {
             return Err(format!("entry outside package allowlist: {name}").into());
@@ -480,6 +503,15 @@ pub fn verify(root: &Path, archive: &str, target: &str, sha: &str) -> Result<()>
         "bin/fiverr-agent-mcp"
     });
     let result = (|| -> Result<()> {
+        #[cfg(windows)]
+        if target.contains("windows") {
+            let utility = scratch.join("bin/fiverr-verify.exe");
+            let policy = xtask::windows_verification::embedded_policy()?;
+            // The parent independently verifies the utility before trusting its output.
+            xtask::windows_verification::verify(&utility, &policy)?;
+            xtask::windows_verification::verify(&executable, &policy)?;
+            crate::windows_signing::verifier_acceptance(&utility, &executable, &scratch)?;
+        }
         for args in [
             vec!["--version".into()],
             vec!["status".into()],

@@ -47,11 +47,25 @@ pub fn write(path: &Path, files: &Files) -> Result<()> {
 }
 
 pub fn read(path: &Path) -> Result<Files> {
+    read_with_limits(path, 4096, LIMIT)
+}
+
+fn expanded_total(total: u64, size: u64, limit: u64) -> Result<u64> {
+    let total = total
+        .checked_add(size)
+        .ok_or("expanded archive size overflow")?;
+    if total > limit {
+        return Err("expanded archive ceiling exceeded".into());
+    }
+    Ok(total)
+}
+
+fn read_with_limits(path: &Path, entries: usize, limit: u64) -> Result<Files> {
     let mut files = Files::new();
     let mut total = 0_u64;
     if path.extension().is_some_and(|extension| extension == "zip") {
         let mut zip = ZipArchive::new(File::open(path)?)?;
-        if zip.len() > 4096 {
+        if zip.len() > entries {
             return Err("archive entry ceiling exceeded".into());
         }
         for index in 0..zip.len() {
@@ -67,12 +81,7 @@ pub fn read(path: &Path) -> Result<Files> {
                 return Err("archive executable mode missing".into());
             }
             let size = entry.size();
-            total = total
-                .checked_add(size)
-                .ok_or("expanded archive size overflow")?;
-            if total > LIMIT {
-                return Err("expanded archive ceiling exceeded".into());
-            }
+            total = expanded_total(total, size, limit)?;
             let mut bytes = Vec::new();
             (&mut entry).take(size + 1).read_to_end(&mut bytes)?;
             if bytes.len() as u64 != size || files.insert(name, bytes).is_some() {
@@ -98,10 +107,8 @@ pub fn read(path: &Path) -> Result<Files> {
                 return Err("archive executable mode missing".into());
             }
             let size = entry.size();
-            total = total
-                .checked_add(size)
-                .ok_or("expanded archive size overflow")?;
-            if total > LIMIT || files.len() >= 4096 {
+            total = expanded_total(total, size, limit)?;
+            if files.len() >= entries {
                 return Err("expanded archive ceiling exceeded".into());
             }
             let mut bytes = Vec::new();

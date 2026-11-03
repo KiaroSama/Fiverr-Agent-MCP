@@ -1,5 +1,11 @@
 use crate::core::{Result, invalid};
-use std::io::{BufRead, IsTerminal, Read, Write};
+use std::{
+    io::{BufRead, IsTerminal, Read, Write},
+    sync::atomic::{AtomicBool, Ordering},
+};
+
+// stdin is process-wide; after a rejected frame no Terminal may replay its remainder.
+static INPUT_FAILED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Style {
@@ -13,6 +19,9 @@ pub enum Style {
 pub trait Console {
     fn write(&mut self, text: &str, style: Style) -> Result<()>;
     fn read(&mut self, secret: bool) -> Result<Option<String>>;
+    fn input_failed(&self) -> bool {
+        false
+    }
 }
 pub struct Terminal;
 impl Console for Terminal {
@@ -38,7 +47,13 @@ impl Console for Terminal {
         .and_then(|_| output.flush())
         .map_err(|_| invalid("Cannot write menu output."))
     }
+    fn input_failed(&self) -> bool {
+        INPUT_FAILED.load(Ordering::Relaxed)
+    }
     fn read(&mut self, secret: bool) -> Result<Option<String>> {
+        if self.input_failed() {
+            return Err(invalid("Menu input framing failed; restart the menu."));
+        }
         if secret {
             if !std::io::stdin().is_terminal() {
                 return Err(invalid(
@@ -54,9 +69,13 @@ impl Console for Terminal {
             .lock()
             .take(4097)
             .read_line(&mut line)
-            .map_err(|_| invalid("Cannot read menu input."))?;
+            .map_err(|_| {
+                INPUT_FAILED.store(true, Ordering::Relaxed);
+                invalid("Cannot read menu input; restart the menu.")
+            })?;
         if line.len() > 4096 {
-            return Err(invalid("Menu input exceeds 4096 bytes."));
+            INPUT_FAILED.store(true, Ordering::Relaxed);
+            return Err(invalid("Menu input exceeds 4096 bytes; restart the menu."));
         }
         Ok((count != 0).then(|| line.trim_end_matches(['\r', '\n']).to_owned()))
     }

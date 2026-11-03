@@ -134,6 +134,16 @@ fn result(screen: &mut impl Console, value: &Value) -> Result<()> {
             Style::Warning,
         );
     }
+    if data.get("payload_hash").is_some() && data.get("target_id").is_some() {
+        return screen.write(
+            &format!(
+                "{}\n",
+                serde_json::to_string_pretty(data)
+                    .map_err(|_| invalid("Action preview failed."))?
+            ),
+            Style::Plain,
+        );
+    }
     if let Some(state) = data.get("state").and_then(Value::as_str) {
         return screen.write(
             &format!(
@@ -282,9 +292,7 @@ async fn workspace(screen: &mut impl Console) -> Result<Option<Command>> {
         return Ok(None);
     };
     Ok(Some(match pick.as_str() {
-        "1" => Command::Actions {
-            command: Actions::List,
-        },
+        "1" => return super::action_menu::select(screen),
         "2" | "3" | "4" => {
             let Some(filename) = ask(
                 screen,
@@ -433,6 +441,7 @@ pub async fn run(root: &Root, store: &Store, screen: &mut impl Console) -> Resul
         match outcome {
             Ok(Some(value)) => result(screen, &value)?,
             Ok(None) => {}
+            Err(error) if screen.input_failed() => return Err(error),
             Err(error) if error.message == "Menu exit requested." => break,
             Err(error) => screen.write(
                 &format!("{}: {}\n", error.code, safe_text(&error.message)),

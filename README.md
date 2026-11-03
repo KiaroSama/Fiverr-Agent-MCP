@@ -39,7 +39,7 @@ Extract the artifact wrapper first. It contains a native ZIP, source/plugin arch
 Get-FileHash -Algorithm SHA256 -LiteralPath './fiverr-agent-mcp-0.1.0-x86_64-pc-windows-msvc.zip'
 ```
 
-Check that `release-x86_64-pc-windows-msvc.json` identifies the intended source SHA. Also verify the pinned owner signature; see [signing and trust](docs/installation.md#windows-signing-and-trust). A checksum downloaded with an archive detects corruption, not independent publisher authenticity. The signature is self-signed, not publicly CA-trusted; no absence of SmartScreen warnings is promised. Do not disable Windows security or install a root certificate just to suppress a warning.
+Check that `release-x86_64-pc-windows-msvc.json` identifies the intended source SHA. For packages containing signed `bin/fiverr-verify.exe`, follow [the copyable authenticity check](docs/installation.md#packaged-authenticity-utility). Authenticate the utility/archive hash against the exact accepted CI receipt before running it; earlier packages require the verification procedure appropriate to their receipt. A checksum downloaded with an archive detects corruption, not independent publisher authenticity. The signature is self-signed, not publicly CA-trusted; no absence of SmartScreen warnings is promised. Do not disable Windows security or install a root certificate just to suppress a warning.
 
 ### 2. Extract and start
 
@@ -48,6 +48,7 @@ Extract the **entire native ZIP** into a writable directory, for example `C:\App
 ```text
 Fiverr-Agent-MCP/
   bin/fiverr-agent-mcp.exe
+  bin/fiverr-verify.exe
   run.ps1
   fiverr.install.json
   config/signing-public.json

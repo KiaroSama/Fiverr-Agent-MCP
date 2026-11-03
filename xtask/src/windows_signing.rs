@@ -1,10 +1,14 @@
-//! Windows cryptographic adapter. Private key material never reaches child argv or files.
+//! Windows signing adapter. Private key material never reaches child argv or files.
 #![allow(unsafe_code)]
-use crate::{Result, pe_signature, root, validate};
+use crate::{Result, root};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use serde_json::{Value, json};
-use std::{ffi::CStr, fs, mem::size_of, os::windows::ffi::OsStrExt, path::Path};
+use std::{fs, mem::size_of, os::windows::ffi::OsStrExt, path::Path};
 use windows_sys::Win32::Security::Cryptography::*;
+use xtask::{
+    pe_signature,
+    windows_verification::{Certificate, certificate_matches, embedded_policy, verify},
+};
 use zeroize::Zeroizing;
 
 struct Store(HCERTSTORE);
@@ -14,165 +18,6 @@ impl Drop for Store {
             CertCloseStore(self.0, 0);
         }
     }
-}
-struct Certificate(*const CERT_CONTEXT);
-impl Drop for Certificate {
-    fn drop(&mut self) {
-        unsafe {
-            CertFreeCertificateContext(self.0);
-        }
-    }
-}
-fn check(value: i32) -> Result<()> {
-    if value == 0 {
-        Err("native cryptographic operation failed".into())
-    } else {
-        Ok(())
-    }
-}
-fn policy() -> Result<Value> {
-    let p: Value =
-        serde_json::from_slice(&validate::regular(&root(), "config/signing-public.json")?)?;
-    if p["schema_version"] != 1 || p["trust"] != "self_signed_private" {
-        return Err("unsupported signing policy".into());
-    }
-    Ok(p)
-}
-unsafe fn certificate_matches(cert: *const CERT_CONTEXT, p: &Value) -> Result<()> {
-    // SAFETY: caller owns cert for this entire call; Windows supplies its encoded extent.
-    unsafe {
-        let bytes =
-            std::slice::from_raw_parts((*cert).pbCertEncoded, (*cert).cbCertEncoded as usize);
-        if p["certificate_sha256"] != validate::digest(bytes)
-            || p["certificate_der_base64"] != BASE64_STANDARD.encode(bytes)
-        {
-            return Err("certificate does not match owner pin".into());
-        }
-        if CertVerifyTimeValidity(std::ptr::null(), (*cert).pCertInfo) != 0 {
-            return Err("signing certificate expired or not yet valid".into());
-        }
-        let mut size = 0;
-        check(CertGetEnhancedKeyUsage(
-            cert,
-            0,
-            std::ptr::null_mut(),
-            &mut size,
-        ))?;
-        if (size as usize) < size_of::<CTL_USAGE>() || size > 65536 {
-            return Err("invalid certificate usage size".into());
-        }
-        let mut storage = vec![0usize; (size as usize).div_ceil(size_of::<usize>())];
-        let usage = storage.as_mut_ptr() as *mut CTL_USAGE;
-        check(CertGetEnhancedKeyUsage(cert, 0, usage, &mut size))?;
-        let usages = std::slice::from_raw_parts(
-            (*usage).rgpszUsageIdentifier,
-            (*usage).cUsageIdentifier as usize,
-        );
-        if !usages
-            .iter()
-            .any(|oid| CStr::from_ptr(*oid as _).to_bytes() == b"1.3.6.1.5.5.7.3.3")
-        {
-            return Err("certificate lacks code signing EKU".into());
-        }
-    }
-    Ok(())
-}
-pub fn verify(file: &Path, p: &Value) -> Result<Value> {
-    let bytes = fs::read(file)?;
-    let pe = pe_signature::parse(&bytes)?;
-    // SAFETY: bounded input/output buffers remain alive; returned context has RAII ownership.
-    unsafe {
-        let message = CryptMsgOpenToDecode(
-            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-            0,
-            0,
-            0,
-            std::ptr::null(),
-            std::ptr::null(),
-        );
-        if message.is_null() {
-            return Err("CMS message decode failed".into());
-        }
-        let typed = (|| -> Result<()> {
-            check(CryptMsgUpdate(
-                message,
-                pe.cms.as_ptr(),
-                pe.cms.len() as u32,
-                1,
-            ))?;
-            let mut count = 0u32;
-            let mut count_size = size_of::<u32>() as u32;
-            check(CryptMsgGetParam(
-                message,
-                CMSG_SIGNER_COUNT_PARAM,
-                0,
-                &mut count as *mut _ as _,
-                &mut count_size,
-            ))?;
-            if count != 1 || count_size != size_of::<u32>() as u32 {
-                return Err("expected exactly one Authenticode signer".into());
-            }
-            let mut oid = [0u8; 128];
-            let mut length = oid.len() as u32;
-            check(CryptMsgGetParam(
-                message,
-                CMSG_INNER_CONTENT_TYPE_PARAM,
-                0,
-                oid.as_mut_ptr() as _,
-                &mut length,
-            ))?;
-            if length == 0
-                || length as usize > oid.len()
-                || &oid[..length as usize] != b"1.3.6.1.4.1.311.2.1.4\0"
-            {
-                return Err("CMS content type is not Authenticode".into());
-            }
-            Ok(())
-        })();
-        CryptMsgClose(message);
-        typed?;
-        let params = CRYPT_VERIFY_MESSAGE_PARA {
-            cbSize: size_of::<CRYPT_VERIFY_MESSAGE_PARA>() as u32,
-            dwMsgAndCertEncodingType: X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-            ..Default::default()
-        };
-        let mut size = 0;
-        check(CryptVerifyMessageSignature(
-            &params,
-            0,
-            pe.cms.as_ptr(),
-            pe.cms.len() as u32,
-            std::ptr::null_mut(),
-            &mut size,
-            std::ptr::null_mut(),
-        ))?;
-        if size == 0 || size > 1024 * 1024 {
-            return Err("signed content missing or oversized".into());
-        }
-        let mut content = vec![0u8; size as usize];
-        let mut cert = std::ptr::null_mut();
-        check(CryptVerifyMessageSignature(
-            &params,
-            0,
-            pe.cms.as_ptr(),
-            pe.cms.len() as u32,
-            content.as_mut_ptr(),
-            &mut size,
-            &mut cert,
-        ))?;
-        let cert = Certificate(cert);
-        if cert.0.is_null() {
-            return Err("signed certificate missing".into());
-        }
-        certificate_matches(cert.0, p)?;
-        content.truncate(size as usize);
-        if pe_signature::content_digest(&content)? != pe.digest {
-            return Err("signed PE digest mismatch".into());
-        }
-    }
-    Ok(
-        json!({"file_sha256":validate::digest(&bytes),"certificate_sha256":p["certificate_sha256"],"signature_valid":true,"trust":"self_signed_private","publicly_trusted":false}),
-    )
 }
 fn sign(file: &Path, p: &Value) -> Result<()> {
     let raw = Zeroizing::new(
@@ -264,22 +109,80 @@ fn sign(file: &Path, p: &Value) -> Result<()> {
     }
     Ok(())
 }
+
+// Persistent acceptance runs only in the protected signing/package phase with signed inputs.
+pub(crate) fn verifier_acceptance(
+    utility: &Path,
+    application: &Path,
+    scratch: &Path,
+) -> Result<()> {
+    let invoke = |file: &Path, expected: Option<&str>| -> Result<()> {
+        let output = crate::process::smoke(
+            utility.to_str().ok_or("verifier path")?,
+            &[file.to_str().ok_or("verification input path")?.to_owned()],
+            scratch,
+        )?;
+        let value: Value = serde_json::from_slice(&output.stdout)?;
+        if value["publicly_trusted"] != false {
+            return Err("verifier must never imply public trust".into());
+        }
+        if let Some(expected) = expected {
+            if output.status.success()
+                || value["signature_valid"] != false
+                || !value["error"]
+                    .as_str()
+                    .is_some_and(|error| error.contains(expected))
+            {
+                return Err(format!("verifier rejection contract failed: {expected}").into());
+            }
+        } else if !output.status.success()
+            || value["signature_valid"] != true
+            || value["trust"] != "self_signed_private"
+            || value["file_sha256"] != crate::validate::digest(&fs::read(file)?)
+        {
+            return Err("signed verifier positive contract failed".into());
+        }
+        Ok(())
+    };
+    invoke(application, None)?;
+    invoke(utility, None)?;
+    let tampered = scratch.join("tampered.exe");
+    let mut bytes = fs::read(application)?;
+    let last_hashed = pe_signature::parse(&bytes)?.certificate_offset - 1;
+    bytes[last_hashed] ^= 1;
+    fs::write(&tampered, bytes)?;
+    invoke(&tampered, Some("signed PE digest mismatch"))?;
+    let system = std::env::var_os("SystemRoot").ok_or("SystemRoot missing")?;
+    invoke(
+        &Path::new(&system).join("System32/where.exe"),
+        Some("certificate does not match owner pin"),
+    )?;
+    invoke(
+        &scratch.join("missing.exe"),
+        Some("verification input unavailable"),
+    )?;
+    let oversized = scratch.join("oversized.exe");
+    let oversized_file = fs::File::create(&oversized)?;
+    oversized_file.set_len(128 * 1024 * 1024 + 1)?;
+    drop(oversized_file);
+    invoke(&oversized, Some("expected bounded regular PE executable"))?;
+    Ok(())
+}
+
 pub fn package(sha: &str) -> Result<()> {
     let target = std::env::var_os("CARGO_TARGET_DIR").ok_or("target directory missing")?;
-    let binary = Path::new(&target).join("release/fiverr-agent-mcp.exe");
-    let p = policy()?;
+    let release = Path::new(&target).join("release");
+    let binary = release.join("fiverr-agent-mcp.exe");
+    let utility = release.join("fiverr-verify.exe");
+    let p = embedded_policy()?;
     sign(&binary, &p)?;
+    sign(&utility, &p)?;
     let mut receipt = verify(&binary, &p)?;
+    receipt["verifier"] = verify(&utility, &p)?;
     let scratch = root().join(".ci-work/signing-negatives");
     fs::create_dir(&scratch)?;
     let result = (|| -> Result<()> {
-        let file = scratch.join("tampered.exe");
-        let mut bytes = fs::read(&binary)?;
-        bytes[512] ^= 1;
-        fs::write(&file, &bytes)?;
-        if verify(&file, &p).is_ok() {
-            return Err("tampered PE accepted".into());
-        }
+        let file = scratch.join("malformed.exe");
         let mut bytes = fs::read(&binary)?;
         let offset = pe_signature::parse(&bytes)?.certificate_offset;
         bytes[offset + 4] = 0;
@@ -295,17 +198,18 @@ pub fn package(sha: &str) -> Result<()> {
         }
         receipt["source_sha"] = json!(sha);
         receipt["negative_tests"] = json!([
-            "tampered_pe_rejected",
+            "cli_tampered_pe_rejected",
             "malformed_certificate_rejected",
-            "wrong_signer_rejected"
+            "wrong_pin_rejected",
+            "cli_wrong_signer_rejected",
+            "cli_missing_input_rejected",
+            "cli_oversized_input_rejected"
         ]);
-        fs::write(
-            root().join(".ci-work/windows-signing-receipt.json"),
-            serde_json::to_vec_pretty(&receipt)?,
-        )?;
         Ok(())
     })();
-    fs::remove_dir_all(&scratch)?;
+    if result.is_ok() {
+        fs::remove_dir_all(&scratch)?;
+    }
     result?;
     // process::run strips signing credentials from every packaging child environment.
     crate::package::build(
@@ -315,18 +219,11 @@ pub fn package(sha: &str) -> Result<()> {
         "x86_64-pc-windows-msvc",
         sha,
     )?;
-    let archive = root().join("dist/fiverr-agent-mcp-0.1.0-x86_64-pc-windows-msvc.zip");
-    let files = crate::archives::read(&archive)?;
-    let check = root().join(".ci-work/signed-package.exe");
+    // Package verification ran every CLI negative on the extracted signed utility.
     fs::write(
-        &check,
-        files
-            .get("bin/fiverr-agent-mcp.exe")
-            .ok_or("package executable missing")?,
+        root().join(".ci-work/windows-signing-receipt.json"),
+        serde_json::to_vec_pretty(&receipt)?,
     )?;
-    let verified = verify(&check, &p);
-    fs::remove_file(&check)?;
-    verified?;
     fs::copy(
         root().join(".ci-work/windows-signing-receipt.json"),
         root().join("dist/windows-signing-receipt.json"),

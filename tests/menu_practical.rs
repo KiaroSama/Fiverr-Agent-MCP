@@ -233,6 +233,46 @@ fn state(store: &Store) -> Settings {
 }
 
 #[test]
+fn actual_action_menu_requires_owner_choice_and_reuses_rejection() {
+    use fiverr_agent_mcp::service::actions;
+    let temp = tempfile::tempdir().unwrap();
+    let root = Root::explicit(temp.path()).unwrap();
+    let store = Store::open(root.clone()).unwrap();
+    let action = actions::prepare(&store, "note", &serde_json::json!({"target_id":"local-fixture","payload":{"body":"Review exact local proposal"}})).unwrap();
+    let id = action["data"]["id"].as_str().unwrap();
+    let mut menu = Menu::start(&root);
+    menu.choose("15");
+    menu.send("Selection [0] {back=0, quit=exit}: ", "1");
+    menu.send("Action selection [0] {back=0, quit=exit}: ", "2");
+    menu.send("Prepared action ID [] {back=0, quit=exit}: ", id);
+    menu.expect("Review exact local proposal");
+    menu.choose("15");
+    menu.send("Selection [0] {back=0, quit=exit}: ", "1");
+    menu.send("Action selection [0] {back=0, quit=exit}: ", "3");
+    menu.send("Prepared action ID [] {back=0, quit=exit}: ", id);
+    menu.send(
+        "Approve exactly this account/target/payload for its stated effect? [y/N]: ",
+        "n",
+    );
+    menu.expect("Owner declined");
+    assert_eq!(
+        actions::get(&store, id).unwrap()["data"]["state"],
+        "prepared"
+    );
+    menu.choose("15");
+    menu.send("Selection [0] {back=0, quit=exit}: ", "1");
+    menu.send("Action selection [0] {back=0, quit=exit}: ", "4");
+    menu.send("Prepared action ID [] {back=0, quit=exit}: ", id);
+    menu.expect("cancelled");
+    let text = menu.finish();
+    assert!(!text.contains("remote_executed\": true"));
+    assert_eq!(
+        actions::get(&store, id).unwrap()["data"]["state"],
+        "cancelled"
+    );
+}
+
+#[test]
 fn actual_menu_exercises_every_main_option_with_hidden_input_consent_and_failures() {
     let temp = tempfile::Builder::new()
         .prefix("practical menu space-")
@@ -327,6 +367,7 @@ fn actual_menu_exercises_every_main_option_with_hidden_input_consent_and_failure
     menu.expect("Not connected");
     menu.choose("15");
     menu.send("Selection [0] {back=0, quit=exit}: ", "1");
+    menu.send("Action selection [0] {back=0, quit=exit}: ", "1");
     menu.expect("0 item(s)");
     menu.choose("2");
     menu.send(
@@ -461,6 +502,7 @@ fn actual_menu_exercises_all_account_and_workspace_submenu_operations() {
     assert_eq!(diagnostics["private_content_excluded"], true);
     menu.choose("15");
     menu.send("Selection [0] {back=0, quit=exit}: ", "1");
+    menu.send("Action selection [0] {back=0, quit=exit}: ", "1");
     menu.expect("0 item(s)");
     menu.finish();
 }

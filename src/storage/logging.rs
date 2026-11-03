@@ -4,12 +4,16 @@ use serde_json::{Value, json};
 use std::{
     fs::{self, File},
     io::Write,
-    sync::{Arc, Mutex},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 #[derive(Clone)]
 pub struct Logger {
     file: Arc<Mutex<File>>,
+    degraded: Arc<AtomicBool>,
 }
 impl Logger {
     pub fn open(root: &Root) -> Result<Self> {
@@ -53,6 +57,7 @@ impl Logger {
         }
         Ok(Self {
             file: Arc::new(Mutex::new(file)),
+            degraded: Arc::new(AtomicBool::new(false)),
         })
     }
     pub fn event(&self, level: &str, category: &str, event: &str, fields: Value) {
@@ -61,14 +66,55 @@ impl Logger {
             _ => "ERROR",
         };
         let record = json!({"timestamp":crate::core::now(),"level":level,"category":category,"message":event,"context":redact(fields)});
-        if let Ok(mut file) = self.file.lock()
-            && file.metadata().is_ok_and(|m| m.len() < 8 * 1024 * 1024)
-        {
-            let _ = writeln!(file, "{record}");
-            let _ = file.flush();
+        let written = self.file.lock().ok().is_some_and(|mut file| {
+            file.metadata().is_ok_and(|m| m.len() < 8 * 1024 * 1024)
+                && writeln!(file, "{record}").is_ok()
+                && file.flush().is_ok()
+        });
+        if !written && !self.degraded.swap(true, Ordering::Relaxed) {
+            // Fixed text only: never echo the rejected event or recurse into this logger.
+            let _ = writeln!(
+                std::io::stderr(),
+                "File logging degraded; some events may not be recorded."
+            );
         }
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn post_open_write_failure_and_poison_share_one_degraded_state() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("read-only-sink");
+        fs::write(&path, b"unchanged").unwrap();
+        let logger = Logger {
+            file: Arc::new(Mutex::new(File::open(&path).unwrap())),
+            degraded: Arc::new(AtomicBool::new(false)),
+        };
+        logger.event(
+            "INFO",
+            "fixture",
+            "Write failure",
+            json!({"token":"dummy-secret"}),
+        );
+        assert!(logger.degraded.load(Ordering::Relaxed));
+        assert!(Arc::ptr_eq(&logger.degraded, &logger.clone().degraded));
+        assert_eq!(fs::read(&path).unwrap(), b"unchanged");
+        let file = logger.file.clone();
+        assert!(
+            std::panic::catch_unwind(move || {
+                let _guard = file.lock().unwrap();
+                panic!("controlled logger poison");
+            })
+            .is_err()
+        );
+        logger.event("INFO", "fixture", "Poison", json!({}));
+        assert!(logger.degraded.load(Ordering::Relaxed));
+    }
+}
+
 pub fn redact(value: Value) -> Value {
     match value {
         Value::Object(map) => Value::Object(

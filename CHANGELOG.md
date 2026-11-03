@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased — 2026-11-03
+## Unreleased — 2026-11-04
+
+Authored maintenance hardening for read-only established HTTP-token access, persisted SQL/JSON identity binding, fatal oversized terminal framing, conservative same-install registration, local action review and pre-write launcher refusal. Added Windows ordinal environment construction, exact release-asset/receipt binding, semantic capability validation and one-shot logging-degradation diagnostics. A signed standalone authenticity utility reuses the existing CMS/PE verifier. These changes remain subject to final exact-source native/sign/package acceptance; no new installed-build or live-platform claim is implied.
+
+## Accepted maintenance baseline — 2026-11-03
 
 Corrected CI resource accounting for the two full-browser fixtures on Windows and Intel macOS: each reserves the existing worker budget while other tests retain parallelism. Readiness/case deadlines, assertions, sandbox and zero-retry policy remain unchanged. Temporary debugger/verbose probes were retired after the controlled comparison.
 

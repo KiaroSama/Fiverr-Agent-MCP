@@ -70,7 +70,7 @@ async fn protected_http_header_storage_and_body_failures_return_exact_status() {
         .unwrap();
     assert_eq!(
         router.clone().oneshot(request).await.unwrap().status(),
-        StatusCode::SERVICE_UNAVAILABLE
+        StatusCode::UNAUTHORIZED
     );
     store
         .transaction(|tx| {

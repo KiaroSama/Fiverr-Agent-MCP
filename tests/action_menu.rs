@@ -73,6 +73,8 @@ async fn action_menu_never_approves_on_default_or_cancel() {
         "15\n1\n".to_owned(),
         "15\n1\n\n0\n".to_owned(),
         "15\n1\nback\n0\n".to_owned(),
+        "15\n1\n3\n\n0\n".to_owned(),
+        "15\n1\n2\n../invalid\n0\n".to_owned(),
         format!("15\n1\n3\n{id}\n0\n"),
     ] {
         let mut screen = Screen::new(&input);

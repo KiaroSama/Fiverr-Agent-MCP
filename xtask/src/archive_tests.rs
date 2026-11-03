@@ -37,6 +37,52 @@ fn archive_reader_accepts_valid_zip_and_tar() {
 }
 
 #[test]
+fn archive_reader_enforces_small_exact_boundaries() {
+    assert_eq!(super::LIMIT, 256 * 1024 * 1024);
+    assert_eq!(
+        super::expanded_total(u64::MAX - 1, 1, u64::MAX).unwrap(),
+        u64::MAX
+    );
+    assert!(super::expanded_total(u64::MAX, 1, u64::MAX).is_err());
+    let scratch = Scratch::new();
+    let files = Files::from([
+        ("one.txt".into(), b"12".to_vec()),
+        ("two.txt".into(), b"34".to_vec()),
+    ]);
+    for name in ["bounds.zip", "bounds.tar.gz"] {
+        let path = scratch.0.join(name);
+        archives::write(&path, &files).unwrap();
+        assert_eq!(super::read_with_limits(&path, 2, 4).unwrap(), files);
+        assert!(super::read_with_limits(&path, 1, 4).is_err());
+        assert!(super::read_with_limits(&path, 2, 3).is_err());
+    }
+}
+
+#[test]
+fn archive_reader_rejects_non_utf8_tar_name_and_short_member() {
+    let scratch = Scratch::new();
+    for kind in ["non_utf8", "short_member"] {
+        let path = scratch.0.join(format!("{kind}.tar.gz"));
+        let mut header = tar::Header::new_gnu();
+        header.as_mut_bytes()[0] = if kind == "non_utf8" { 0xff } else { b'a' };
+        header.set_size(if kind == "short_member" { 1024 } else { 1 });
+        header.set_mode(0o644);
+        header.set_cksum();
+        let mut encoder = flate2::write::GzEncoder::new(
+            fs::File::create(&path).unwrap(),
+            flate2::Compression::default(),
+        );
+        encoder.write_all(header.as_bytes()).unwrap();
+        encoder.write_all(b"x").unwrap();
+        if kind == "non_utf8" {
+            encoder.write_all(&vec![0; 511 + 1024]).unwrap();
+        }
+        encoder.finish().unwrap();
+        assert!(archives::read(&path).is_err(), "accepted {kind}");
+    }
+}
+
+#[test]
 fn archive_reader_rejects_unsafe_zip_members_without_extracting() {
     let scratch = Scratch::new();
     for (index, kind) in [

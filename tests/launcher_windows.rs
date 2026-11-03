@@ -167,6 +167,10 @@ async fn powershell_launcher_restores_modes_errors_and_rooted_utf8_logs() {
     let missing = run(root, &["-Preview"], true).await;
     assert_eq!(missing.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&missing.stderr).contains("Native executable missing"));
+    assert!(
+        !root.join("logs").exists(),
+        "missing binary must not create unvalidated launcher logs"
+    );
     std::fs::create_dir(root.join("bin")).unwrap();
     std::fs::copy(
         env!("CARGO_BIN_EXE_fiverr-agent-mcp"),
@@ -196,25 +200,28 @@ async fn powershell_launcher_restores_modes_errors_and_rooted_utf8_logs() {
     let menu = run(root, &[], true).await;
     assert_eq!(menu.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&menu.stderr).contains("interactive owner terminal"));
-    let mut launcher_logs = 0;
+    let mut native_logs = 0;
     for entry in std::fs::read_dir(root.join("logs")).unwrap() {
         let path = entry.unwrap().path();
-        if !path
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .starts_with("run_")
-        {
+        let name = path.file_name().unwrap().to_string_lossy();
+        assert!(
+            !name.starts_with("run_"),
+            "wrapper must delegate private first writes to native Root"
+        );
+        if !name.starts_with("fiverr-agent-mcp_") {
             continue;
         }
-        launcher_logs += 1;
+        native_logs += 1;
         let text = std::fs::read_to_string(path).unwrap();
+        assert!(!text.is_empty());
         for line in text.lines() {
             let event: serde_json::Value = serde_json::from_str(line).unwrap();
-            assert_eq!(event["category"], "LAUNCHER");
             assert!(event["timestamp"].as_str().unwrap().ends_with('Z'));
         }
     }
-    assert_eq!(launcher_logs, 7);
+    assert!(
+        native_logs >= 2,
+        "preview/status must each retain native private file logging"
+    );
     assert!(!root.join("elsewhere/logs").exists());
 }

@@ -10,6 +10,12 @@ The existing helper supplies deterministic keyword/pricing/supplied-dataset/obse
 
 No unsupported tool returns an empty successful platform result. Current dedicated live operations are not implemented; reasons distinguish that code gap from independent external permission/route blockers. Full account-backed scope remains incomplete.
 
+## Effect and approval semantics
+
+For implemented tools, `effect` describes the current code path: reads and handoff instructions are `read_only`; saved records, exports and action prepare/cancel/commit are `local_write`. Commit consumes a previously granted owner approval into `manual_handoff`; it does not dispatch remotely. Unsupported inventory rows may retain financial/contractual intent warnings, but are not advertised as implemented tools. `required_approval` describes the operation's actual authority boundary, not an agent-provided confirmation boolean. Reading instructions or preparing a local proposal does not itself constitute human approval to execute it.
+
+Native fixture evidence is revision-specific, separate from `live_read_verified:false` and `live_write_verified:false`. The accepted historical baseline is recorded in [Testing](testing.md); source changes require fresh applicable acceptance. Existing test mappings are fixture coverage, not evidence of actual client loading, platform permission or current Fiverr compatibility.
+
 ## Local reminder pagination
 
 `fiverr_reminders_list` accepts `limit` (1-100, default 100) and an opaque `cursor`.

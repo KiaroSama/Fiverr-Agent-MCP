@@ -35,6 +35,60 @@ mod job {
         Ok(())
     }
 }
+struct OwnedChild(std::process::Child, Option<std::process::ExitStatus>);
+impl std::ops::Deref for OwnedChild {
+    type Target = std::process::Child;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl std::ops::DerefMut for OwnedChild {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+impl OwnedChild {
+    fn terminate(&mut self) -> std::io::Result<std::process::ExitStatus> {
+        if let Some(status) = self.1 {
+            return Ok(status);
+        }
+        #[cfg(unix)]
+        {
+            unsafe extern "C" {
+                fn kill(pid: i32, signal: i32) -> i32;
+            }
+            // SAFETY: the child was created in a fresh group whose id is its positive PID.
+            let result = unsafe { kill(-(self.id() as i32), 9) };
+            if result != 0 {
+                let error = std::io::Error::last_os_error();
+                if error.raw_os_error() != Some(3) {
+                    return Err(error);
+                }
+            }
+        }
+        let _ = self.0.kill();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            if let Some(status) = self.0.try_wait()? {
+                self.1 = Some(status);
+                return Ok(status);
+            }
+            if Instant::now() >= deadline {
+                return Err(std::io::Error::other(
+                    "bootstrap child reap deadline exceeded",
+                ));
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+}
+impl Drop for OwnedChild {
+    fn drop(&mut self) {
+        if let Err(error) = self.terminate() {
+            eprintln!("CI bootstrap cleanup failed: {error}");
+        }
+    }
+}
 fn main() {
     if let Err(e) = run() {
         eprintln!("CI bootstrap owner: {e}");
@@ -62,7 +116,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000);
     }
-    let mut child = command.spawn()?;
+    let mut child = OwnedChild(command.spawn()?, None);
     let (tx, rx) = mpsc::sync_channel(128);
     fn read(
         mut pipe: impl Read + Send + 'static,
@@ -103,18 +157,27 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                     failure = Some("output ceiling exceeded");
                     break;
                 }
-                if err {
-                    std::io::stderr().write_all(&b)?;
+                let written = if err {
+                    std::io::stderr().write_all(&b)
                 } else {
-                    std::io::stdout().write_all(&b)?;
-                }
-            }
-            Err(mpsc::RecvTimeoutError::Disconnected) => {
-                if let Some(s) = child.try_wait()? {
-                    status = Some(s);
+                    std::io::stdout().write_all(&b)
+                };
+                if written.is_err() {
+                    failure = Some("output forwarding failed");
                     break;
                 }
             }
+            Err(mpsc::RecvTimeoutError::Disconnected) => match child.try_wait() {
+                Ok(Some(s)) => {
+                    status = Some(s);
+                    break;
+                }
+                Ok(None) => {}
+                Err(_) => {
+                    failure = Some("child status query failed");
+                    break;
+                }
+            },
             Err(mpsc::RecvTimeoutError::Timeout) => {}
         }
         if start.elapsed() >= Duration::from_secs(900)
@@ -124,19 +187,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             break;
         }
     }
-    #[cfg(unix)]
-    {
-        let _ = Command::new("/bin/kill")
-            .args(["-KILL", "--", &format!("-{}", child.id())])
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-    }
-    if status.is_none() {
-        let _ = child.kill();
-    }
-    let final_status = child.wait()?;
+    let final_status = child.terminate()?;
     let deadline = Instant::now() + Duration::from_secs(5);
     while !out.is_finished() || !err.is_finished() {
         let _ = rx.recv_timeout(Duration::from_millis(20));

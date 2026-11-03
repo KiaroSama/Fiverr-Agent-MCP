@@ -68,8 +68,11 @@ async fn reader(case: &str, input: &[u8], root: Option<&Root>) -> std::process::
     let mut stdin = child.stdin.take().unwrap();
     tokio::time::timeout(Duration::from_secs(10), async move {
         stdin.write_all(input).await.unwrap();
-        drop(stdin);
-        child.wait_with_output().await.unwrap()
+        // Fatal input must terminate without draining or waiting for newline/EOF.
+        let held_stdin = (case == "fatal").then_some(stdin);
+        let output = child.wait_with_output().await.unwrap();
+        drop(held_stdin);
+        output
     })
     .await
     .expect("Owned framing fixture exceeded its deadline")

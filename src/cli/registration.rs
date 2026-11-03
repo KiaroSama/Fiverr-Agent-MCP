@@ -17,6 +17,49 @@ pub fn desktop(root: &Root, entry_only: bool) -> Value {
         json!({"mcpServers":{"Fiverr-Agent-mcp":entry}})
     }
 }
+fn validate_existing(existing: &Value, generated: &Value) -> Result<()> {
+    let conflict = || {
+        error(
+            ErrorCode::ActionStateChanged,
+            "Existing Fiverr-Agent-mcp arguments or temporary policy conflict; review the explicit client entry without replacing custom options.",
+        )
+    };
+    if existing["args"] != generated["args"] {
+        return Err(conflict());
+    }
+    let Some(env) = existing.get("env") else {
+        return Ok(());
+    };
+    let env = env.as_object().ok_or_else(conflict)?;
+    if env.values().any(|value| !value.is_string()) {
+        return Err(conflict());
+    }
+    let generated_env = generated["env"].as_object().ok_or_else(storage_error)?;
+    for key in env.keys() {
+        if generated_env
+            .keys()
+            .any(|owned| key.eq_ignore_ascii_case(owned) && key != owned)
+        {
+            return Err(conflict());
+        }
+    }
+    let mode = env
+        .get("FIVERR_AGENT_TEMP_MODE")
+        .and_then(Value::as_str)
+        .unwrap_or("rooted");
+    if !matches!(mode, "rooted" | "system") {
+        return Err(conflict());
+    }
+    for key in ["TEMP", "TMP", "TMPDIR", "XDG_CACHE_HOME"] {
+        if let Some(value) = env.get(key)
+            && (mode == "system" || Some(value) != generated_env.get(key))
+        {
+            return Err(conflict());
+        }
+    }
+    Ok(())
+}
+
 pub fn register(root: &Root, file: &Path, remove: bool) -> Result<Value> {
     reject_links(file)?;
     if !file.is_absolute() {
@@ -62,6 +105,18 @@ pub fn register(root: &Root, file: &Path, remove: bool) -> Result<Value> {
             ErrorCode::ActionStateChanged,
             "Existing Fiverr-Agent-mcp belongs to another executable; explicit conflict resolution required.",
         ));
+    }
+    if !remove && let Some(existing) = servers.get("Fiverr-Agent-mcp") {
+        validate_existing(existing, &entry)?;
+        if std::fs::read(file).map_err(|_| storage_error())? != bytes {
+            return Err(error(
+                ErrorCode::ActionStateChanged,
+                "Client configuration changed concurrently; review it again.",
+            ));
+        }
+        return Ok(
+            json!({"registered":true,"preserved_other_entries":true,"backup_created":false,"restart_client_required":false}),
+        );
     }
     if remove {
         servers.remove("Fiverr-Agent-mcp");

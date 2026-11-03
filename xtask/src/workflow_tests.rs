@@ -17,4 +17,11 @@ fn focused_status_never_uses_full_native_acceptance_context() {
         "no unconditional full-acceptance write from a focused run"
     );
     assert!(WORKFLOW.contains("test \"$(wc -l < jobs.tsv)\" -eq 5"));
+    assert_eq!(
+        WORKFLOW.matches("-f context=\"$STATUS_CONTEXT\"").count(),
+        2
+    );
+    assert!(!WORKFLOW.contains("-f context=\"CI / native acceptance\""));
+    assert!(WORKFLOW.contains("if [ \"$START_RESULT\" = success ]"));
+    assert!(WORKFLOW.contains("state=failure"));
 }

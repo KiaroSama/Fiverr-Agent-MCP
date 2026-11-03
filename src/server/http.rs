@@ -33,18 +33,46 @@ struct Access {
     capacity: Arc<tokio::sync::Semaphore>,
     cancel: CancellationToken,
 }
+fn persisted_token(value: serde_json::Value) -> Result<String> {
+    value
+        .as_str()
+        .filter(|value| {
+            !value.is_empty()
+                && value.len() <= 4096
+                && value.bytes().all(|byte| byte.is_ascii_graphic())
+        })
+        .map(str::to_owned)
+        .ok_or_else(crate::core::storage_error)
+}
 pub fn token(store: &Store) -> Result<String> {
-    store.update_value("http_token", |old| {
-        let value = old
-            .and_then(|v| v.as_str().map(str::to_string))
-            .unwrap_or_else(|| {
-                format!(
-                    "{}{}",
-                    uuid::Uuid::new_v4().simple(),
-                    uuid::Uuid::new_v4().simple()
-                )
-            });
-        Ok((serde_json::json!(value), value))
+    if let Some(value) = store.value("http_token")? {
+        return persisted_token(value);
+    }
+    // Recheck under the write transaction: another connection may have initialized it.
+    store.transaction(|tx| {
+        use rusqlite::OptionalExtension;
+        let old: Option<String> = tx
+            .query_row("SELECT value FROM kv WHERE key='http_token'", [], |row| {
+                row.get(0)
+            })
+            .optional()
+            .map_err(|_| crate::core::storage_error())?;
+        if let Some(old) = old {
+            return persisted_token(
+                serde_json::from_str(&old).map_err(|_| crate::core::storage_error())?,
+            );
+        }
+        let value = format!(
+            "{}{}",
+            uuid::Uuid::new_v4().simple(),
+            uuid::Uuid::new_v4().simple()
+        );
+        tx.execute(
+            "INSERT INTO kv(key,value) VALUES('http_token',?1)",
+            [serde_json::json!(value).to_string()],
+        )
+        .map_err(|_| crate::core::storage_error())?;
+        Ok(value)
     })
 }
 fn refuse(status: StatusCode, text: &'static str) -> Response {
