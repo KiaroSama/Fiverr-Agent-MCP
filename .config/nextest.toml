@@ -19,3 +19,9 @@ slow-timeout = { period = "40s", terminate-after = 1, grace-period = "2s" }
 path = "junit.xml"
 store-success-output = false
 store-failure-output = true
+
+# Browser subprocess trees require the full two-worker native runner budget.
+[[profile.ci.overrides]]
+platform = 'cfg(any(windows, all(target_os = "macos", target_arch = "x86_64")))'
+filter = 'test(native_browser_reads_fixed_fixture_without_exposing_credentials) | test(exact_extension_extractor_rejects_unsafe_or_unknown_account_fixtures)'
+threads-required = "num-test-threads"
