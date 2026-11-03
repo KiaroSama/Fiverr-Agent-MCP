@@ -16,6 +16,8 @@ mod bootstrap_owner_tests;
 mod windows_privacy;
 #[cfg(windows)]
 mod windows_process;
+#[cfg(all(windows, test))]
+mod windows_environment_tests;
 #[cfg(windows)]
 mod windows_signing;
 

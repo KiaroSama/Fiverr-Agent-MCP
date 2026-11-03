@@ -2,6 +2,10 @@ name: Deep validation
 on:
   workflow_dispatch:
     inputs:
+      boundary_only:
+        description: 'Run Windows environment and capability contracts before repair'
+        type: boolean
+        default: false
       cli_only:
         description: 'Run only owner-menu, registration and launcher regressions'
         type: boolean
@@ -22,6 +26,10 @@ on:
         default: false
   workflow_call:
     inputs:
+      boundary_only:
+        description: 'Run Windows environment and capability contracts before repair'
+        type: boolean
+        default: false
       cli_only:
         description: 'Run only owner-menu, registration and launcher regressions'
         type: boolean
@@ -43,7 +51,7 @@ permissions:
   contents: read
 jobs:
   adversarial-packaging:
-    if: inputs.browser_startup_only != true && inputs.cli_only != true
+    if: inputs.browser_startup_only != true && inputs.cli_only != true && inputs.boundary_only != true
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     defaults:
@@ -87,7 +95,7 @@ jobs:
           target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package xtask --profile ci --test-threads 2 --no-tests fail --no-fail-fast
 
   cli-regressions:
-    if: inputs.cli_only
+    if: inputs.cli_only || inputs.boundary_only
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -117,7 +125,18 @@ jobs:
         with:
           tool: cargo-nextest@0.9.148
           fallback: none
+      - name: Run environment and capability contracts
+        if: inputs.boundary_only
+        run: |
+          .ci-work/owner cargo build --locked --package xtask --jobs 2
+          status=0
+          if [ "$RUNNER_OS" = Windows ]; then
+            target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package xtask --profile ci --test-threads 2 --no-tests fail --no-fail-fast -E 'test(windows_child_environment_honors_case_insensitive_removal)' || status=1
+          fi
+          target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package fiverr-agent-mcp --test capability_contract --profile ci --test-threads 2 --no-tests fail --no-fail-fast || status=1
+          exit "$status"
       - name: Run bounded CLI regressions
+        if: inputs.cli_only
         run: |
           .ci-work/owner cargo build --locked --package xtask --jobs 2
           target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package fiverr-agent-mcp --test registration_policy --test menu_input_limits --test action_menu --test launcher_root_policy --profile ci --test-threads 2 --no-tests fail --no-fail-fast

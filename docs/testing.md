@@ -12,6 +12,8 @@ Deep validation `maintenance_only=true` selects only `http_token_lifecycle` and 
 
 The separate Deep `cli_only=true` selection runs registration-policy, real-reader/menu framing, action review and Windows wrapper-root regressions on Linux and Windows. It leaves production CLI unchanged for semantic-red proof. Windows-only junction cases require the native Windows job; Linux zero cases for that cfg-only binary do not substitute for it. Neither focused selection changes full acceptance contexts or authorizes live operations.
 
+Deep `boundary_only=true` selects the native Windows environment-removal child contract and the capability effect contract on Linux/Windows. Both outcomes are collected and either failure fails the job. The environment fixture reports only an allowlisted variable-presence boolean; no ambient values or signing inputs are printed. Its original-source checkpoint is separate from later integration acceptance.
+
 ## Proxy collection recovery
 
 A test-only native run at `d3e7328` reproduced accepted growth to101 profiles after a100-profile backup control passed. The repair checks final versus previous profile count inside the existing immediate settings transaction, before counter updates; one shared100-profile limit covers import and recovery validation. Automatically discovered proxy_capacity tests cover add/import/local selection, exact logical rollback, idempotent imports, legacy102-to100 deletion, selected-profile fail-closed removal, backup/empty restore and two synchronized concurrent growth attempts. These are synthetic local fixtures, not proxy reachability tests.
