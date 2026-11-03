@@ -8,6 +8,10 @@ mod pe_signature;
 mod process;
 mod release;
 mod validate;
+#[cfg(test)]
+mod workflow_tests;
+#[cfg(test)]
+mod bootstrap_owner_tests;
 #[cfg(windows)]
 mod windows_privacy;
 #[cfg(windows)]

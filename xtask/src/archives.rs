@@ -8,6 +8,10 @@ use std::{
 };
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
+#[cfg(test)]
+#[path = "archive_tests.rs"]
+mod tests;
+
 pub type Files = BTreeMap<String, Vec<u8>>;
 const LIMIT: u64 = 256 * 1024 * 1024;
 
