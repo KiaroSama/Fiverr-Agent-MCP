@@ -47,6 +47,7 @@ pub(super) fn validate_assets(
     if std::str::from_utf8(&head.stdout)?.trim() != sha {
         return Err("publication checkout differs from verified source".into());
     }
+    crate::ci::owned(15, 10, "git", &["diff", "--exit-code", "HEAD", "--"])?;
     validate_assets_against(
         directory,
         sha,
@@ -139,8 +140,23 @@ fn validate_assets_against(
     {
         return Err("signing receipt mismatch".into());
     }
+    let verifier = native
+        .get("bin/fiverr-verify.exe")
+        .ok_or("packaged verifier missing")?;
+    if receipt["verifier"]["signature_valid"] != true
+        || receipt["verifier"]["certificate_sha256"] != pin
+        || receipt["verifier"]["file_sha256"].as_str() != Some(validate::digest(verifier).as_str())
+    {
+        return Err("verifier signing receipt mismatch".into());
+    }
     let source = archives::read(&assets[&expected[1]])?;
+    if &source != expected_source {
+        return Err("source archive differs from publication checkout".into());
+    }
     let plugin = archives::read(&assets[&expected[2]])?;
+    if plugin != crate::package::plugin_payload(expected_source) {
+        return Err("plugin archive inventory mismatch".into());
+    }
     for (name, bytes) in plugin {
         if source.get(&name) != Some(&bytes) || native.get(&name) != Some(&bytes) {
             return Err("plugin/source/native common payload mismatch".into());

@@ -173,43 +173,55 @@ fn release_receipt_matches_packaged_executable() {
     );
 }
 
-#[test]
-fn release_source_inventory_and_verifier_receipt_cannot_be_substituted() {
-    for case in [
-        "plugin_only_source",
-        "missing_verifier",
-        "changed_verifier",
-        "missing_verifier_receipt",
-    ] {
-        let mut fixture = Fixture::new();
-        match case {
-            "plugin_only_source" => {
-                let path = fixture.directory.join(&fixture.names[1]);
-                fs::remove_file(&path).unwrap();
-                archives::write(&path, &crate::package::plugin_payload(&fixture.native)).unwrap();
-            }
-            "missing_verifier_receipt" => {
-                let path = fixture.directory.join("windows-signing-receipt.json");
-                let mut value: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-                value.as_object_mut().unwrap().remove("verifier");
-                fixture.json("windows-signing-receipt.json", &value);
-            }
-            "missing_verifier" => {
-                fixture.native.remove("bin/fiverr-verify.exe");
-                fixture.write_native();
-            }
-            _ => {
-                fixture
-                    .native
-                    .get_mut("bin/fiverr-verify.exe")
-                    .unwrap()
-                    .push(b'!');
-                fixture.write_native();
-            }
+fn reject_substitution(case: &str) {
+    let mut fixture = Fixture::new();
+    match case {
+        "plugin_only_source" => {
+            let path = fixture.directory.join(&fixture.names[1]);
+            fs::remove_file(&path).unwrap();
+            archives::write(&path, &crate::package::plugin_payload(&fixture.native)).unwrap();
         }
-        fixture.sums();
-        assert!(fixture.validate().is_err(), "accepted {case}");
+        "missing_verifier_receipt" => {
+            let path = fixture.directory.join("windows-signing-receipt.json");
+            let mut value: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+            value.as_object_mut().unwrap().remove("verifier");
+            fixture.json("windows-signing-receipt.json", &value);
+        }
+        "missing_verifier" => {
+            fixture.native.remove("bin/fiverr-verify.exe");
+            fixture.write_native();
+        }
+        _ => {
+            fixture
+                .native
+                .get_mut("bin/fiverr-verify.exe")
+                .unwrap()
+                .push(b'!');
+            fixture.write_native();
+        }
     }
+    fixture.sums();
+    assert!(fixture.validate().is_err(), "accepted {case}");
+}
+
+#[test]
+fn release_source_inventory_cannot_be_substituted() {
+    reject_substitution("plugin_only_source");
+}
+
+#[test]
+fn release_verifier_must_be_present() {
+    reject_substitution("missing_verifier");
+}
+
+#[test]
+fn release_verifier_receipt_must_match_bytes() {
+    reject_substitution("changed_verifier");
+}
+
+#[test]
+fn release_verifier_receipt_is_required() {
+    reject_substitution("missing_verifier_receipt");
 }
 
 #[test]
