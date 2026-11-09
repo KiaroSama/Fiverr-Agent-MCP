@@ -147,6 +147,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut progress = start;
     let mut total = 0usize;
     let mut status = None;
+    let mut drain_deadline = None;
+    let mut streams_closed = false;
     let mut failure = None;
     loop {
         match rx.recv_timeout(Duration::from_millis(50)) {
@@ -167,18 +169,31 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                     break;
                 }
             }
-            Err(mpsc::RecvTimeoutError::Disconnected) => match child.try_wait() {
+            Err(mpsc::RecvTimeoutError::Disconnected) => streams_closed = true,
+            Err(mpsc::RecvTimeoutError::Timeout) => {}
+        }
+        if status.is_none() {
+            match child.try_wait() {
                 Ok(Some(s)) => {
                     status = Some(s);
-                    break;
+                    // Descendants may retain pipes after the root exits. Terminate
+                    // the owned group, then keep forwarding already captured bytes.
+                    child.terminate()?;
+                    drain_deadline = Some(Instant::now() + Duration::from_secs(5));
                 }
                 Ok(None) => {}
                 Err(_) => {
                     failure = Some("child status query failed");
                     break;
                 }
-            },
-            Err(mpsc::RecvTimeoutError::Timeout) => {}
+            }
+        }
+        if status.is_some() && streams_closed {
+            break;
+        }
+        if drain_deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            failure = Some("bootstrap capture cleanup deadline exceeded");
+            break;
         }
         if start.elapsed() >= Duration::from_secs(900)
             || progress.elapsed() >= Duration::from_secs(180)
