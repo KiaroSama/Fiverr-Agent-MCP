@@ -270,8 +270,8 @@ fn mutation() -> Result<()> {
         "--cargo-arg=--locked",
         "--cargo-test-arg=--profile=ci",
         "--cargo-test-arg=--test-threads=2",
-        "--cargo-test-arg=--test=primitives",
-        "--cargo-test-arg=--test=properties",
+        "--cargo-arg=--test=primitives",
+        "--cargo-arg=--test=properties",
     ]);
     owned(1500, 240, executable, &args)?;
     let result: serde_json::Value = serde_json::from_slice(&fs::read(

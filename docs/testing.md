@@ -56,6 +56,8 @@ Synthetic data is labeled fixture/sample. It proves only those cases, never curr
 
 ## Optimization
 
+Mutation build selection uses the same exact `primitives` and `properties` targets as mutation execution. Passing target selectors only as cargo-test-arg previously rebuilt unrelated integration binaries during each mutant build and reached the owned idle ceiling. The selectors now use cargo-arg, which applies to both build and test commands; the two-mutant scope, skipped unmutated baseline, worker count and all deadlines remain unchanged. This change requires fresh integrated acceptance, not a timeout exemption.
+
 Pure numeric cases are table-driven, literal independent expectations, no browser/process/network setup. Storage cases use isolated minimal temporary roots. Protocol tests use ephemeral bound listeners rather than sleep-based readiness. Browser fixture uses one bounded headless launch and OS-managed profile lock. Test subprocesses are owned and resource/time bounded; jobs capture sanitized failures. Baseline CI38253015746 recorded Windows13.193s, Linux1.586s, macOS ARM6.170s and Intel18.966s for the native test suites. These are one-run platform observations, not a speedup or coverage claim.
 
 ## Requested deeper evidence not yet fulfilled
