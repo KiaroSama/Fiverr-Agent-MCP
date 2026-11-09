@@ -378,6 +378,7 @@ pub(super) fn plugin_payload(files: &Files) -> Files {
                     "LICENSE",
                     "THIRD_PARTY_NOTICES.md",
                     "README.md",
+                    "CONTEXT.md",
                     "skills.lock.json",
                 ]
                 .contains(&name.as_str())

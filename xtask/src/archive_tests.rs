@@ -127,6 +127,50 @@ fn archive_reader_rejects_unsafe_zip_members_without_extracting() {
 }
 
 #[test]
+fn archive_reader_rejects_zip_duplicate_and_declared_length_mismatch() {
+    let scratch = Scratch::new();
+    let files = Files::from([
+        ("a.txt".into(), b"a".to_vec()),
+        ("b.txt".into(), b"b".to_vec()),
+    ]);
+    let original = scratch.0.join("original.zip");
+    archives::write(&original, &files).unwrap();
+    let source = fs::read(original).unwrap();
+    for case in ["duplicate", "length"] {
+        let mut bytes = source.clone();
+        if case == "duplicate" {
+            let positions = bytes
+                .windows(5)
+                .enumerate()
+                .filter_map(|(index, name)| (name == b"b.txt").then_some(index))
+                .collect::<Vec<_>>();
+            assert_eq!(
+                positions.len(),
+                2,
+                "local and central names must both change"
+            );
+            for index in positions {
+                bytes[index..index + 5].copy_from_slice(b"a.txt");
+            }
+        } else {
+            let local = bytes
+                .windows(4)
+                .position(|part| part == b"PK\x03\x04")
+                .unwrap();
+            let central = bytes
+                .windows(4)
+                .position(|part| part == b"PK\x01\x02")
+                .unwrap();
+            bytes[local + 22..local + 26].copy_from_slice(&2u32.to_le_bytes());
+            bytes[central + 24..central + 28].copy_from_slice(&2u32.to_le_bytes());
+        }
+        let path = scratch.0.join(format!("{case}.zip"));
+        fs::write(&path, bytes).unwrap();
+        assert!(archives::read(&path).is_err(), "accepted {case}");
+    }
+}
+
+#[test]
 fn archive_reader_rejects_tar_duplicate_special_mode_and_truncation() {
     let scratch = Scratch::new();
     for (index, kind) in [

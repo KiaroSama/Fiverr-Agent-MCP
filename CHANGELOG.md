@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased — 2026-11-04
+## Unreleased — 2026-11-10
+
+Added native process-root-exit cleanup regressions, complete per-run case inventories and a relocated local draft/export workflow across stdio and protected HTTP. The signed Windows package reuses that harness against extracted bytes, and bundled documentation now includes its referenced domain glossary. Reviewed dependency branches retain their merge ancestry; current pins include rmcp3.9.0, flate2 1.1.11, zip9.5.0 and install-action2.90.3. Final integrated native/sign/package acceptance remains required.
 
 Authored maintenance hardening for read-only established HTTP-token access, persisted SQL/JSON identity binding, fatal oversized terminal framing, conservative same-install registration, local action review and pre-write launcher refusal. Added Windows ordinal environment construction, exact release-asset/receipt binding, semantic capability validation and one-shot logging-degradation diagnostics. A signed standalone authenticity utility reuses the existing CMS/PE verifier. These changes remain subject to final exact-source native/sign/package acceptance; no new installed-build or live-platform claim is implied.
 
