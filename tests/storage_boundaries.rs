@@ -428,7 +428,7 @@ fn save_rejects_invalid_inputs_and_failed_history_or_record_writes_atomically() 
             store.save(original.clone(), expected).unwrap_err().code,
             ErrorCode::StorageUnavailable
         );
-        assert!(store.history("local", "note", "a").unwrap().is_empty());
+        assert!(store.history("local", "note", "a").is_err());
     }
     sql(
         &store,

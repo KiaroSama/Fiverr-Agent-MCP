@@ -21,9 +21,12 @@ async fn run(root: &std::path::Path, arguments: &[&str], wrapper: bool) -> std::
         .args(arguments)
         .current_dir(root.join("elsewhere"))
         .env("NO_COLOR", "1")
-        .envs(fiverr_agent_mcp::bootstrap::environment(
-            &fiverr_agent_mcp::storage::Root::explicit(root).unwrap(),
-        ))
+        .envs([
+            ("TEMP", root.join(".cache/tmp")),
+            ("TMP", root.join(".cache/tmp")),
+            ("TMPDIR", root.join(".cache/tmp")),
+            ("XDG_CACHE_HOME", root.join(".cache")),
+        ])
         .stdin(Stdio::null())
         .kill_on_drop(true);
     command.creation_flags(0x08000000);

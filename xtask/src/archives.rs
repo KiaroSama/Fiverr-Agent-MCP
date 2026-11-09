@@ -65,6 +65,9 @@ fn read_with_limits(path: &Path, entries: usize, limit: u64) -> Result<Files> {
     let mut total = 0_u64;
     if path.extension().is_some_and(|extension| extension == "zip") {
         let mut zip = ZipArchive::new(File::open(path)?)?;
+        if zip.has_duplicate_names() {
+            return Err("duplicate archive entry".into());
+        }
         if zip.len() > entries {
             return Err("archive entry ceiling exceeded".into());
         }
