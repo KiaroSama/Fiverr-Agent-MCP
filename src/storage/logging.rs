@@ -80,40 +80,6 @@ impl Logger {
         }
     }
 }
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn post_open_write_failure_and_poison_share_one_degraded_state() {
-        let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("read-only-sink");
-        fs::write(&path, b"unchanged").unwrap();
-        let logger = Logger {
-            file: Arc::new(Mutex::new(File::open(&path).unwrap())),
-            degraded: Arc::new(AtomicBool::new(false)),
-        };
-        logger.event(
-            "INFO",
-            "fixture",
-            "Write failure",
-            json!({"token":"dummy-secret"}),
-        );
-        assert!(logger.degraded.load(Ordering::Relaxed));
-        assert!(Arc::ptr_eq(&logger.degraded, &logger.clone().degraded));
-        assert_eq!(fs::read(&path).unwrap(), b"unchanged");
-        let file = logger.file.clone();
-        assert!(
-            std::panic::catch_unwind(move || {
-                let _guard = file.lock().unwrap();
-                panic!("controlled logger poison");
-            })
-            .is_err()
-        );
-        logger.event("INFO", "fixture", "Poison", json!({}));
-        assert!(logger.degraded.load(Ordering::Relaxed));
-    }
-}
 
 pub fn redact(value: Value) -> Value {
     match value {
@@ -163,5 +129,40 @@ pub fn redact(value: Value) -> Value {
             }
         }
         other => other,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn post_open_write_failure_and_poison_share_one_degraded_state() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("read-only-sink");
+        fs::write(&path, b"unchanged").unwrap();
+        let logger = Logger {
+            file: Arc::new(Mutex::new(File::open(&path).unwrap())),
+            degraded: Arc::new(AtomicBool::new(false)),
+        };
+        logger.event(
+            "INFO",
+            "fixture",
+            "Write failure",
+            json!({"token":"dummy-secret"}),
+        );
+        assert!(logger.degraded.load(Ordering::Relaxed));
+        assert!(Arc::ptr_eq(&logger.degraded, &logger.clone().degraded));
+        assert_eq!(fs::read(&path).unwrap(), b"unchanged");
+        let file = logger.file.clone();
+        assert!(
+            std::panic::catch_unwind(move || {
+                let _guard = file.lock().unwrap();
+                panic!("controlled logger poison");
+            })
+            .is_err()
+        );
+        logger.event("INFO", "fixture", "Poison", json!({}));
+        assert!(logger.degraded.load(Ordering::Relaxed));
     }
 }
