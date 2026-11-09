@@ -25,6 +25,15 @@ fn implemented_capability_effects_match_catalog_and_dispatch() {
             matches[0]["effect"], expected,
             "{name}: actual local effect, not intended remote consequence"
         );
+        assert_eq!(
+            matches[0]["required_approval"],
+            if *name == "fiverr_action_commit" {
+                "human_owner"
+            } else {
+                "host_tool_consent"
+            },
+            "{name}: preparation and instructions do not enforce owner approval"
+        );
     }
     assert_eq!(registry["live_read_verified"], false);
     assert_eq!(registry["live_write_verified"], false);
