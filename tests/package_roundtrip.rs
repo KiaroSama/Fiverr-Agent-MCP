@@ -187,6 +187,7 @@ async fn extracted_package_roundtrip_preserves_local_workspace() {
                 .header("Accept", "application/json, text/event-stream")
                 .header("MCP-Protocol-Version", "2026-07-28")
                 .header("Mcp-Method", "tools/call")
+                .header("Mcp-Name", name)
                 .json(&request(
                     id,
                     "tools/call",
