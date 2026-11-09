@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const REQUIRED: [&str; 11] = [
+const REQUIRED: [&str; 12] = [
     "run.ps1",
     "fiverr.install.json",
     "plugin.json",
@@ -22,6 +22,7 @@ const REQUIRED: [&str; 11] = [
     "THIRD_PARTY_NOTICES.md",
     "capabilities.json",
     "README.md",
+    "CONTEXT.md",
 ];
 
 fn public_payload(root: &Path) -> Result<Files> {
@@ -535,6 +536,15 @@ pub fn verify(root: &Path, archive: &str, target: &str, sha: &str) -> Result<()>
                     return Err("native smoke must return JSON object".into());
                 }
             }
+        }
+        let harness = crate::test_inventory::package_harness(root)?;
+        let output = process::package_fixture(
+            harness.to_str().ok_or("package harness path")?,
+            &executable,
+            root,
+        )?;
+        if !output.status.success() {
+            return Err("extracted package local workflow failed".into());
         }
         Ok(())
     })();

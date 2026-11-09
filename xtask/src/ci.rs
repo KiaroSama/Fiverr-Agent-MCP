@@ -68,9 +68,32 @@ pub fn native(target: &str, sha: &str, validation_only: bool) -> Result<()> {
     // Pass child-only configuration without mutating a threaded parent's environment.
     let config = root().join(".ci-work/browser-path");
     fs::write(&config, browser.as_bytes())?;
+    let run_tests = |wall, idle, args: &[&str]| -> Result<()> {
+        let args = args
+            .iter()
+            .map(|value| (*value).to_owned())
+            .chain([
+                "--message-format".into(),
+                "libtest-json-plus".into(),
+                "--message-format-version".into(),
+                "0.1".into(),
+            ])
+            .collect::<Vec<_>>();
+        let output = process::test_run(&args, &root(), wall, idle)?;
+        fs::write(root().join(".ci-work/test-events.jsonl"), &output.stdout)?;
+        let receipt = crate::test_inventory::reconcile(&root(), target, &output.stdout)?;
+        fs::write(
+            root().join(".ci-work/test-inventory.json"),
+            serde_json::to_vec_pretty(&receipt)?,
+        )?;
+        if !output.status.success() || receipt["failed"] != 0 {
+            return Err("native test execution failed; full inventory retained".into());
+        }
+        Ok(())
+    };
     if cfg!(target_os = "linux") {
         owned(120, 60, "fc-cache", &["--verbose"])?;
-        cargo(
+        run_tests(
             1500,
             300,
             &[
@@ -118,7 +141,7 @@ pub fn native(target: &str, sha: &str, validation_only: bool) -> Result<()> {
         )?;
         mutation()?;
     } else {
-        cargo(
+        run_tests(
             1200,
             240,
             &[

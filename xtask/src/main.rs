@@ -6,6 +6,7 @@ mod coverage;
 mod package;
 mod process;
 mod release;
+mod test_inventory;
 mod validate;
 #[cfg(windows)]
 mod windows_environment;

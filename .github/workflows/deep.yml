@@ -141,7 +141,8 @@ jobs:
         if: inputs.cli_only
         run: |
           .ci-work/owner cargo build --locked --package xtask --jobs 2
-          target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package fiverr-agent-mcp --test registration_policy --test menu_input_limits --test action_menu --test launcher_root_policy --profile ci --test-threads 2 --no-tests fail --no-fail-fast
+          target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package xtask --profile ci --test-threads 2 --no-tests fail --no-fail-fast
+          target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package fiverr-agent-mcp --test registration_policy --test menu_input_limits --test action_menu --test launcher_root_policy --test package_roundtrip --profile ci --test-threads 2 --no-tests fail --no-fail-fast
 
   browser-startup:
     if: inputs.browser_startup_only

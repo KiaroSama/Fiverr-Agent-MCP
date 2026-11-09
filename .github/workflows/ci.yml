@@ -163,14 +163,16 @@ jobs:
             .ci-work/mutants/mutants.out/outcomes.json
           if-no-files-found: warn
           retention-days: 14
-      - name: Retain failure diagnostics and JUnit
-        if: failure()
+      - name: Retain complete test inventory and JUnit
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: diagnostics-${{ matrix.target }}
           include-hidden-files: true
           path: |
             target/nextest/ci/junit.xml
+            .ci-work/test-events.jsonl
+            .ci-work/test-inventory.json
             .ci-work/owner-*/*.bin
           if-no-files-found: warn
           retention-days: 7

@@ -89,11 +89,42 @@ impl Drop for Owner {
 }
 
 pub fn run(executable: &str, args: &[String], cwd: &Path, wall: u64, idle: u64) -> Result<Output> {
-    run_inner(executable, args, cwd, wall, idle, false)
+    run_inner(executable, args, cwd, wall, idle, false, &[])
 }
 
 pub fn smoke(executable: &str, args: &[String], cwd: &Path) -> Result<Output> {
-    run_inner(executable, args, cwd, 15, 10, true)
+    run_inner(executable, args, cwd, 15, 10, true, &[])
+}
+
+pub fn test_run(args: &[String], cwd: &Path, wall: u64, idle: u64) -> Result<Output> {
+    run_inner(
+        "cargo",
+        args,
+        cwd,
+        wall,
+        idle,
+        false,
+        &[(
+            "NEXTEST_EXPERIMENTAL_LIBTEST_JSON",
+            std::ffi::OsStr::new("1"),
+        )],
+    )
+}
+
+pub fn package_fixture(executable: &str, binary: &Path, cwd: &Path) -> Result<Output> {
+    run_inner(
+        executable,
+        &[
+            "--exact".into(),
+            "extracted_package_roundtrip_preserves_local_workspace".into(),
+            "--nocapture".into(),
+        ],
+        cwd,
+        30,
+        10,
+        true,
+        &[("FIVERR_PACKAGE_BINARY", binary.as_os_str())],
+    )
 }
 
 fn run_inner(
@@ -103,9 +134,10 @@ fn run_inner(
     wall: u64,
     idle: u64,
     minimal: bool,
+    environment: &[(&str, &std::ffi::OsStr)],
 ) -> Result<Output> {
     let mut command = Command::new(executable);
-    command.args(args);
+    command.args(args).envs(environment.iter().copied());
     command
         .env_remove("FIVERR_WINDOWS_PFX_BASE64")
         .env_remove("FIVERR_WINDOWS_PFX_PASSWORD");
