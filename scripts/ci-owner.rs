@@ -116,7 +116,40 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000);
     }
-    let mut child = OwnedChild(command.spawn()?, None);
+    supervise(
+        OwnedChild(command.spawn()?, None),
+        Limits::PRODUCTION,
+        std::process::Child::try_wait,
+        |err, bytes| {
+            if err {
+                std::io::stderr().write_all(bytes)
+            } else {
+                std::io::stdout().write_all(bytes)
+            }
+        },
+    )
+}
+
+#[derive(Clone, Copy)]
+struct Limits {
+    wall: Duration,
+    idle: Duration,
+    output: usize,
+}
+impl Limits {
+    const PRODUCTION: Self = Self {
+        wall: Duration::from_secs(900),
+        idle: Duration::from_secs(180),
+        output: 16 * 1024 * 1024,
+    };
+}
+
+fn supervise(
+    mut child: OwnedChild,
+    limits: Limits,
+    mut poll: impl FnMut(&mut std::process::Child) -> std::io::Result<Option<std::process::ExitStatus>>,
+    mut forward: impl FnMut(bool, &[u8]) -> std::io::Result<()>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let (tx, rx) = mpsc::sync_channel(128);
     fn read(
         mut pipe: impl Read + Send + 'static,
@@ -155,16 +188,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             Ok((err, b)) => {
                 total += b.len();
                 progress = Instant::now();
-                if total > 16 * 1024 * 1024 {
+                if total > limits.output {
                     failure = Some("output ceiling exceeded");
                     break;
                 }
-                let written = if err {
-                    std::io::stderr().write_all(&b)
-                } else {
-                    std::io::stdout().write_all(&b)
-                };
-                if written.is_err() {
+                if forward(err, &b).is_err() {
                     failure = Some("output forwarding failed");
                     break;
                 }
@@ -173,7 +201,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             Err(mpsc::RecvTimeoutError::Timeout) => {}
         }
         if status.is_none() {
-            match child.try_wait() {
+            match poll(&mut child.0) {
                 Ok(Some(s)) => {
                     status = Some(s);
                     // Descendants may retain pipes after the root exits. Terminate
@@ -195,9 +223,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             failure = Some("bootstrap capture cleanup deadline exceeded");
             break;
         }
-        if start.elapsed() >= Duration::from_secs(900)
-            || progress.elapsed() >= Duration::from_secs(180)
-        {
+        if start.elapsed() >= limits.wall || progress.elapsed() >= limits.idle {
             failure = Some("900s wall/180s idle deadline exceeded");
             break;
         }
@@ -220,3 +246,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     Ok(())
 }
+
+#[cfg(all(test, unix))]
+#[path = "../xtask/src/bootstrap_terminal_tests.rs"]
+mod terminal_tests;

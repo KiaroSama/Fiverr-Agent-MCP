@@ -114,6 +114,101 @@ async fn routed_http_status_and_body_limits_are_enforced_without_redirects() {
     );
 }
 
+#[tokio::test]
+async fn connect_proxy_auth_and_tls_failure_never_fall_back_to_origin() {
+    let temporary = tempfile::tempdir().unwrap();
+    let store = Store::open(
+        crate::storage::Root::explicit(&temporary.path().canonicalize().unwrap()).unwrap(),
+    )
+    .unwrap();
+    for status in [407, 502] {
+        let origin = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+            .await
+            .unwrap();
+        let origin_address = origin.local_addr().unwrap();
+        let proxy = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+            .await
+            .unwrap();
+        let proxy_address = proxy.local_addr().unwrap();
+        let mut worker = Owned(tokio::spawn(async move {
+            let (mut stream, _) = proxy.accept().await.unwrap();
+            let mut header = Vec::new();
+            while !header.ends_with(b"\r\n\r\n") {
+                assert!(header.len() < 8192);
+                header.push(stream.read_u8().await.unwrap());
+            }
+            let text = String::from_utf8(header).unwrap().to_ascii_lowercase();
+            assert!(text.starts_with(&format!("connect {origin_address} http/1.1\r\n")));
+            assert!(text.contains("\r\nproxy-authorization: basic zml4dhvyztp0zxn0\r\n"));
+            assert!(!text.contains("cookie:") && !text.contains("synthetic-session"));
+            stream.write_all(format!("HTTP/1.1 {status} Refused\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").as_bytes()).await.unwrap();
+        }));
+        Settings::change(&store, true, |settings| {
+            settings.mode = Mode::Proxy;
+            settings.profiles = vec![profiles::Profile {
+                id: "fixture".into(),
+                label: "Synthetic proxy".into(),
+                url: format!("http://fixture:test@{proxy_address}"),
+            }];
+            settings.selected_profile_id = Some("fixture".into());
+            Ok(())
+        })
+        .unwrap();
+        let route = RouteClient::new(store.clone()).unwrap();
+        let result = tokio::time::timeout(
+            Duration::from_secs(3),
+            route.fixture_session_page(
+                Url::parse(&format!("https://{origin_address}/fixture")).unwrap(),
+                "session=synthetic-session",
+            ),
+        )
+        .await
+        .unwrap();
+        assert_eq!(result.unwrap_err().code, ErrorCode::ProxyUnreachable);
+        tokio::time::timeout(Duration::from_secs(3), &mut worker.0)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            tokio::time::timeout(Duration::from_millis(50), origin.accept())
+                .await
+                .is_err()
+        );
+    }
+    Settings::change(&store, true, |settings| {
+        settings.mode = Mode::Direct;
+        Ok(())
+    })
+    .unwrap();
+    let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+        .await
+        .unwrap();
+    let address = listener.local_addr().unwrap();
+    let mut worker = Owned(tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let mut hello = [0u8; 5];
+        stream.read_exact(&mut hello).await.unwrap();
+        assert_eq!(hello[0], 22, "TLS handshake must precede any HTTP request");
+        let _ = stream.write_all(b"HTTP/1.1 200 Not TLS\r\n\r\n").await;
+    }));
+    let route = RouteClient::new(store).unwrap();
+    assert_eq!(
+        tokio::time::timeout(
+            Duration::from_secs(3),
+            route.fixture_get(Url::parse(&format!("https://{address}/fixture")).unwrap(),)
+        )
+        .await
+        .unwrap()
+        .unwrap_err()
+        .code,
+        ErrorCode::ProxyUnreachable
+    );
+    tokio::time::timeout(Duration::from_secs(3), &mut worker.0)
+        .await
+        .unwrap()
+        .unwrap();
+}
+
 #[test]
 fn selected_missing_or_invalid_proxy_cannot_build_a_route() {
     let temporary = tempfile::tempdir().unwrap();

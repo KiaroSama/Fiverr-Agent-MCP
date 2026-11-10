@@ -162,6 +162,62 @@ fn workflow_status_shell_refuses_cancelled_or_incomplete_acceptance() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+#[cfg(unix)]
+#[test]
+fn workflow_start_rejects_contradictory_selectors_before_status_write() {
+    let script = WORKFLOW
+        .split("      - name: Mark exact commit pending\n")
+        .nth(1)
+        .unwrap()
+        .split("        run: |\n")
+        .nth(1)
+        .unwrap()
+        .split("  http-deadline:\n")
+        .next()
+        .unwrap()
+        .lines()
+        .map(|line| line.strip_prefix("          ").unwrap())
+        .collect::<Vec<_>>()
+        .join("\n");
+    for (conflict, diagnostic, validation, focused, success, posts) in [
+        (true, false, true, true, false, 0),
+        (false, true, false, false, false, 0),
+        (false, false, true, true, true, 1),
+        (false, false, true, false, true, 6),
+    ] {
+        let script = script
+            .replace(
+                "${{ inputs.http_deadline_only && inputs.proxy_capacity_only }}",
+                &conflict.to_string(),
+            )
+            .replace("${{ inputs.windows_diagnostics }}", &diagnostic.to_string())
+            .replace("${{ inputs.validation_only }}", &validation.to_string())
+            .replace(
+                "${{ inputs.http_deadline_only || inputs.proxy_capacity_only }}",
+                &focused.to_string(),
+            );
+        let result = crate::process::run(
+            "/bin/bash",
+            &[
+                "-e".into(),
+                "-o".into(),
+                "pipefail".into(),
+                "-c".into(),
+                format!("gh() {{ printf 'status-write\\n'; }}\n{script}"),
+            ],
+            &crate::root(),
+            10,
+            5,
+        )
+        .unwrap();
+        assert_eq!(result.status.success(), success);
+        assert_eq!(
+            String::from_utf8(result.stdout).unwrap().lines().count(),
+            posts
+        );
+    }
+}
+
 #[test]
 fn focused_status_never_uses_full_native_acceptance_context() {
     let expression = "${{ inputs.http_deadline_only && 'CI / focused HTTP deadline' || inputs.proxy_capacity_only && 'CI / focused proxy capacity' || 'CI / native acceptance' }}";

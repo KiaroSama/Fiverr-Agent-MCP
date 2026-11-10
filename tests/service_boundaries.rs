@@ -16,9 +16,10 @@ fn exports_and_snapshot_diffs_preserve_inputs_and_escape_active_text() {
         json!({"kind":"note","id":"after","payload":{"body":"Revised","same":1,"added":2}}),
     )
     .unwrap();
-    let diff = portability::diff(
+    let diff = service::dispatch(
         &store,
-        &json!({"kind":"note","before_id":"before","after_id":"after"}),
+        "fiverr_snapshot_diff",
+        json!({"kind":"note","before_id":"before","after_id":"after"}),
     )
     .unwrap();
     let fields: Vec<_> = diff["data"]["changes"]
@@ -93,12 +94,12 @@ fn import_validation_is_atomic_scoped_and_distinct_from_commit() {
     };
     let args = json!({"records":[record]});
     assert_eq!(
-        local::import(&store, &args, false).unwrap()["data"]["imported"],
+        service::dispatch(&store, "fiverr_import_validate", args.clone()).unwrap()["data"]["imported"],
         false
     );
     assert!(store.get("local", "note", "import1").is_err());
     assert_eq!(
-        local::import(&store, &args, true).unwrap()["data"]["count"],
+        service::dispatch(&store, "fiverr_import", args.clone()).unwrap()["data"]["count"],
         1
     );
     let imported = store.get("local", "note", "import1").unwrap();
@@ -161,12 +162,65 @@ fn import_validation_is_atomic_scoped_and_distinct_from_commit() {
 }
 
 #[test]
+fn typed_note_task_and_history_dispatch_keep_local_identity() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = Store::open(Root::explicit(&temp.path().canonicalize().unwrap()).unwrap()).unwrap();
+    let first = service::dispatch(
+        &store,
+        "fiverr_notes_save",
+        json!({"id":"note1","payload":{"body":"Original"}}),
+    )
+    .unwrap();
+    assert_eq!(first["data"]["kind"], "note");
+    assert_eq!(first["provenance"]["remote_effect"], false);
+    let next = service::dispatch(
+        &store,
+        "fiverr_notes_save",
+        json!({"id":"note1","payload":{"body":"Revised"},"expected_version":1}),
+    )
+    .unwrap();
+    assert_eq!(next["data"]["version"], 2);
+    let notes = service::dispatch(&store, "fiverr_records_list", json!({"kind":"note"})).unwrap();
+    assert_eq!(notes["data"].as_array().unwrap().len(), 1);
+    assert_eq!(notes["data"][0]["payload"]["body"], "Revised");
+    let history = service::dispatch(
+        &store,
+        "fiverr_record_history",
+        json!({"kind":"note","id":"note1"}),
+    )
+    .unwrap();
+    assert_eq!(history["data"].as_array().unwrap().len(), 1);
+    assert_eq!(history["data"][0]["payload"]["body"], "Original");
+    service::dispatch(
+        &store,
+        "fiverr_task_save",
+        json!({"id":"task1","payload":{"title":"Local task"}}),
+    )
+    .unwrap();
+    let tasks = service::dispatch(&store, "fiverr_tasks_list", json!({})).unwrap();
+    assert_eq!(tasks["data"].as_array().unwrap().len(), 1);
+    assert_eq!(tasks["data"][0]["id"], "task1");
+    assert_eq!(tasks["pagination"]["live_collection"], false);
+    let analysis = service::dispatch(&store, "fiverr_market_analyze", json!({
+        "kind":"keyword", "keyword":"synthetic", "gig_count":24,
+        "provenance":{"mode":"sample","observed_at":"2026-10-12T00:00:00Z","rights_note":"Synthetic fixture"}
+    })).unwrap();
+    assert_eq!(analysis["data"]["competition_score"], 82);
+    assert_eq!(analysis["data"]["demand_score"], Value::Null);
+}
+
+#[test]
 fn shared_dispatch_reports_handoffs_and_rejects_unimplemented_or_hostile_input() {
     let temp = tempfile::tempdir().unwrap();
     let store = Store::open(Root::explicit(&temp.path().canonicalize().unwrap()).unwrap()).unwrap();
     assert!(
         service::dispatch(&store, "fiverr_capabilities", json!({})).unwrap()["data"].is_object()
     );
+    for tool in ["fiverr_status", "fiverr_health"] {
+        let result = service::dispatch(&store, tool, json!({})).unwrap();
+        assert_eq!(result["data"]["alive"], true);
+        assert_eq!(result["data"]["live_verified"], false);
+    }
     assert_eq!(
         service::dispatch(&store, "fiverr_account_capabilities", json!({}))
             .unwrap_err()

@@ -1,4 +1,9 @@
 #[cfg(unix)]
+#[allow(dead_code, unsafe_code)]
+#[path = "../../scripts/ci-owner.rs"]
+mod owner_source;
+
+#[cfg(unix)]
 mod unix {
     use std::{
         fs,
