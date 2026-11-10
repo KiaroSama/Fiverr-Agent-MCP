@@ -152,11 +152,27 @@ pub(crate) fn verifier_acceptance(
     bytes[last_hashed] ^= 1;
     fs::write(&tampered, bytes)?;
     invoke(&tampered, Some("signed PE digest mismatch"))?;
-    let system = std::env::var_os("SystemRoot").ok_or("SystemRoot missing")?;
-    invoke(
-        &Path::new(&system).join("System32/where.exe"),
-        Some("certificate does not match owner pin"),
-    )?;
+    // System binaries can be catalog-signed: require an embedded CMS fixture that
+    // actually reaches the owner-pin boundary, not an unrelated parser rejection.
+    let policy = embedded_policy()?;
+    let candidates = std::env::var_os("ProgramFiles")
+        .into_iter()
+        .flat_map(|base| {
+            [
+                "PowerShell/7/pwsh.exe",
+                "Git/cmd/git.exe",
+                "Git/bin/git.exe",
+            ]
+            .map(|relative| Path::new(&base).join(relative))
+        });
+    let wrong_signer = candidates
+        .into_iter()
+        .find(|file| {
+            verify(file, &policy)
+                .is_err_and(|error| error.to_string() == "certificate does not match owner pin")
+        })
+        .ok_or("embedded wrong-signer fixture unavailable; catalog rejection is not pin proof")?;
+    invoke(&wrong_signer, Some("certificate does not match owner pin"))?;
     invoke(
         &scratch.join("missing.exe"),
         Some("verification input unavailable"),
