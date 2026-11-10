@@ -1,5 +1,7 @@
 pub mod profiles;
 #[cfg(test)]
+mod tls_tests;
+#[cfg(test)]
 mod wire_tests;
 use crate::{
     core::{ErrorCode, Result, error, invalid, storage_error},

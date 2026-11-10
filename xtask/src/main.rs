@@ -1,6 +1,8 @@
 mod archives;
 #[cfg(test)]
 mod bootstrap_owner_tests;
+#[cfg(all(windows, test))]
+mod bootstrap_windows_tests;
 mod ci;
 mod coverage;
 mod package;
