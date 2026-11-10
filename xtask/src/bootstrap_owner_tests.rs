@@ -66,6 +66,11 @@ mod unix {
         // Deliberately orphan this fixture into the owner's fresh process group.
         // Its inherited capture pipes must be closed by owner cleanup, not here.
         std::mem::forget(descendant);
+        if std::env::var_os("FIVERR_BOOTSTRAP_HOLD_ROOT").is_some() {
+            loop {
+                std::thread::park_timeout(Duration::from_millis(20));
+            }
+        }
     }
 
     struct Cleanup {
@@ -159,6 +164,75 @@ mod unix {
             "root exit left inherited pipes alive"
         );
         assert!(stopped, "live descendant survived root exit");
+    }
+
+    #[test]
+    fn bootstrap_owner_reaps_tree_after_external_termination() {
+        let path = crate::root()
+            .join(".ci-work")
+            .join(format!("bootstrap-signal-{}.pid", std::process::id()));
+        let descendant_path = path.with_extension("descendant.pid");
+        assert!(!path.exists() && !descendant_path.exists());
+        let owner = Command::new(crate::root().join(".ci-work/owner"))
+            .arg(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "bootstrap_owner_tests::unix::bootstrap_early_root_fixture",
+                "--nocapture",
+            ])
+            .env("FIVERR_BOOTSTRAP_DESCENDANT_PID", &path)
+            .env("FIVERR_BOOTSTRAP_HOLD_ROOT", "1")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let mut cleanup = Cleanup {
+            owner,
+            group: None,
+            path,
+        };
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !descendant_path.is_file() && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        cleanup.group = Some(fs::read_to_string(&cleanup.path).unwrap().parse().unwrap());
+        let descendant: u32 = fs::read_to_string(&descendant_path)
+            .unwrap()
+            .parse()
+            .unwrap();
+        assert!(
+            Command::new("/bin/kill")
+                .args(["-TERM", "--", &cleanup.owner.id().to_string()])
+                .status()
+                .unwrap()
+                .success()
+        );
+        let mut status = None;
+        while Instant::now() < deadline {
+            status = cleanup.owner.try_wait().unwrap();
+            if status.is_some() {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let stopped = |pid: u32| {
+            let output = Command::new("/bin/ps")
+                .args(["-o", "stat=", "-p", &pid.to_string()])
+                .stdin(Stdio::null())
+                .output()
+                .unwrap();
+            let text = String::from_utf8(output.stdout).unwrap();
+            text.trim().is_empty() || text.trim().starts_with('Z')
+        };
+        let root = cleanup.group.unwrap();
+        let tree_stopped = stopped(root) && stopped(descendant);
+        fs::remove_file(descendant_path).unwrap();
+        assert!(
+            status.is_some_and(|s| !s.success()),
+            "cancelled owner must fail promptly"
+        );
+        assert!(tree_stopped, "external SIGTERM left the owned tree alive");
     }
 
     #[test]
