@@ -6,8 +6,8 @@ use std::sync::Arc;
 pub const TOOLS: &[(&str, &str, &str, bool)] = &[
     (
         "fiverr_status",
-        "Inspect local route and runtime status without contacting Fiverr.",
-        "empty",
+        "Inspect local runtime status or a workspace operation receipt; never contacts Fiverr.",
+        "status",
         true,
     ),
     (
@@ -193,6 +193,10 @@ pub const TOOLS: &[(&str, &str, &str, bool)] = &[
 ];
 pub fn schema(kind: &str) -> Value {
     let (properties, required) = match kind {
+        "status" => (
+            json!({"operation_id":{"type":"string","minLength":1,"maxLength":100}}),
+            vec![],
+        ),
         "save" => (
             json!({"kind":{"type":"string","enum":crate::core::KINDS},"id":{"type":"string"},"payload":{"type":"object"},"expected_version":{"type":"integer","minimum":1}}),
             vec!["kind", "payload"],

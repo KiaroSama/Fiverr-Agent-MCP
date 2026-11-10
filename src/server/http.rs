@@ -104,12 +104,12 @@ async fn guard(State(access): State<Access>, request: Request, next: Next) -> Re
             "Only the fixed endpoint without a query is supported.",
         );
     }
-    let settings = match Settings::load(&access.store) {
+    let settings = match access.store.run(Settings::load).await {
         Ok(s) => s,
         Err(_) => return refuse(StatusCode::SERVICE_UNAVAILABLE, "Settings unavailable."),
     };
     if settings.http_auth_mode == "token" {
-        let token = match token(&access.store) {
+        let token = match access.store.run(token).await {
             Ok(t) => t,
             Err(_) => {
                 return refuse(
@@ -211,11 +211,13 @@ pub async fn run(store: Store, override_port: Option<u16>) -> Result<()> {
     let _ = token(&store)?;
     let listener=tokio::net::TcpListener::bind(("127.0.0.1",port)).await.map_err(|_|error(ErrorCode::PortInUse,"Loopback port is occupied or unavailable; change http-port and restart. No alternate port selected."))?;
     let cancel = CancellationToken::new();
-    let app = router(store, port, cancel.clone());
+    let app = router(store.clone(), port, cancel.clone());
     eprintln!("Local MCP HTTP listening at http://127.0.0.1:{port}/mcp");
-    axum::serve(listener, app)
+    let worker = store.worker()?;
+    let result = axum::serve(listener, app)
         .with_graceful_shutdown(async move {
             let _ = tokio::signal::ctrl_c().await;
+            worker.close();
             cancel.cancel();
         })
         .await
@@ -224,8 +226,9 @@ pub async fn run(store: Store, override_port: Option<u16>) -> Result<()> {
                 ErrorCode::StorageUnavailable,
                 "HTTP server stopped unexpectedly.",
             )
-        })?;
-    Ok(())
+        });
+    let shutdown = store.shutdown_worker();
+    result.and(shutdown)
 }
 pub fn rotate(store: &Store) -> Result<()> {
     store.update_value("http_token", |_| {

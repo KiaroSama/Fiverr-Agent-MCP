@@ -13,8 +13,36 @@ use std::{
 pub struct Store {
     pub root: Root,
     connection: Arc<Mutex<Connection>>,
+    worker: Arc<std::sync::OnceLock<Arc<super::executor::Worker>>>,
 }
 impl Store {
+    pub(super) fn detached(&self) -> Self {
+        Self {
+            root: self.root.clone(),
+            connection: self.connection.clone(),
+            worker: Arc::new(std::sync::OnceLock::new()),
+        }
+    }
+    pub fn worker(&self) -> Result<Arc<super::executor::Worker>> {
+        if let Some(worker) = self.worker.get() {
+            return Ok(worker.clone());
+        }
+        let worker = super::executor::shared(self)?;
+        let _ = self.worker.set(worker.clone());
+        Ok(self.worker.get().cloned().unwrap_or(worker))
+    }
+    pub async fn run<T: Send + 'static>(
+        &self,
+        operation: impl FnOnce(&Store) -> Result<T> + Send + 'static,
+    ) -> Result<T> {
+        self.worker()?.submit(operation)?.wait().await
+    }
+    pub fn shutdown_worker(&self) -> Result<()> {
+        if let Some(worker) = self.worker.get() {
+            worker.shutdown()?;
+        }
+        Ok(())
+    }
     pub fn open(root: Root) -> Result<Self> {
         let path = root.safe_path(".state/workspace", "workspace.sqlite3")?;
         if !path.exists() {
@@ -50,6 +78,7 @@ impl Store {
         Ok(Self {
             root,
             connection: Arc::new(Mutex::new(connection)),
+            worker: Arc::new(std::sync::OnceLock::new()),
         })
     }
     pub fn transaction<T>(

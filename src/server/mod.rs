@@ -45,7 +45,7 @@ impl ServerHandler for Handler {
             ));
         }
         let args = Value::Object(request.arguments.unwrap_or_default());
-        let result = match service::dispatch(&self.store, &request.name, args) {
+        let result = match self.store.dispatch(request.name.to_string(), args).await {
             Ok(value) => {
                 let mut result =
                     CallToolResult::success(vec![ContentBlock::text(value.to_string())]);
@@ -93,19 +93,20 @@ impl ServerHandler for Handler {
         request: ReadResourceRequestParams,
         _: RequestContext<RoleServer>,
     ) -> std::result::Result<ReadResourceResponse, ErrorData> {
-        let uri = &request.uri;
-        let value=match uri.as_str(){
+        let uri = request.uri;
+        let lookup = uri.clone();
+        let value = self.store.run(move |store| match lookup.as_str() {
             "fiverr://capabilities"=>catalog::capabilities(),
-            "fiverr://account"=>service::account::status(&self.store),
+            "fiverr://account"=>service::account::status(store),
             "fiverr://policy"=>Ok(json!({"outbound_default":crate::network::Settings::default().mode,"approval":"owner_control_only","financial_execution":false,"platform_automation":"permission_and_route_assurance_required","arbitrary_execution":false})),
             value if value.starts_with("fiverr://records/")=>{
                 let parts:Vec<_>=value.trim_start_matches("fiverr://records/").split('/').collect();
-                if parts.len()!=2{return Err(ErrorData::resource_not_found("Unknown resource URI.",None));}
-                service::local::get(&self.store,&json!({"kind":parts[0],"id":parts[1]}))
+                if parts.len()!=2{return Err(crate::core::error(crate::core::ErrorCode::ResourceNotFound,"Unknown resource URI."));}
+                service::local::get(store,&json!({"kind":parts[0],"id":parts[1]}))
             },
-            value if value.starts_with("fiverr://actions/")=>service::actions::get(&self.store,value.trim_start_matches("fiverr://actions/")),
-            _=>return Err(ErrorData::resource_not_found("Unknown resource URI.",None)),
-        }.map_err(|e|ErrorData::resource_not_found(e.message,None))?;
+            value if value.starts_with("fiverr://actions/")=>service::actions::get(store,value.trim_start_matches("fiverr://actions/")),
+            _=>Err(crate::core::error(crate::core::ErrorCode::ResourceNotFound,"Unknown resource URI.")),
+        }).await.map_err(|e|ErrorData::resource_not_found(e.message,None))?;
         Ok(
             ReadResourceResult::new(vec![ResourceContents::text(value.to_string(), uri.clone())])
                 .into(),
@@ -139,12 +140,18 @@ impl ServerHandler for Handler {
 }
 pub async fn bridge(store: Store) -> crate::core::Result<()> {
     let transport = framing::BoundedStdio::new(tokio::io::stdin(), tokio::io::stdout());
-    let server = Handler { store }.serve(transport).await.map_err(|_| {
+    let server = Handler {
+        store: store.clone(),
+    }
+    .serve(transport)
+    .await
+    .map_err(|_| {
         crate::core::invalid("MCP startup failed; check protocol/version/frame metadata.")
     })?;
-    server
+    let result = server
         .waiting()
         .await
-        .map_err(|_| crate::core::invalid("MCP transport terminated with an error."))?;
-    Ok(())
+        .map_err(|_| crate::core::invalid("MCP transport terminated with an error."));
+    let shutdown = store.shutdown_worker();
+    result.and(shutdown)
 }

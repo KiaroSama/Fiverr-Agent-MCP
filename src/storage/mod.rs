@@ -1,6 +1,8 @@
 mod capacity;
 mod database;
+pub mod executor;
 pub mod logging;
+mod operations;
 mod restore;
 mod root;
 pub use database::Store;

@@ -73,6 +73,46 @@ fn async_http_auth_does_not_occupy_runtime_workers_during_sqlite_contention() {
     );
 }
 
+#[tokio::test]
+async fn queued_workspace_writes_are_bounded_and_cancelled_before_execution() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = Root::explicit(&temp.path().canonicalize().unwrap()).unwrap();
+    let store = Store::open(root.clone()).unwrap();
+    let second = Store::open(root).unwrap();
+    let worker = store.worker().unwrap();
+    assert!(Arc::ptr_eq(&worker, &second.worker().unwrap()));
+    let (entered, ready) = tokio::sync::oneshot::channel();
+    let (release, wait) = mpsc::channel();
+    let active = worker
+        .submit(move |_| {
+            entered.send(()).unwrap();
+            wait.recv_timeout(Duration::from_secs(5)).unwrap();
+            Ok(())
+        })
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(3), ready)
+        .await
+        .unwrap()
+        .unwrap();
+    let queued: Vec<_> = (0..16)
+        .map(|_| {
+            worker
+                .submit(|store| store.update_value("cancelled-fixture", |_| Ok((json!(true), ()))))
+                .unwrap()
+        })
+        .collect();
+    assert!(worker.submit(|_| Ok(())).is_err());
+    drop(queued);
+    release.send(()).unwrap();
+    tokio::time::timeout(Duration::from_secs(3), active.wait())
+        .await
+        .unwrap()
+        .unwrap();
+    store.shutdown_worker().unwrap();
+    assert!(worker.submit(|_| Ok(())).is_err());
+    assert!(store.value("cancelled-fixture").unwrap().is_none());
+}
+
 #[test]
 fn workspace_contention_records_actual_lock_and_transport_progress() {
     let temp = tempfile::tempdir().unwrap();

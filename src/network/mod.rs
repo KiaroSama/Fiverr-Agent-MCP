@@ -186,10 +186,19 @@ impl RouteClient {
         })
     }
     pub fn check(&self) -> Result<()> {
-        let current = Settings::load(&self.store)?;
+        Self::check_binding(Settings::load(&self.store)?, self.generation, &self.account)
+    }
+    async fn check_async(&self) -> Result<()> {
+        let generation = self.generation;
+        let account = self.account.clone();
+        self.store
+            .run(move |store| Self::check_binding(Settings::load(store)?, generation, &account))
+            .await
+    }
+    fn check_binding(current: Settings, generation: u64, account: &str) -> Result<()> {
         if current.mode == Mode::Blocked
-            || current.route_generation != self.generation
-            || current.account_id != self.account
+            || current.route_generation != generation
+            || current.account_id != account
         {
             return Err(error(
                 ErrorCode::RouteBlocked,
@@ -202,7 +211,7 @@ impl RouteClient {
         let mut timer = tokio::time::interval(Duration::from_millis(50));
         loop {
             timer.tick().await;
-            if self.check().is_err() {
+            if self.check_async().await.is_err() {
                 return;
             }
         }
@@ -217,7 +226,7 @@ impl RouteClient {
         generation: u64,
         account: &str,
     ) -> Result<Vec<u8>> {
-        if self.generation != generation || Settings::load(&self.store)?.account_id != account {
+        if self.generation != generation || self.account != account {
             return Err(error(
                 ErrorCode::RouteBlocked,
                 "Session route/account binding changed before dispatch.",
@@ -243,7 +252,7 @@ impl RouteClient {
         url: Url,
         cookie: Option<reqwest::header::HeaderValue>,
     ) -> Result<Vec<u8>> {
-        self.check()?;
+        self.check_async().await?;
         let request = async {
             let mut builder = self.client.get(url);
             if let Some(cookie) = cookie {
@@ -306,7 +315,7 @@ impl RouteClient {
                 }
                 bytes.extend_from_slice(&chunk);
             }
-            self.check()?;
+            self.check_async().await?;
             Ok(bytes)
         };
         tokio::select! {biased;_=self.cancelled()=>Err(error(ErrorCode::RouteBlocked,"Route generation changed; active read cancelled.")),result=tokio::time::timeout(Duration::from_secs(20),request)=>result.map_err(|_|error(ErrorCode::ProxyUnreachable,"Selected-route read deadline exceeded."))?}
