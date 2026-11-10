@@ -10,6 +10,70 @@ use std::{
 };
 
 #[test]
+fn async_http_auth_does_not_occupy_runtime_workers_during_sqlite_contention() {
+    use axum::{body::Body, http::Request};
+    use fiverr_agent_mcp::server::http;
+    use tokio_util::sync::CancellationToken;
+    use tower::ServiceExt;
+    let temp = tempfile::tempdir().unwrap();
+    let store = Store::open(Root::explicit(&temp.path().canonicalize().unwrap()).unwrap()).unwrap();
+    Settings::load(&store).unwrap();
+    http::token(&store).unwrap();
+    let app = http::router(store.clone(), 1597, CancellationToken::new());
+    let locker = rusqlite::Connection::open(
+        store
+            .root
+            .safe_path(".state/workspace", "workspace.sqlite3")
+            .unwrap(),
+    )
+    .unwrap();
+    locker.execute_batch("BEGIN EXCLUSIVE").unwrap();
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2)
+        .enable_all()
+        .build()
+        .unwrap();
+    let (entered, ready) = mpsc::channel();
+    let tasks: Vec<_> = (0..2)
+        .map(|_| {
+            let app = app.clone();
+            let entered = entered.clone();
+            runtime.spawn(async move {
+                entered.send(()).unwrap();
+                app.oneshot(
+                    Request::builder()
+                        .uri("/healthz")
+                        .header("host", "127.0.0.1:1597")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap()
+            })
+        })
+        .collect();
+    for _ in 0..2 {
+        ready.recv_timeout(Duration::from_secs(2)).unwrap();
+    }
+    let (progress, observed) = mpsc::channel();
+    let probe = runtime.spawn(async move {
+        progress.send(()).unwrap();
+    });
+    let progressed = observed.recv_timeout(Duration::from_millis(250)).is_ok();
+    locker.execute_batch("ROLLBACK").unwrap();
+    runtime.block_on(async {
+        for task in tasks {
+            task.await.unwrap();
+        }
+        probe.await.unwrap();
+    });
+    assert!(
+        progressed,
+        "HTTP authentication blocked both Tokio workers on SQLite"
+    );
+}
+
+#[test]
 fn workspace_contention_records_actual_lock_and_transport_progress() {
     let temp = tempfile::tempdir().unwrap();
     let store = Store::open(Root::explicit(&temp.path().canonicalize().unwrap()).unwrap()).unwrap();
