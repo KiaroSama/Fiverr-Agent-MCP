@@ -32,6 +32,7 @@ Status below is authored versus outstanding, not executed evidence. Every named 
 | FR039 | Existing local action submenu and genuine terminal approval | No automatic commit or remote dispatch |
 | FR040 | Conditional immutable-attempt/recovery/no-replay contract | No permitted production dispatch/postcondition adapter; current manual_handoff unchanged |
 | FR041 | All reviewed sidebranch content merges into actual default | Final resulting-SHA CI/ancestry/cleanup proof pending |
+| FR042 | Keep latest verified installation and remove proven-obsolete task/project scratch, cache and versions after replacement checks | Preserve configuration/private state/recovery; no shared or unknown purge |
 
 Accepted baseline is `219ec3b`/manual41559809201, documented in [verification report](../verification-report.md). It supersedes older receipt examples above but does not verify current edits. All122WF IDs remain in the canonical registry with31implemented local/manual tools and91dedicated unsupported operations; a local alternative is not a live equivalent.
 
