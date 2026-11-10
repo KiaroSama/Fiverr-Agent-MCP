@@ -252,8 +252,14 @@ fn run_inner(
         }
     }
     // An exited root can leave descendants with inherited pipes; timeout is failure.
+    eprintln!(
+        "Owned command phase=cleanup pid={} root_exit_seen={}",
+        child.id(),
+        exited.is_some()
+    );
     let terminated = terminate(&mut child);
     let status = child.wait()?;
+    eprintln!("Owned command phase=reaped success={}", status.success());
     let drain_deadline = Instant::now() + Duration::from_secs(5);
     while !streams_closed && Instant::now() < drain_deadline {
         match receiver.recv_timeout(Duration::from_millis(50)) {

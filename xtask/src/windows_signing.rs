@@ -175,10 +175,13 @@ pub fn package(sha: &str) -> Result<()> {
     let binary = release.join("fiverr-agent-mcp.exe");
     let utility = release.join("fiverr-verify.exe");
     let p = embedded_policy()?;
+    eprintln!("signing phase=application_start");
     sign(&binary, &p)?;
+    eprintln!("signing phase=utility_start");
     sign(&utility, &p)?;
     let mut receipt = verify(&binary, &p)?;
     receipt["verifier"] = verify(&utility, &p)?;
+    eprintln!("signing phase=both_verified");
     let scratch = root().join(".ci-work/signing-negatives");
     fs::create_dir(&scratch)?;
     let result = (|| -> Result<()> {
@@ -212,6 +215,7 @@ pub fn package(sha: &str) -> Result<()> {
     }
     result?;
     // process::run strips signing credentials from every packaging child environment.
+    eprintln!("signing phase=package_start");
     crate::package::build(
         &root(),
         binary.to_str().ok_or("binary path")?,

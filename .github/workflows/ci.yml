@@ -173,6 +173,7 @@ jobs:
             target/nextest/ci/junit.xml
             .ci-work/test-events.jsonl
             .ci-work/test-inventory.json
+            .ci-work/logs/*.log
             .ci-work/owner-*/*.bin
           if-no-files-found: warn
           retention-days: 7
