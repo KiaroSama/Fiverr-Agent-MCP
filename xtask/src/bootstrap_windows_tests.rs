@@ -62,7 +62,8 @@ fn forced_bootstrap_exit_closes_job_and_terminates_descendants() {
     command
         .arg(std::env::current_exe().unwrap())
         .args(["--exact", FIXTURE, "--nocapture"])
-        .env("FIVERR_WINDOWS_TREE", &directory);
+        .env("FIVERR_WINDOWS_TREE", &directory)
+        .current_dir(crate::root());
     let (mut guardian, outer_job) = crate::windows_process::Job::spawn(&mut command).unwrap();
     let guardian_handle = process_handle(guardian.id(), PROCESS_TERMINATE | PROCESS_SYNCHRONIZE);
     let deadline = Instant::now() + Duration::from_secs(5);
