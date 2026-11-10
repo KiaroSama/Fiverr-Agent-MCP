@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased — 2026-11-10
+## Unreleased — 2026-11-11
+
+Expanded the loopback route matrix with HTTPS-proxy double TLS, independent proxy/destination trust and hostname refusal, and deterministic bootstrap DNS failure without destination resolution or direct fallback. Added xtask dependency-update coverage and aligned the remaining Deep validation action pin with the existing reviewed version. New fixture acceptance is revision-specific; no live-account or OS-wide DNS assurance is implied.
 
 Aligned four local-operation approval labels with enforced controls while retaining owner approval for action commit. Added a per-tool named fixture evidence map with explicit historical/current separation, actual dispatch coverage, bounded Unix supervisor terminal-path fixtures, CONNECT refusal/TLS failure cases and semantic contradictory-selector status tests. These are finite regression contracts, not live verification or complete process/network certification.
 

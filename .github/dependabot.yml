@@ -8,6 +8,14 @@ updates:
     groups:
       compatible:
         update-types: [minor, patch]
+  - package-ecosystem: cargo
+    directory: /xtask
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 5
+    groups:
+      compatible:
+        update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
     schedule:
