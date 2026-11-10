@@ -35,6 +35,30 @@ mod job {
         Ok(())
     }
 }
+#[cfg(unix)]
+mod cancellation {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static CANCELLED: AtomicBool = AtomicBool::new(false);
+    extern "C" fn mark_cancelled(_: i32) {
+        // Native lock-free atomic only: no allocation, formatting, locks or I/O here.
+        CANCELLED.store(true, Ordering::Relaxed);
+    }
+    pub fn install() -> std::io::Result<()> {
+        unsafe extern "C" {
+            fn signal(number: i32, handler: usize) -> usize;
+        }
+        for number in [2, 15] {
+            // SAFETY: SIGINT/SIGTERM and this C-ABI handler on supported Unix targets.
+            if unsafe { signal(number, mark_cancelled as *const () as usize) } == usize::MAX {
+                return Err(std::io::Error::last_os_error());
+            }
+        }
+        Ok(())
+    }
+    pub fn requested() -> bool {
+        CANCELLED.load(Ordering::Relaxed)
+    }
+}
 struct OwnedChild(std::process::Child, Option<std::process::ExitStatus>);
 impl std::ops::Deref for OwnedChild {
     type Target = std::process::Child;
@@ -98,6 +122,8 @@ fn main() {
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(windows)]
     job::enter()?;
+    #[cfg(unix)]
+    cancellation::install()?;
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
     let executable = args.first().ok_or("missing owned command")?;
     let mut command = Command::new(executable);
@@ -184,6 +210,11 @@ fn supervise(
     let mut streams_closed = false;
     let mut failure = None;
     loop {
+        #[cfg(unix)]
+        if cancellation::requested() {
+            failure = Some("owned command cancelled by signal");
+            break;
+        }
         match rx.recv_timeout(Duration::from_millis(50)) {
             Ok((err, b)) => {
                 total += b.len();
