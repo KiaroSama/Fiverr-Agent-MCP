@@ -51,10 +51,9 @@ fn mutation_lock(store: &Store) -> Result<std::fs::File> {
     let path = store.root.safe_path(".state/audit", "operations.lock")?;
     if !path.exists()
         && let Err(error) = store.root.write_new(&path, b"")
+        && !path.is_file()
     {
-        if !path.is_file() {
-            return Err(error);
-        }
+        return Err(error);
     }
     store.root.assert_owned(&path)?;
     std::fs::OpenOptions::new()
