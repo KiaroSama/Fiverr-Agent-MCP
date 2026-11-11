@@ -2,5 +2,6 @@
 //! No signing keys, process launching, workspace discovery or mutable state.
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 pub mod pe_signature;
+pub mod release_signing;
 #[cfg(windows)]
 pub mod windows_verification;

@@ -1,0 +1,6 @@
+{
+  "macos_code_signing_identity": "Fiverr Agent MCP Owner",
+  "macos_leaf_sha256": "8ab789de7741e7937f7388f73bbc885bb82acdd93463acd9ad02a7bd7ee392ba",
+  "macos_identity_valid_until": "2029-10-16",
+  "note": "Owner self-signed identity. This pin identifies the publisher; it is not a public CA trust anchor and macOS will report the binary as signed by an untrusted developer."
+}

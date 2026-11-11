@@ -175,10 +175,8 @@ pub fn native(target: &str, sha: &str, validation_only: bool) -> Result<()> {
             "2",
         ],
     )?;
-    if validation_only || !cfg!(windows) {
-        println!(
-            "Native source validation completed; no signed distribution requested for this target."
-        );
+    if validation_only {
+        println!("Native source validation completed; no distribution requested for this run.");
         return Ok(());
     }
     cargo(
@@ -234,7 +232,15 @@ pub fn native(target: &str, sha: &str, validation_only: bool) -> Result<()> {
     )?;
     #[cfg(windows)]
     crate::windows_privacy::verify(&root().join(".ci-work/privacy acceptance"))?;
-    println!("Windows release compiled; protected signing follows.");
+    #[cfg(target_os = "macos")]
+    {
+        let fiverr = target_dir()?.join("release/fiverr-agent-mcp");
+        // macOS signing is reached through the bin's own module: the library target is
+        // documented as verification-only and holds no signing adapters.
+        crate::macos_signing::sign_and_verify(&[("application", &fiverr)])?;
+        println!("macOS binaries signed and verified against the pinned owner identity.");
+    }
+    println!("Release compiled; protected signing and packaging follow.");
     Ok(())
 }
 fn mutation() -> Result<()> {

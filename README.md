@@ -30,7 +30,7 @@ This community project is not affiliated with Fiverr. Local workspace operations
 
 ### 1. Download and verify the Windows package
 
-Windows x64 is the current signed binary distribution. Linux x64 and macOS ARM64/Intel have native source validation, not signed downloadable packages.
+Windows x64 is the established signed binary distribution. Full CI runs also produce owner self-signed Linux x64 and macOS ARM64/Intel packages: macOS binaries carry an owner `codesign` signature (not notarized), and each non-Windows archive has a detached OpenSSH `.sig` checkable with `ssh-keygen -Y verify` against `config/signing-release-public.json`. The instructions below cover Windows.
 
 Open [CI](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml), select a successful **full** run for the intended source revision, and download `fiverr-x86_64-pc-windows-msvc` under **Artifacts**. GitHub may require signing in. Validation-only runs have no distribution. Artifacts expire; [Releases](https://github.com/KiaroSama/Fiverr-Agent-MCP/releases) is an alternative only when an actual matching release exists. **Code → Download ZIP** downloads source, not an installed application.
 

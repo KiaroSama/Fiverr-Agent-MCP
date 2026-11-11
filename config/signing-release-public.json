@@ -1,0 +1,6 @@
+{
+  "principal": "fiverr-agent-mcp-release",
+  "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFLA0Etf0I0Sf4jvfIm9CS8KOpYuIm/oylzDhoRoF0+6 fiverr-agent-mcp-release",
+  "public_key_sha256": "1d86598a4c6a91c924299f45c80dcc78bd7ce35b15b72a36ea7e28c19f81dc0f",
+  "note": "The signature identifies the owner and is not a CA trust anchor. The fingerprint is SHA-256 of the UTF-8 public key line with its final LF, not an OpenSSH key-blob fingerprint."
+}

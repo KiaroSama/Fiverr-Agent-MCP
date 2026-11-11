@@ -66,7 +66,7 @@ jobs:
     name: native-${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
-    environment: ${{ matrix.os == 'windows-2025' && inputs.validation_only != true && 'windows-signing' || 'native-validation' }}
+    environment: ${{ matrix.os == 'windows-2025' && inputs.validation_only != true && 'windows-signing' || (matrix.os != 'windows-2025' && inputs.validation_only != true) && (matrix.os == 'macos-15' || matrix.os == 'macos-15-intel') && 'macos-signing' || (matrix.os != 'windows-2025' && inputs.validation_only != true) && 'release-signing' || 'native-validation' }}
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -155,8 +155,16 @@ jobs:
           FIVERR_WINDOWS_PFX_PASSWORD: ${{ secrets.FIVERR_WINDOWS_PFX_PASSWORD }}
           SOURCE_SHA: ${{ github.sha }}
         run: target/debug/xtask sign-package --sha "$SOURCE_SHA"
+      - name: Sign and verify the non-Windows release archives
+        if: runner.os != 'Windows' && inputs.validation_only != true
+        timeout-minutes: 8
+        env:
+          FIVERR_RELEASE_SIGNING_KEY_BASE64: ${{ secrets.FIVERR_RELEASE_SIGNING_KEY_BASE64 }}
+          FIVERR_RELEASE_SIGNING_PUBLIC_KEY: ${{ secrets.FIVERR_RELEASE_SIGNING_PUBLIC_KEY }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: target/debug/xtask sign-archives --sha "$SOURCE_SHA"
       - name: Publish verified distribution
-        if: runner.os == 'Windows' && inputs.validation_only != true
+        if: inputs.validation_only != true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: fiverr-${{ matrix.target }}

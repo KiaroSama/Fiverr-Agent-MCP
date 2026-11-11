@@ -34,6 +34,16 @@ fn public_payload(root: &Path) -> Result<Files> {
         "config/signing-public.json".into(),
         validate::regular(root, "config/signing-public.json")?,
     );
+    // The owner macOS code-signing pin travels with every target so a downloaded
+    // archive can be checked against the same published policy as the Windows one.
+    files.insert(
+        "config/signing-macos-public.json".into(),
+        validate::regular(root, "config/signing-macos-public.json")?,
+    );
+    files.insert(
+        "config/signing-release-public.json".into(),
+        validate::regular(root, "config/signing-release-public.json")?,
+    );
     for name in [
         "manifest.json",
         "popup.html",

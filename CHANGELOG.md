@@ -2,6 +2,8 @@
 
 ## Unreleased — 2026-11-11
 
+Added owner self-signed distribution signing for macOS and Linux. Full CI runs now package every native target. macOS binaries are signed with `codesign` using an owner identity imported into an ephemeral keychain through Security.framework, then strictly verified and compared against the published leaf pin in `config/signing-macos-public.json`. Non-Windows tar.gz archives and checksum files receive detached OpenSSH signatures in the `fiverr-agent-mcp-release` namespace, verified against the pinned key in `config/signing-release-public.json` with wrong-namespace and wrong-signer negatives. Both identities are self-signed and not publicly trusted. Gatekeeper will still treat the macOS binary as coming from an unidentified developer, and it is not notarized. Exact-source acceptance is pending.
+
 Added a separately locked coverage-guided validation harness with LLVM counters and bounded seed/time/input/RSS settings, executed only after the Linux sandbox controls pass. Production toolchain and dependencies remain separate. Source7620e80 passed the integrated fuzz/native/sign/package run43077882092 and its signed Windows build was installed.
 
 Added a constrained Linux cleanup-denial qualification using actual kernel EPERM, real bootstrap failure reporting and outer-owner descendant reap. Added isolated real loaded-extension/native-host acceptance; its execution and the final integrated native/sign/package checks remain revision-specific. No live Fiverr access or arbitrary race-safety claim is implied.

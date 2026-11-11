@@ -2,7 +2,8 @@
 
 ## Native package
 
-Choose a verified archive matching your host. The current signing-enabled delivery path produces Windows x64; Linux/macOS remain source-validation targets until their signing prerequisites are resolved. Extract everything, not just the executable. Verify SHA256SUMS and release JSON against the exact source SHA and successful native job. No native archive is verified merely because the source compiles elsewhere.
+Choose a verified archive matching your host. The signing-enabled delivery path produces Windows x64 plus owner self-signed Linux x64 and macOS ARM64/Intel packages. Extract everything, not just the executable. Verify SHA256SUMS and release JSON against the exact source SHA and successful native job. No native archive is verified merely because the source compiles elsewhere.
+On Linux and macOS, each `.tar.gz` and checksum file carries a detached OpenSSH `.sig` beside it. Verify one against the pinned key with `ssh-keygen -Y verify -f <(echo "fiverr-agent-mcp-release $(jq -r .public_key config/signing-release-public.json)") -I fiverr-agent-mcp-release -n fiverr-agent-mcp-release -s <file>.sig < <file>` (the signed file is read from stdin); a non-zero exit means the archive is not from the pinned owner. The signature identifies the owner and is not a CA trust anchor. On macOS, `codesign -v --strict bin/fiverr-agent-mcp` reports the owner identity, which is self-signed and not notarized, so Gatekeeper still classifies it as unidentified.
 
 Standard layout: bin/fiverr-agent-mcp.exe (Windows) or bin/fiverr-agent-mcp (Unix), fiverr.install.json, docs, examples, config templates, notices and dependency licenses. The executable derives the root from bin/marker. For an explicit nonstandard installation, supply global `--root` with an existing absolute writable directory. Relative roots, linked/reparse ancestors, unsupported marker and read-only storage fail rather than fall back to OS temp.
 

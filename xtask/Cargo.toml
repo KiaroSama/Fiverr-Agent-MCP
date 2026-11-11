@@ -20,5 +20,13 @@ zeroize = "=1.9.1"
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Globalization", "Win32_Security", "Win32_Security_Cryptography", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_JobObjects", "Win32_System_Pipes", "Win32_System_Threading", "Win32_System_Diagnostics_ToolHelp", "Win32_System_LibraryLoader"] }
 
+# macOS signing imports the owner identity through Security.framework so that no
+# password or private key is passed in a child argument vector. Keychain and
+# PKCS#12 APIs are compiled whenever target_os = "macos"; no feature is required.
+# The crate is already locked as a transitive TLS dependency; the exact version
+# is pinned for direct use.
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = { version = "=3.7.0", default-features = false }
+
 [lints.rust]
 unsafe_code = "deny"

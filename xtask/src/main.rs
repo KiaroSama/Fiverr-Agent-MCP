@@ -5,9 +5,13 @@ mod bootstrap_owner_tests;
 mod bootstrap_windows_tests;
 mod ci;
 mod coverage;
+#[cfg(target_os = "macos")]
+mod macos_signing;
 mod package;
 mod process;
 mod release;
+#[cfg(unix)]
+mod release_archive_signing;
 mod sandbox;
 mod test_inventory;
 mod validate;
@@ -107,6 +111,13 @@ fn execute() -> Result<()> {
             let revision = required(&values, "--sha")?;
             sha(revision)?;
             windows_signing::package(revision)
+        }
+        #[cfg(unix)]
+        "sign-archives" => {
+            let values = options(&args[1..])?;
+            let revision = required(&values, "--sha")?;
+            sha(revision)?;
+            release_archive_signing::archives(revision)
         }
         "validate-manifests" => validate::manifests(&root()),
         "verify-capabilities" => validate::capabilities(&root()),

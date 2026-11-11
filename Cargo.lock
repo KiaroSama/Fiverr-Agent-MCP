@@ -3277,6 +3277,7 @@ dependencies = [
  "base64 0.23.1",
  "chrono",
  "flate2",
+ "security-framework",
  "serde_json",
  "sha2",
  "tar",
