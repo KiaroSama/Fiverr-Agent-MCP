@@ -22,6 +22,10 @@ The application uses the official modelcontextprotocol/rust-sdk (Apache-2.0 with
 
 Owner Upwork/Agensi projects and the other Fiverr projects listed in references.lock.json informed route, native packaging, schema and access-boundary design. They are not bundled account backends. Scrapers, arbitrary JavaScript bridges, anti-detection code, unsupported APIs and secret-bearing configurations were not copied.
 
+## Test-only coverage-guided harness
+
+The separate fuzz/Cargo.lock pins libfuzzer-sys0.4.13 and arbitrary1.5.0. libfuzzer-sys is licensed (MIT OR Apache-2.0) AND NCSA; its LLVM libFuzzer sources retain their NCSA terms. arbitrary is MIT OR Apache-2.0. These are CI-only test dependencies, not linked into shipped application/verifier binaries. The corresponding-source archive includes the harness and lockfile; upstream license texts remain in their registry packages and upstream repositories https://github.com/rust-fuzz/libfuzzer and https://github.com/rust-fuzz/arbitrary . The independent fuzz dependency policy explicitly covers NCSA without changing the production dependency policy.
+
 ## Corresponding source
 
 Each native release must distribute the exact source archive and build/configuration scripts beside its executable archives, with the same source SHA and checksums. Source can also be obtained at https://github.com/KiaroSama/Fiverr-Agent-MCP. Binary publication is blocked until corresponding source, applicable third-party terms and native verification are present.

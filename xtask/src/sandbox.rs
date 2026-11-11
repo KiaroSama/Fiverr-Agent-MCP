@@ -110,6 +110,8 @@ fn execute(fuzz: bool) -> Result<()> {
                 "--locked".into(),
                 "--manifest-path".into(),
                 "fuzz/Cargo.toml".into(),
+                "--target".into(),
+                "x86_64-unknown-linux-gnu".into(),
                 "--release".into(),
                 "--jobs".into(),
                 "2".into(),
@@ -123,7 +125,7 @@ fn execute(fuzz: bool) -> Result<()> {
         }
         fs::create_dir_all(&prepared)?;
         fs::copy(
-            root().join("target/fuzz/release/validation-fuzz"),
+            root().join("target/fuzz/x86_64-unknown-linux-gnu/release/validation-fuzz"),
             prepared.join("validation-fuzz"),
         )?;
         fs::copy(&binary, prepared.join("sandbox-guard"))?;

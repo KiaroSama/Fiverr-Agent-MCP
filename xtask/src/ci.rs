@@ -379,6 +379,29 @@ pub fn dependencies() -> Result<()> {
     owned(
         300,
         120,
+        "cargo-audit",
+        &["audit", "--file", "fuzz/Cargo.lock", "--deny", "warnings"],
+    )?;
+    owned(
+        300,
+        120,
+        "cargo-deny",
+        &[
+            "--manifest-path",
+            "fuzz/Cargo.toml",
+            "--locked",
+            "check",
+            "--config",
+            "fuzz/deny.toml",
+            "advisories",
+            "bans",
+            "licenses",
+            "sources",
+        ],
+    )?;
+    owned(
+        300,
+        120,
         "cargo-deny",
         &[
             "--locked",
