@@ -68,6 +68,10 @@ pub fn run() -> Result<()> {
         .find(|v| {
             v["reason"] == "compiler-artifact"
                 && v["target"]["name"] == "xtask"
+                && v["target"]["kind"] == serde_json::json!(["bin"])
+                && v["target"]["src_path"]
+                    .as_str()
+                    .is_some_and(|p| p.ends_with("/xtask/src/main.rs"))
                 && v["profile"]["test"] == true
         })
         .and_then(|v| v["executable"].as_str().map(str::to_owned))

@@ -109,6 +109,9 @@ jobs:
         with:
           tool: cargo-llvm-cov@0.9.1
           fallback: none
+      - name: Prepare isolated Linux qualification image
+        if: runner.os == 'Linux'
+        run: .ci-work/owner docker pull ubuntu:22.04
       - name: Native locked verification and package
         timeout-minutes: 55
         env:
