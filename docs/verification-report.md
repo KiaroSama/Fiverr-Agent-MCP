@@ -2,11 +2,21 @@
 
 Checked 2026-11-11. Evidence is revision-specific, not a certificate of complete Fiverr access. All checkpoints below the current receipt are historical. A documentation revision is not a newer tested executable; packaging consumes these documents and requires its own exact-source acceptance.
 
-## Latest accepted dependency and mutation baseline
+## Bounded coverage-guided campaign
+
+Source `5ff9c513d286750e195306e4a3e09e98d8c07657` passed [focused sandbox qualification43073897044](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43073897044). The real production-validator harness executed20000inputs with seed1,831inline8-bit counters, PC-table instrumentation, final coverage242/features516 and peak RSS28MiB. Its no-network/read-only/nonroot/environment/resource controls passed before execution, and the owned container was removed. This finite campaign is not AddressSanitizer proof, exhaustive fuzzing or whole-project security certification. Earlier preparation/API/instrumentation failures were retained and rejected, never relabeled successful. The independent fuzz dependency audit and complete resulting-source native/sign/package acceptance remain required.
+
+## Accepted token, sandbox and loaded-extension delivery
+
+Source `0ea43eeab56fc32a2a55f14153a35d6d0ed5b176` passed [full native/sign/package run43063519913, attempt2](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43063519913): Windows252, Linux263 and both macOS257 cases, zero failed/ignored. Linux application5778/6220 (92.89389%) and safety3188/3353 (95.07903%); six distinct validator mutants caught, zero missed/timeout/unviable. The first attempt's ARM job never acquired a hosted runner; GitHub recorded capacity constraints. One unchanged-source failed-job confirmation passed. It was not a test failure or timeout relaxation.
+
+The exact Windows app (`eb239445dead49365fbb977ad8f13226571586209ab7896aec1492951a0f4070`) and verifier (`4603d55f8f3ac99380f2d648ed8460855e10002739be5785acd9f3b9e36a7dd4`) were installed after227source/506payload checks and independent CMS/PE/owner-pin verification before and after replacement. Ten configuration/private-state files remained unchanged. No local native execution or trust-store change occurred. This accepted revision includes current-token protected DACL acceptance, controlled Linux kernel cleanup denial and actual loaded-extension/native-host synthetic pairing. Later fuzz changes require their own final exact-source acceptance.
+
+## Historical accepted dependency and mutation baseline
 
 Source `12848e56c71daec9174ced4421e3559dc65a1957` passed [full native/sign/package run43038657457, attempt2](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43038657457): Windows251, Linux261 and both macOS257 cases, zero failed/ignored. Linux application5778/6220 (92.89389%) and safety3188/3353 (95.07903%) retain the original denominators and floors. Six distinct validator mutations were caught, with zero missed, timed-out or unviable cases. The reviewed rusqlite0.42.0/libsqlite3-sys0.40.0, rpassword7.5.5 and zip9.5.1 cohort passed. Attempt1's Windows browser-readiness failure remains documented; one unchanged-source confirmation passed and does not establish a causal flake repair.
 
-That source's signed Windows app (`290cf34a985a03617779b48d080b5ac69b7cbcedbf69d1a707b6c937afe16687`) and verifier (`c052b792a43e6c0b4ee7a59f9c70af9ff2e1b3b38fdfb92c5cd4be3e8ea28cf9`) were independently installed after222source-member/506payload checks and CMS/PE/owner-pin verification. Ten configuration/private-state files remained unchanged. This is the installed baseline, not acceptance of later source changes.
+That source's signed Windows app (`290cf34a985a03617779b48d080b5ac69b7cbcedbf69d1a707b6c937afe16687`) and verifier (`c052b792a43e6c0b4ee7a59f9c70af9ff2e1b3b38fdfb92c5cd4be3e8ea28cf9`) were independently installed after222source-member/506payload checks and CMS/PE/owner-pin verification. Ten configuration/private-state files remained unchanged. This was the installed baseline for that revision, not acceptance of later source changes.
 
 ## Current remaining-assurance work
 
@@ -14,7 +24,7 @@ The Windows token-identity regression first failed semantically on `9963632` in 
 
 The controlled Linux sandbox on `75333ae0d1b0c74336fbce5929f23b9919fcb18f` passed [43059460461](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43059460461). Its effective no-network/read-only/nonroot/resource/environment controls passed before a child-only kernel filter produced actual EPERM for bootstrap cleanup. The real guard reported refusal; an unfiltered subreaper killed/reaped the exact adopted child, and the outer container was removed. An earlier wrong-binary selection ran zero cases and was rejected, not accepted. This closes that named Linux cleanup-denial scenario, not arbitrary OS denial or race safety.
 
-The actual loaded-extension/native-host fixture passed in [43062447691](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43062447691): unmodified extension manifest/popup loaded, real native host launched, synthetic owner pairing accepted, unauthenticated/automation-unverified response preserved and wrong caller refused. Initial launches exposed a Unix socket path-length limit; the final short owned-root temporary path corrected the fixture without changing browser sandbox/deadlines. This is not the activeTab gesture/site flow or assistant desktop-client loading. Full current-source native90/95/sign/package acceptance remains pending; focused successes do not authorize replacing the installed baseline prematurely.
+The actual loaded-extension/native-host fixture passed in [43062447691](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43062447691): unmodified extension manifest/popup loaded, real native host launched, synthetic owner pairing accepted, unauthenticated/automation-unverified response preserved and wrong caller refused. Initial launches exposed a Unix socket path-length limit; the final short owned-root temporary path corrected the fixture without changing browser sandbox/deadlines. This is not the activeTab gesture/site flow or assistant desktop-client loading. The subsequent0ea43ee full native90/95/sign/package acceptance and installation are recorded above. New coverage-guided harness changes still require separate current-source acceptance; focused results alone are never final delivery.
 
 ## Historical accepted local executor delivery
 
