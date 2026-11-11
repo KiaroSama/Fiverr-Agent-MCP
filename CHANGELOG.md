@@ -2,6 +2,8 @@
 
 ## Unreleased — 2026-11-11
 
+Updated the reviewed database cohort to rusqlite0.42.0/libsqlite3-sys0.40.0, terminal password input to rpassword7.5.5 and packaging to zip9.5.1. Extended bounded mutation checks from two to six distinct validators with money/kind/text/provenance negatives. These changes require their own exact-source native and signed-package acceptance; prior delivery receipts do not verify them.
+
 Moved synchronous workspace work for MCP and HTTP authentication off runtime threads. The bounded queue cancels unstarted work. Started writes finish with a private completion receipt; slow writes return an operation ID for `fiverr_status`. Unfinished receipts are never replayed.
 
 Expanded the loopback route matrix with HTTPS-proxy double TLS, independent proxy/destination trust and hostname refusal, and deterministic bootstrap DNS failure without destination resolution or direct fallback. Added xtask dependency-update coverage and aligned the remaining Deep validation action pin with the existing reviewed version. New fixture acceptance is revision-specific; no live-account or OS-wide DNS assurance is implied.

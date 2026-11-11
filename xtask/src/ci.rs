@@ -238,7 +238,7 @@ fn mutation() -> Result<()> {
         "--file",
         "src/storage/root.rs",
         "--re",
-        "(validate_id|validate_relative).*with Ok",
+        "(validate_id|validate_relative|validate_kind|bounded_text|Money::validate|Provenance::validate).*with Ok",
     ];
     let mut args = vec!["mutants", "--list", "--json"];
     args.extend(scope);
@@ -248,13 +248,27 @@ fn mutation() -> Result<()> {
         &inventory.stdout,
     )?;
     let items: Vec<serde_json::Value> = serde_json::from_slice(&inventory.stdout)?;
-    if items.len() != 2
+    let expected = std::collections::BTreeSet::from([
+        "validate_id",
+        "validate_relative",
+        "validate_kind",
+        "bounded_text",
+        "Money::validate",
+        "Provenance::validate",
+    ]);
+    let discovered = items
+        .iter()
+        .filter_map(|v| v["function"]["function_name"].as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    if items.len() != expected.len()
+        || discovered != expected
         || items
             .iter()
             .any(|v| v["genre"] != "FnValue" || v["replacement"] != "Ok(())")
-        || items[0]["file"] == items[1]["file"]
     {
-        return Err("mutation scope must discover exactly two validator-return mutants".into());
+        return Err(
+            "mutation scope must discover exactly six distinct validator-return mutants".into(),
+        );
     }
     let mut args = vec!["mutants", "--in-place", "--baseline", "skip"];
     args.extend(scope);
@@ -277,8 +291,8 @@ fn mutation() -> Result<()> {
     let result: serde_json::Value = serde_json::from_slice(&fs::read(
         root().join(".ci-work/mutants/mutants.out/outcomes.json"),
     )?)?;
-    if result["total_mutants"] != 2
-        || result["caught"] != 2
+    if result["total_mutants"] != 6
+        || result["caught"] != 6
         || ["missed", "timeout", "unviable"]
             .iter()
             .any(|k| result[k] != 0)

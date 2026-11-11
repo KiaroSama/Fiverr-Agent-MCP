@@ -24,9 +24,9 @@ fs2 = "=0.4.3"
 futures = "=0.3.34"
 percent-encoding = "=2.3.2"
 reqwest = { version = "=0.13.5", default-features = false, features = ["rustls", "socks", "json", "stream"] }
-rpassword = "=7.5.4"
+rpassword = "=7.5.5"
 rmcp = { version = "=3.9.0", default-features = false, features = ["server", "client", "schemars", "transport-io", "transport-streamable-http-server", "transport-streamable-http-client-reqwest", "reqwest"] }
-rusqlite = { version = "=0.41.1", features = ["bundled", "backup", "hooks", "limits"] }
+rusqlite = { version = "=0.42.0", features = ["bundled", "backup", "hooks", "limits"] }
 schemars = "=1.2.3"
 scraper = { version = "=0.29.0", default-features = false }
 serde = { version = "=1.0.229", features = ["derive"] }

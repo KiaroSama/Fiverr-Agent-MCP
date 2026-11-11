@@ -1,5 +1,5 @@
 use fiverr_agent_mcp::{
-    core::{ErrorCode, Money, validate_id},
+    core::{ErrorCode, Money, Provenance, bounded_text, validate_id, validate_kind},
     storage::Root,
 };
 use serde_json::json;
@@ -17,6 +17,54 @@ fn exact_money_and_untrusted_ids_have_load_bearing_limits() {
     }
     assert!(validate_id("order-123_Ab").is_ok());
     assert_eq!(ErrorCode::RouteBlocked.as_str(), "ROUTE_BLOCKED");
+}
+
+#[test]
+fn money_kind_text_and_provenance_validators_reject_invalid_inputs() {
+    for (currency, scale) in [("US", 2), ("usd", 2), ("USD", 7)] {
+        assert!(
+            Money {
+                minor: 1,
+                currency: currency.into(),
+                scale
+            }
+            .validate()
+            .is_err()
+        );
+    }
+    assert!(validate_kind("note").is_ok());
+    for kind in ["", "NOTE", "unsupported"] {
+        assert!(validate_kind(kind).is_err());
+    }
+    assert!(bounded_text("آب", 4).is_ok());
+    assert!(bounded_text("آب", 3).is_err());
+    for text in ["\0", "\u{1b}", "\u{7}"] {
+        assert!(bounded_text(text, 10).is_err());
+    }
+    assert!(bounded_text("a\n\r\tb", 5).is_ok());
+    let valid = Provenance {
+        source: "user_import".into(),
+        observed_at: "2026-11-11T00:00:00Z".into(),
+        uri: Some("https://example.invalid/fixture".into()),
+        partial: false,
+    };
+    assert!(valid.validate().is_ok());
+    for invalid in [
+        Provenance {
+            source: "invented".into(),
+            ..valid.clone()
+        },
+        Provenance {
+            observed_at: "not-a-date".into(),
+            ..valid.clone()
+        },
+        Provenance {
+            uri: Some("https://user@example.invalid/".into()),
+            ..valid.clone()
+        },
+    ] {
+        assert!(invalid.validate().is_err());
+    }
 }
 
 #[test]
