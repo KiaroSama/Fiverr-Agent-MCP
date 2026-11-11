@@ -2,7 +2,21 @@
 
 Checked 2026-11-11. Evidence is revision-specific, not a certificate of complete Fiverr access. All checkpoints below the current receipt are historical. A documentation revision is not a newer tested executable; packaging consumes these documents and requires its own exact-source acceptance.
 
-## Accepted local executor delivery
+## Latest accepted dependency and mutation baseline
+
+Source `12848e56c71daec9174ced4421e3559dc65a1957` passed [full native/sign/package run43038657457, attempt2](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43038657457): Windows251, Linux261 and both macOS257 cases, zero failed/ignored. Linux application5778/6220 (92.89389%) and safety3188/3353 (95.07903%) retain the original denominators and floors. Six distinct validator mutations were caught, with zero missed, timed-out or unviable cases. The reviewed rusqlite0.42.0/libsqlite3-sys0.40.0, rpassword7.5.5 and zip9.5.1 cohort passed. Attempt1's Windows browser-readiness failure remains documented; one unchanged-source confirmation passed and does not establish a causal flake repair.
+
+That source's signed Windows app (`290cf34a985a03617779b48d080b5ac69b7cbcedbf69d1a707b6c937afe16687`) and verifier (`c052b792a43e6c0b4ee7a59f9c70af9ff2e1b3b38fdfb92c5cd4be3e8ea28cf9`) were independently installed after222source-member/506payload checks and CMS/PE/owner-pin verification. Ten configuration/private-state files remained unchanged. This is the installed baseline, not acceptance of later source changes.
+
+## Current remaining-assurance work
+
+The Windows token-identity regression first failed semantically on `9963632` in [43053160606](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43053160606), then passed on `7d585e6` in [43055578747](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43055578747), exercising absent and invalid USERNAME through the real native entrypoint. The current adapter derives the SID from the process token while retaining bounded icacls operations; it is not a handle-relative filesystem redesign.
+
+The controlled Linux sandbox on `75333ae0d1b0c74336fbce5929f23b9919fcb18f` passed [43059460461](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43059460461). Its effective no-network/read-only/nonroot/resource/environment controls passed before a child-only kernel filter produced actual EPERM for bootstrap cleanup. The real guard reported refusal; an unfiltered subreaper killed/reaped the exact adopted child, and the outer container was removed. An earlier wrong-binary selection ran zero cases and was rejected, not accepted. This closes that named Linux cleanup-denial scenario, not arbitrary OS denial or race safety.
+
+The actual loaded-extension/native-host fixture passed in [43062447691](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43062447691): unmodified extension manifest/popup loaded, real native host launched, synthetic owner pairing accepted, unauthenticated/automation-unverified response preserved and wrong caller refused. Initial launches exposed a Unix socket path-length limit; the final short owned-root temporary path corrected the fixture without changing browser sandbox/deadlines. This is not the activeTab gesture/site flow or assistant desktop-client loading. Full current-source native90/95/sign/package acceptance remains pending; focused successes do not authorize replacing the installed baseline prematurely.
+
+## Historical accepted local executor delivery
 
 Source `be0b21fe8cfbd44ba898163126fac9ce764a5fe2` passed [full native and signed-package run42934157639](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/42934157639). Native JSON case identities reconcile with each same-run discovery inventory: Windows250/250, Linux260/260, macOS ARM64 and Intel256/256 each, zero failed or ignored cases. Linux measured5778/6220 application lines (92.89389067524115%) and3188/3353 safety lines (95.07903370116314%). Both selected mutants were caught. Linux JUnit contains the later mutation selection; complete native JSON events and inventory are the full-suite evidence, not that JUnit.
 

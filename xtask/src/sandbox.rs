@@ -12,7 +12,7 @@ fn docker(args: &[&str], wall: u64) -> Result<process::Output> {
     Ok(out)
 }
 
-struct Container(String);
+struct Container(String, bool);
 impl Container {
     fn remove(&self) -> Result<()> {
         docker(&["rm", "--force", &self.0], 20)?;
@@ -31,7 +31,9 @@ impl Container {
 }
 impl Drop for Container {
     fn drop(&mut self) {
-        if let Err(e) = self.remove() {
+        if !self.1
+            && let Err(e) = self.remove()
+        {
             eprintln!("sandbox cleanup failed: {e}");
         }
     }
@@ -136,7 +138,7 @@ pub fn run() -> Result<()> {
     if id.len() != 64 || !id.bytes().all(|b| b.is_ascii_hexdigit()) {
         return Err("sandbox container identity invalid".into());
     }
-    let container = Container(id.into());
+    let mut container = Container(id.into(), false);
     let inspection = docker(&["inspect", id], 20)?;
     let value: Value = serde_json::from_slice(&inspection.stdout)?;
     let host = &value[0]["HostConfig"];
@@ -170,7 +172,7 @@ pub fn run() -> Result<()> {
         return Err("sandbox did not exit cleanly".into());
     }
     container.remove()?;
-    std::mem::forget(container);
+    container.1 = true;
     fs::write(
         root().join(".ci-work/sandbox-acceptance.json"),
         serde_json::to_vec_pretty(&serde_json::json!({

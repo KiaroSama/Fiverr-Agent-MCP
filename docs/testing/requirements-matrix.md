@@ -1,23 +1,23 @@
 # Requirement and acceptance matrix
 
-Checked 2026-11-11. Executed evidence below belongs to source `be0b21fe8cfbd44ba898163126fac9ce764a5fe2` and [manual run42934157639](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/42934157639), not a newer documentation revision. Native cases: Windows250, Linux260, macOS ARM64/Intel256each, zero failed/ignored. Linux application5778/6220 (92.89389%), safety3188/3353 (95.07903%); two selected mutants caught. See the [verification report](../verification-report.md) for installation hashes and historical receipts. Linux native JSON events/inventory, not mutation-overwritten JUnit, establish the full suite.
+Checked 2026-11-11. Latest full baseline belongs to source `12848e56c71daec9174ced4421e3559dc65a1957` and [manual run43038657457, attempt2](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43038657457), not a newer documentation revision. Native cases: Windows251, Linux261, macOS ARM64/Intel257each, zero failed/ignored. Linux application5778/6220 (92.89389%), safety3188/3353 (95.07903%); six selected mutants caught. See the [verification report](../verification-report.md) for installation hashes and historical receipts. Linux native JSON events/inventory, not mutation-overwritten JUnit, establish the full suite.
 
 Implementation, executed fixtures and external acceptance are distinct. All122WF IDs remain individually mapped in capabilities.json:31advertised local/manual tools and91dedicated unsupported operations. A local alternative is not live account functionality.
 
 | Requirement | Implemented artifact / executed seam | Remaining acceptance or boundary |
 |---|---|---|
 | FR001,013,014 | server/; protocol and extracted stdio/HTTP draft roundtrip; HTTP guards/deadlines | Actual legacy/modern client loading and unadvertised protocol extensions are not proven |
-| FR002,015 | bootstrap/, storage/, rooted logs, transaction/restore/privacy fixtures | Arbitrary ACL, hardlink/replacement races and controlled OS-denial matrix remain incomplete |
+| FR002,015 | bootstrap/, storage/, rooted logs, transaction/restore/privacy fixtures; current-token identity focused regression and actual sandboxed Linux cleanup EPERM passed | Arbitrary ACL, hardlink/replacement races and other OS-denial scenarios remain unverified |
 | FR003,004 | RouteClient; SOCKS5h, CONNECT/auth/refusal, plain/TLS proxy, independent proxy/origin trust/hostname, bootstrap DNS refusal fixtures on all four targets | Finite loopback proof is not universal network or process-wide browser containment |
 | FR005,006 | browser/profile leases, observation and fail-closed adapter gates | Main-menu live-login acceptance cancelled; permitted adapter/current selectors/strict routing remain conditional |
 | FR007,008 | capabilities.json, catalog and actual-effect semantic contract | Unsupported workflows stay explicitly unavailable, never empty-success stubs |
 | FR009,010 | local records/productivity/export/snapshot/Money; bounded history/empty-workspace restore/capacity fixtures | No arbitrary-database recovery or complete domain/platform validator claim |
 | FR011,012,016 | Prepared-action bindings, fresh human-terminal approval, immutable payload/file checks and no replay | Production remote executing/unknown dispatch/postcondition adapter and all scope races remain unverified |
 | FR017 | Licensed analysis/optimizer helpers, literal goldens, notices/locks | Actual assistant-host skill loading remains unverified; no live market input claimed |
-| FR018,019 | Client manifests/registration policy, native CLI/menu and optional PS7 launcher; signed Windows app/verifier installed with config/state preservation | Actual client/extension-profile loading remains unverified; main-menu login requirement cancelled |
-| FR020,021 | Four-native CI/dependency checks, unchanged90/95floors, two mutants, signed Windows extracted-package acceptance | Broader fuzz/mutation and other-platform final signatures absent; no GitHub Release publication |
+| FR018,019 | Client manifests/registration policy, native CLI/menu and optional PS7 launcher; signed Windows app/verifier installed with config/state preservation | Real loaded extension/profile/native-host synthetic pairing passed in43062447691; desktop-client/plugin loading and actual activeTab/site flow remain unverified; main-menu login requirement cancelled |
+| FR020,021 | Four-native CI/dependency checks, unchanged90/95floors, six distinct caught mutants, signed Windows extracted-package acceptance | Broader fuzz/mutation and other-platform final signatures absent; no GitHub Release publication |
 | FR022,023 | Version-specific public-source research and local requirement/task evidence | Research freshness is scoped; no mass public issue generation |
-| FR024,025 | Retained low-level session/extension/native-host compatibility and synthetic fixtures | Cookie presence is not authentication; live account/markup/permission and loaded-extension registration not verified |
+| FR024,025 | Retained low-level session/extension/native-host compatibility and synthetic fixtures | Real isolated Linux loaded-extension/native-host pairing passed; cookie presence is not authentication, live account/markup/permission remain unverified |
 | FR026 | Pinned CMS/PE digest, tamper/revision/wrong-signer negatives and installed signed bytes | Windows owner trust is private/self-signed; no public CA trust or other-platform signing/notarization |
 
 ## Amendments and maintenance
@@ -29,7 +29,7 @@ Implementation, executed fixtures and external acceptance are distinct. All122WF
 | FR030–031 | Rust core/tooling/signing/ownership; PS7 exception; reviewed branch integration | Browser API glue/external workflow runtimes prevent complete Rust-only parity |
 | FR032–034 | Actual individual/aggregate/focused CI contexts and finite diagnostics | Focused success never full acceptance; no automatic initiator or hidden retry |
 | FR035–036 | Rooted/system-temp examples, persistent-root guards and GPL-3.0-or-later original code | Third-party terms and persistent-state rooting retained |
-| FR037 | Token/row/input/registration/root/process/environment/archive/release/capability repairs passed; real SQLite occupancy reproduced and executor subsequently accepted | Controlled OS cleanup-denial and broader filesystem assurance remain incomplete |
+| FR037 | Token/row/input/registration/root/process/environment/archive/release/capability repairs passed; real SQLite occupancy reproduced and executor subsequently accepted | Named sandboxed Linux cleanup-denial passed; broader filesystem assurance and final current-source integration remain pending |
 | FR038 | Current/historical receipts, standalone signed verifier, reviewed dependency cohort and clause-level historical dispositions | OtherOS signers, actual host profiles, OS sandbox and broader campaigns remain distinct gates |
 | FR039 | Owner action list/review/approve/reject/back and genuine terminal consent | No self-approval, automatic commit or remote dispatch |
 | FR040 | Conditional immutable remote-attempt/recovery contract; production manual_handoff remains honest | No permitted dispatch/postcondition adapter; local operation receipts are not this remote engine |
