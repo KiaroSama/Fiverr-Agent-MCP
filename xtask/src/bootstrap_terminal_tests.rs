@@ -1,4 +1,7 @@
 //! Native fixtures for the actual dependency-free bootstrap supervisor.
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+#[path = "bootstrap_denial_tests.rs"]
+mod denial;
 use super::{Limits, OwnedChild, supervise};
 use std::{
     fs,

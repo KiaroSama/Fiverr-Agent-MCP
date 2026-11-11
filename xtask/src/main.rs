@@ -8,6 +8,7 @@ mod coverage;
 mod package;
 mod process;
 mod release;
+mod sandbox;
 mod test_inventory;
 mod validate;
 #[cfg(windows)]
@@ -80,6 +81,7 @@ fn execute() -> Result<()> {
     let args: Vec<_> = env::args().skip(1).collect();
     let command = args.first().ok_or("expected xtask command")?;
     match command.as_str() {
+        "sandbox-acceptance" => sandbox::run(),
         "ci-native" => {
             let values = options(&args[1..])?;
             ci::native(

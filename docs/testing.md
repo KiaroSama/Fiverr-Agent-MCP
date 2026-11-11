@@ -6,6 +6,12 @@ Manual windows_diagnostics=true adds exactly two explicitly counted narrow sampl
 
 Individual native/dependency legacy statuses derive from actual current-run job conclusions and link to each job. Full and focused runs remain distinct; unrun Release/Deep is not green. Explicit rooted/system/invalid temporary policy cases run through the actual native entrypoint, with persistent workspace/log assertions.
 
+## Controlled Linux cleanup-denial sandbox
+
+`xtask sandbox-acceptance` prepares the existing tooling test binary, resolves the CI-prepared Ubuntu22.04 image to an immutable local ID, creates an unstarted nonroot container and inspects its controls before execution. Network is `none`; the native target is read-only; the environment is replaced with five safe variables; HOME/temp/cache share a16MiB scratch tmpfs. Limits are one CPU,512MiB memory/no additional swap,32processes,8MiB files,30CPU seconds and45wall seconds. Capabilities are empty, no-new-privileges and default seccomp remain enabled. No host home, daemon socket, credentials or writable host mount is supplied.
+
+The Linux x86_64 fixture checks the effective controls before spawning its worker. A child-only kernel seccomp filter makes the actual bootstrap group-kill syscall return EPERM. It asserts immediate refusal and the real guard diagnostic; an unfiltered subreaper then kills/reaps that exact adopted child. The outer owner removes the exact container on success or failure and verifies absence. Ordinary native discovery does not execute this conditional scenario; only the separate constrained invocation and `sandbox-acceptance.json` count as its evidence. The sandbox is not arbitrary race resistance, full fuzzing or whole-project security certification.
+
 ## Current-token Windows privacy regression
 
 The manual `Windows token privacy regression` workflow runs only `windows_input_paths::private_windows_permissions_follow_token_not_username`. It starts the actual native status entrypoint with `USERNAME` absent and with a deliberately invalid identity, using isolated rooted temporary paths, one test worker, the existing ten-second child deadline and owned900s/180s runner bounds. It does not change process-global environment, use real credentials or imply race-free filesystem access. The test-first checkpoint intentionally precedes the permission repair; only the expected assertion failure is semantic RED, not a compiler/setup failure. Final acceptance still requires the complete native matrix and owner-only DACL checks.
