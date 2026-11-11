@@ -24,7 +24,8 @@ fuzz_target!(|bytes: &[u8]| {
             .chars()
             .any(|c| c == '\0' || c == '\u{1b}' || (c.is_control() && !"\n\r\t".contains(c)));
     assert_eq!(bounded_text(text, 128).is_ok(), bounded);
-    if let Ok(path) = validate_relative(text) {
+    if validate_relative(text).is_ok() {
+        let path = std::path::Path::new(text);
         assert!(path.is_relative());
         assert!(
             path.components()
