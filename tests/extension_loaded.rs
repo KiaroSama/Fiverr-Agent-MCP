@@ -60,7 +60,7 @@ async fn loaded_extension_native_host_preserves_pairing_and_refuses_unknown_call
         .arg("--no-first-run")
         .arg("--no-default-browser-check")
         .env("HOME", root.path().to_str().unwrap())
-        .env("TMPDIR", root.path().join(".cache").to_str().unwrap())
+        .env("TMPDIR", root.path().to_str().unwrap())
         .build()
         .unwrap();
     let (mut browser, mut handler) = Browser::launch(config).await.unwrap();
