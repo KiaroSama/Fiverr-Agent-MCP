@@ -8,7 +8,7 @@ license = "GPL-3.0-or-later"
 [workspace]
 
 [dependencies]
-fiverr-agent-mcp = { path = "..", default-features = false }
+fiverr-agent-mcp = { version = "=0.1.0", path = "..", default-features = false }
 libfuzzer-sys = "=0.4.13"
 
 [[bin]]
