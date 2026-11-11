@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml/badge.svg?branch=feature%2Ffiverr-native)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml)
 [![Security](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/security.yml/badge.svg?branch=feature%2Ffiverr-native)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/security.yml)
+[![Secret scanning](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/gitleaks.yml/badge.svg?branch=feature%2Ffiverr-native)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/gitleaks.yml)
 [![Deep validation](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/deep.yml/badge.svg?branch=feature%2Ffiverr-native)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/deep.yml)
 [![Release](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/release.yml/badge.svg?branch=feature%2Ffiverr-native)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/release.yml)
 [![License GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue)](LICENSE)
