@@ -213,6 +213,73 @@ async fn recovery_failure_prevents_admission() {
     assert_eq!(state, "executing");
 }
 
+#[tokio::test]
+async fn shutdown_finishes_started_work_without_running_queued_work() {
+    let (_temp, store) = workspace();
+    let (entered, ready) = tokio::sync::oneshot::channel();
+    let (release, wait) = std::sync::mpsc::channel();
+    let worker = store.worker().unwrap();
+    let started = worker
+        .submit(move |store| {
+            entered.send(()).unwrap();
+            wait.recv_timeout(Duration::from_secs(5)).unwrap();
+            store.update_value("shutdown-started", |_| Ok((json!(true), ())))
+        })
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(3), ready)
+        .await
+        .unwrap()
+        .unwrap();
+    let queued = worker
+        .submit(|store| store.update_value("shutdown-queued", |_| Ok((json!(true), ()))))
+        .unwrap();
+    worker.close();
+    assert!(worker.submit(|_| Ok(())).is_err());
+    release.send(()).unwrap();
+    tokio::time::timeout(Duration::from_secs(3), started.wait())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        tokio::time::timeout(Duration::from_secs(3), queued.wait())
+            .await
+            .unwrap()
+            .unwrap_err()
+            .code,
+        ErrorCode::StorageUnavailable
+    );
+    store.shutdown_worker().unwrap();
+    assert_eq!(store.value("shutdown-started").unwrap(), Some(json!(true)));
+    assert!(store.value("shutdown-queued").unwrap().is_none());
+}
+
+#[test]
+fn completion_cannot_overwrite_a_terminal_receipt() {
+    let (_temp, store) = workspace();
+    let mut connection = journal(&store).unwrap();
+    begin(&mut connection, "terminal", "local", "fiverr_record_save").unwrap();
+    complete(
+        &connection,
+        "terminal",
+        &Ok(json!({"data":{"id":"original"}})),
+    )
+    .unwrap();
+    let error = complete(&connection, "terminal", &Err(not_started())).unwrap_err();
+    assert_eq!(error.code, ErrorCode::StorageUnavailable);
+    let row: (String, String) = connection
+        .query_row(
+            "SELECT state,result FROM operations WHERE id='terminal'",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(row.0, "succeeded");
+    assert_eq!(
+        serde_json::from_str::<Value>(&row.1).unwrap()["summary"]["id"],
+        "original"
+    );
+}
+
 fn note(id: &str) -> Value {
     json!({"kind":"note","id":id,"payload":{"body":"synthetic note"}})
 }
