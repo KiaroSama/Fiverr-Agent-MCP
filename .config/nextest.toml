@@ -17,6 +17,11 @@ global-timeout = "10m"
 filter = 'test(native_browser_reads_fixed_fixture_without_exposing_credentials)'
 slow-timeout = { period = "40s", terminate-after = 1, grace-period = "2s" }
 
+# One real loaded-browser/native-host tree uses the shared runner budget.
+[[profile.ci.overrides]]
+filter = 'test(loaded_extension_native_host_preserves_pairing_and_refuses_unknown_caller)'
+threads-required = "num-test-threads"
+
 [profile.ci.junit]
 path = "junit.xml"
 store-success-output = false

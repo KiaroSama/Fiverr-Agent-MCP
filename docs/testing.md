@@ -6,6 +6,10 @@ Manual windows_diagnostics=true adds exactly two explicitly counted narrow sampl
 
 Individual native/dependency legacy statuses derive from actual current-run job conclusions and link to each job. Full and focused runs remain distinct; unrun Release/Deep is not green. Explicit rooted/system/invalid temporary policy cases run through the actual native entrypoint, with persistent workspace/log assertions.
 
+## Loaded extension and real native messaging
+
+Linux CI prepares Chrome for Testing157.0.8103.50 in task-owned scratch. `extension_loaded` loads the unchanged extension into a fresh profile, opens its actual popup, verifies its manifest/extension ID and uses the real extension native-messaging API to launch a copied native application. An exact profile-local host manifest and explicit synthetic owner pairing are required. The reply must remain observation-only, unauthenticated and automation-unverified; an unknown caller must not change state. Browser closure and reap run even after an assertion panic. No personal browser registration, login, Fiverr navigation or real credential is used. This is real extension/native-host loading, not proof of the full activeTab gesture/site flow or a desktop client's plugin loading.
+
 ## Controlled Linux cleanup-denial sandbox
 
 `xtask sandbox-acceptance` prepares the existing tooling test binary, resolves the CI-prepared Ubuntu22.04 image to an immutable local ID, creates an unstarted nonroot container and inspects its controls before execution. Network is `none`; the native target is read-only; the environment is replaced with five safe variables; HOME/temp/cache share a16MiB scratch tmpfs. Limits are one CPU,512MiB memory/no additional swap,32processes,8MiB files,30CPU seconds and45wall seconds. Capabilities are empty, no-new-privileges and default seccomp remain enabled. No host home, daemon socket, credentials or writable host mount is supplied.
