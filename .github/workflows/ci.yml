@@ -116,6 +116,9 @@ jobs:
           curl --fail --location --proto '=https' --max-time 180 --max-filesize 300000000 'https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.50/linux64/chrome-linux64.zip' -o .ci-work/extension-browser/chrome.zip
           unzip -q .ci-work/extension-browser/chrome.zip -d .ci-work/extension-browser
           printf 'FIVERR_EXTENSION_BROWSER=%s/.ci-work/extension-browser/chrome-linux64/chrome\n' "$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+      - name: Prepare pinned fuzz toolchain
+        if: runner.os == 'Linux'
+        run: .ci-work/owner rustup toolchain install nightly-2026-11-10 --profile minimal --no-self-update
       - name: Prepare isolated Linux qualification image
         if: runner.os == 'Linux'
         run: .ci-work/owner docker pull ubuntu:22.04
@@ -170,6 +173,8 @@ jobs:
             .ci-work/coverage-summary.json
             .ci-work/coverage.json
             .ci-work/mutation-inventory.json
+            .ci-work/fuzz-acceptance.json
+            .ci-work/sandbox-acceptance.json
             .ci-work/mutants/mutants.out/outcomes.json
           if-no-files-found: warn
           retention-days: 14

@@ -398,7 +398,7 @@ pub(super) fn source(root: &Path) -> Result<Files> {
         .filter(|name| !name.is_empty())
     {
         if [
-            "src/", "tests/", "xtask/", "scripts/", ".github/", ".config/",
+            "src/", "tests/", "xtask/", "scripts/", "fuzz/", ".github/", ".config/",
         ]
         .iter()
         .any(|prefix| name.starts_with(prefix))

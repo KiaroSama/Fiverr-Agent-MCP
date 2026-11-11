@@ -82,6 +82,7 @@ fn execute() -> Result<()> {
     let command = args.first().ok_or("expected xtask command")?;
     match command.as_str() {
         "sandbox-acceptance" => sandbox::run(),
+        "fuzz-acceptance" => sandbox::fuzz(),
         "ci-native" => {
             let values = options(&args[1..])?;
             ci::native(

@@ -65,6 +65,59 @@ fn sandboxed_kernel_cleanup_denial() {
     println!("sandbox cleanup-denial: actual EPERM, bounded refusal, adopted child reaped");
 }
 
+#[test]
+fn sandboxed_validation_fuzz() {
+    if std::env::var("FIVERR_SANDBOX").as_deref() != Ok("required") {
+        return;
+    }
+    preflight();
+    fs::create_dir("/scratch/corpus").unwrap();
+    for (name, bytes) in [
+        ("currency", b"USD".as_slice()),
+        ("kind", b"note".as_slice()),
+        ("source", b"fixture".as_slice()),
+        ("path", b"folder/file.txt".as_slice()),
+        ("traversal", b"../outside".as_slice()),
+        ("utf8", "آب".as_bytes()),
+    ] {
+        fs::write(format!("/scratch/corpus/{name}"), bytes).unwrap();
+    }
+    let output = Command::new("/input/validation-fuzz")
+        .args([
+            "-seed=1",
+            "-runs=20000",
+            "-max_total_time=10",
+            "-max_len=512",
+            "-rss_limit_mb=256",
+            "-timeout=2",
+            "-print_final_stats=1",
+            "-artifact_prefix=/scratch/",
+            "/scratch/corpus",
+        ])
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "bounded validation fuzz failed: {stderr}"
+    );
+    assert!(
+        stderr.contains("inline 8-bit counters"),
+        "coverage instrumentation absent: {stderr}"
+    );
+    assert!(
+        stderr.contains("cov:") && stderr.contains("DONE"),
+        "coverage progress absent: {stderr}"
+    );
+    assert!(
+        stderr.contains("stat::number_of_executed_units:"),
+        "execution statistics absent: {stderr}"
+    );
+    eprintln!("{stderr}");
+    println!("coverage-guided validation campaign passed");
+}
+
 fn preflight() {
     let allowed = ["HOME", "TMPDIR", "XDG_CACHE_HOME", "PATH", "FIVERR_SANDBOX"];
     assert!(std::env::vars_os().all(|(k, _)| allowed.iter().any(|a| k == *a)));

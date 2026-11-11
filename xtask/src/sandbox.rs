@@ -40,6 +40,14 @@ impl Drop for Container {
 }
 
 pub fn run() -> Result<()> {
+    execute(false)
+}
+
+pub fn fuzz() -> Result<()> {
+    execute(true)
+}
+
+fn execute(fuzz: bool) -> Result<()> {
     if !cfg!(all(target_os = "linux", target_arch = "x86_64")) {
         return Err("OS denial qualification requires native Linux x86_64".into());
     }
@@ -88,16 +96,61 @@ pub fn run() -> Result<()> {
     if !image.starts_with("sha256:") || image.len() != 71 {
         return Err("sandbox image identity invalid".into());
     }
-    let input = binary.parent().ok_or("fixture parent missing")?;
+    let prepared = root().join(".ci-work/sandbox-fuzz-input");
+    if fuzz {
+        let flags = "-C passes=sancov-module -C llvm-args=-sanitizer-coverage-level=3 -C llvm-args=-sanitizer-coverage-inline-8bit-counters";
+        let output = process::run(
+            "env",
+            &[
+                format!("RUSTFLAGS={flags}"),
+                format!("CARGO_TARGET_DIR={}", root().join("target/fuzz").display()),
+                "cargo".into(),
+                "+nightly-2026-11-10".into(),
+                "build".into(),
+                "--locked".into(),
+                "--manifest-path".into(),
+                "fuzz/Cargo.toml".into(),
+                "--release".into(),
+                "--jobs".into(),
+                "2".into(),
+            ],
+            &root(),
+            1200,
+            240,
+        )?;
+        if !output.status.success() {
+            return Err("instrumented fuzz preparation failed".into());
+        }
+        fs::create_dir_all(&prepared)?;
+        fs::copy(
+            root().join("target/fuzz/release/validation-fuzz"),
+            prepared.join("validation-fuzz"),
+        )?;
+        fs::copy(&binary, prepared.join("sandbox-guard"))?;
+    }
+    let input = if fuzz {
+        prepared.as_path()
+    } else {
+        binary.parent().ok_or("fixture parent missing")?
+    };
     let mount = format!("type=bind,src={},dst=/input,readonly", input.display());
-    let exe = format!(
-        "/input/{}",
-        binary
-            .file_name()
-            .ok_or("fixture filename missing")?
-            .to_str()
-            .ok_or("fixture filename encoding")?
-    );
+    let exe = if fuzz {
+        "/input/sandbox-guard".into()
+    } else {
+        format!(
+            "/input/{}",
+            binary
+                .file_name()
+                .ok_or("fixture filename missing")?
+                .to_str()
+                .ok_or("fixture filename encoding")?
+        )
+    };
+    let case = if fuzz {
+        "bootstrap_owner_tests::owner_source::terminal_tests::denial::sandboxed_validation_fuzz"
+    } else {
+        "bootstrap_owner_tests::owner_source::terminal_tests::denial::sandboxed_kernel_cleanup_denial"
+    };
     let created = docker(
         &[
             "create",
@@ -129,7 +182,7 @@ pub fn run() -> Result<()> {
             "FIVERR_SANDBOX=required",
             &exe,
             "--exact",
-            "bootstrap_owner_tests::owner_source::terminal_tests::denial::sandboxed_kernel_cleanup_denial",
+            case,
             "--nocapture",
         ],
         20,
@@ -163,7 +216,12 @@ pub fn run() -> Result<()> {
     }
     let output = docker(&["start", "--attach", id], 45)?;
     let text = std::str::from_utf8(&output.stdout)?;
-    if !text.contains("actual EPERM, bounded refusal, adopted child reaped") {
+    let marker = if fuzz {
+        "coverage-guided validation campaign passed"
+    } else {
+        "actual EPERM, bounded refusal, adopted child reaped"
+    };
+    if !text.contains(marker) {
         return Err("sandbox semantic evidence absent".into());
     }
     let state = docker(&["inspect", id, "--format", "{{json .State}}"], 10)?;
@@ -174,12 +232,17 @@ pub fn run() -> Result<()> {
     container.remove()?;
     container.1 = true;
     fs::write(
-        root().join(".ci-work/sandbox-acceptance.json"),
+        root().join(if fuzz {
+            ".ci-work/fuzz-acceptance.json"
+        } else {
+            ".ci-work/sandbox-acceptance.json"
+        }),
         serde_json::to_vec_pretty(&serde_json::json!({
-            "scenario":"kernel_cleanup_denial", "native_target":"x86_64-unknown-linux-gnu",
+            "scenario":if fuzz {"coverage_guided_validation"} else {"kernel_cleanup_denial"}, "native_target":"x86_64-unknown-linux-gnu",
             "image":image, "network":"none", "source_read_only":true, "scratch_bytes":16777216,
             "memory_bytes":536870912, "cpus":1, "pids":32, "file_bytes":8388608,
-            "cpu_seconds":30, "wall_seconds":45, "actual_eperm":true, "owned_child_reaped":true,
+            "cpu_seconds":30, "wall_seconds":45, "actual_eperm":!fuzz, "owned_child_reaped":true,
+            "coverage_guided":fuzz, "seed":if fuzz {Some(1)} else {None}, "max_runs":if fuzz {Some(20000)} else {None},
             "container_removed":true, "scope":"controlled fixture, not arbitrary race safety"
         }))?,
     )?;

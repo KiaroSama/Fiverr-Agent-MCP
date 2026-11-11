@@ -2,6 +2,8 @@
 
 ## Unreleased — 2026-11-11
 
+Added a separately locked coverage-guided validation harness with LLVM counters and bounded seed/time/input/RSS settings, executed only after the Linux sandbox controls pass. Production toolchain and dependencies remain separate; final current-source fuzz/native/sign/package acceptance is required.
+
 Added a constrained Linux cleanup-denial qualification using actual kernel EPERM, real bootstrap failure reporting and outer-owner descendant reap. Added isolated real loaded-extension/native-host acceptance; its execution and the final integrated native/sign/package checks remain revision-specific. No live Fiverr access or arbitrary race-safety claim is implied.
 
 Windows private permissions now derive the trustee SID from the current process token instead of `USERNAME`. The bounded icacls mechanism and fail-closed storage behavior remain; native regressions cover absent/invalid environment identity and existing owner-only DACL acceptance. This does not make path-based filesystem operations atomic. Current-source acceptance is pending.

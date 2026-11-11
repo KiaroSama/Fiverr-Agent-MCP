@@ -22,8 +22,12 @@ jobs:
           rustc +stable --edition 2024 scripts/ci-owner.rs -o .ci-work/owner
           .ci-work/owner docker pull ubuntu:22.04
           .ci-work/owner cargo build --locked --package xtask --jobs 2
+      - name: Prepare pinned fuzz toolchain
+        run: .ci-work/owner rustup toolchain install nightly-2026-11-10 --profile minimal --no-self-update
       - name: Qualify actual kernel cleanup denial
         run: target/debug/xtask sandbox-acceptance
+      - name: Qualify coverage-guided validation
+        run: target/debug/xtask fuzz-acceptance
       - name: Retain sandbox qualification receipt
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
@@ -32,6 +36,7 @@ jobs:
           include-hidden-files: true
           path: |
             .ci-work/sandbox-acceptance.json
+            .ci-work/fuzz-acceptance.json
             .ci-work/logs/*.log
             .ci-work/owner-*/*.bin
           if-no-files-found: error

@@ -1,0 +1,22 @@
+[package]
+name = "fiverr-validation-fuzz"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "GPL-3.0-or-later"
+
+[workspace]
+
+[dependencies]
+fiverr-agent-mcp = { path = "..", default-features = false }
+libfuzzer-sys = "=0.4.13"
+
+[[bin]]
+name = "validation-fuzz"
+path = "validation.rs"
+test = false
+doc = false
+
+[profile.release]
+debug = 1
+codegen-units = 1

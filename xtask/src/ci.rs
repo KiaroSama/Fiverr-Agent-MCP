@@ -141,6 +141,7 @@ pub fn native(target: &str, sha: &str, validation_only: bool) -> Result<()> {
         )?;
         mutation()?;
         crate::sandbox::run()?;
+        crate::sandbox::fuzz()?;
     } else {
         run_tests(
             1200,
