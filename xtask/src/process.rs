@@ -111,6 +111,26 @@ pub fn test_run(args: &[String], cwd: &Path, wall: u64, idle: u64) -> Result<Out
     )
 }
 
+#[cfg(windows)]
+pub fn privacy_fixture(binary: &Path, root: &Path) -> Result<Output> {
+    run_inner(
+        binary.to_str().ok_or("privacy binary path")?,
+        &[
+            "--root".into(),
+            root.to_str().ok_or("privacy root path")?.into(),
+            "status".into(),
+        ],
+        &crate::root(),
+        30,
+        15,
+        false,
+        &[(
+            "USERNAME",
+            std::ffi::OsStr::new("Invalid:environment:identity"),
+        )],
+    )
+}
+
 pub fn package_fixture(executable: &str, binary: &Path, cwd: &Path) -> Result<Output> {
     run_inner(
         executable,

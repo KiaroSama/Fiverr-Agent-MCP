@@ -41,6 +41,9 @@ url = "=2.5.8"
 uuid = { version = "=1.29.2", features = ["v4"] }
 chromiumoxide = { version = "=0.9.1", optional = true, default-features = false }
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Threading"] }
+
 [dev-dependencies]
 tokio = { version = "=1.54.1", features = ["test-util"] }
 tempfile = "=3.27.0"

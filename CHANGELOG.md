@@ -2,6 +2,8 @@
 
 ## Unreleased — 2026-11-11
 
+Windows private permissions now derive the trustee SID from the current process token instead of `USERNAME`. The bounded icacls mechanism and fail-closed storage behavior remain; native regressions cover absent/invalid environment identity and existing owner-only DACL acceptance. This does not make path-based filesystem operations atomic. Current-source acceptance is pending.
+
 Updated the reviewed database cohort to rusqlite0.42.0/libsqlite3-sys0.40.0, terminal password input to rpassword7.5.5 and packaging to zip9.5.1. Extended bounded mutation checks from two to six distinct validators with money/kind/text/provenance negatives. These changes require their own exact-source native and signed-package acceptance; prior delivery receipts do not verify them.
 
 Moved synchronous workspace work for MCP and HTTP authentication off runtime threads. The bounded queue cancels unstarted work. Started writes finish with a private completion receipt; slow writes return an operation ID for `fiverr_status`. Unfinished receipts are never replayed.

@@ -209,6 +209,14 @@ pub fn native(target: &str, sha: &str, validation_only: bool) -> Result<()> {
     )?;
     let binary = target_dir()?.join("release/fiverr-agent-mcp.exe");
     fs::create_dir_all(root().join(".ci-work/privacy acceptance"))?;
+    #[cfg(windows)]
+    if !process::privacy_fixture(&binary, &root().join(".ci-work/privacy acceptance"))?
+        .status
+        .success()
+    {
+        return Err("current-token privacy fixture startup failed".into());
+    }
+    #[cfg(not(windows))]
     owned(
         30,
         15,

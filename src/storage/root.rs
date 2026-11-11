@@ -282,14 +282,12 @@ pub fn private_permissions(path: &Path) -> Result<()> {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
-        let user = std::env::var("USERNAME").map_err(|_| storage_error())?;
-        if user.is_empty() || user.contains(['\n', '\r', ':', '"']) {
-            return Err(storage_error());
-        }
+        let sid = super::windows_identity::current_sid()?;
+        // Numeric SID trustees require '*'; environment account names are not authority.
         let access = if path.is_dir() {
-            format!("{user}:(OI)(CI)F")
+            format!("*{sid}:(OI)(CI)F")
         } else {
-            format!("{user}:F")
+            format!("*{sid}:F")
         };
         // /grant:r only replaces this user's grants. Reset first to remove ALL
         // pre-existing explicit grants, then remove inherited grants before data writes.
