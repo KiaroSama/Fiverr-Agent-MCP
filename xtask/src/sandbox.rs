@@ -98,7 +98,7 @@ fn execute(fuzz: bool) -> Result<()> {
     }
     let prepared = root().join(".ci-work/sandbox-fuzz-input");
     if fuzz {
-        let flags = "-C passes=sancov-module -C llvm-args=-sanitizer-coverage-level=3 -C llvm-args=-sanitizer-coverage-inline-8bit-counters";
+        let flags = "-C passes=sancov-module -C llvm-args=-sanitizer-coverage-level=4 -C llvm-args=-sanitizer-coverage-inline-8bit-counters -C llvm-args=-sanitizer-coverage-pc-table -C llvm-args=-sanitizer-coverage-trace-compares";
         let output = process::run(
             "env",
             &[
