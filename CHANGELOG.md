@@ -2,7 +2,7 @@
 
 ## Unreleased — 2026-11-11
 
-Added a separately locked coverage-guided validation harness with LLVM counters and bounded seed/time/input/RSS settings, executed only after the Linux sandbox controls pass. Production toolchain and dependencies remain separate; final current-source fuzz/native/sign/package acceptance is required.
+Added a separately locked coverage-guided validation harness with LLVM counters and bounded seed/time/input/RSS settings, executed only after the Linux sandbox controls pass. Production toolchain and dependencies remain separate. Source7620e80 passed the integrated fuzz/native/sign/package run43077882092 and its signed Windows build was installed.
 
 Added a constrained Linux cleanup-denial qualification using actual kernel EPERM, real bootstrap failure reporting and outer-owner descendant reap. Added isolated real loaded-extension/native-host acceptance; its execution and the final integrated native/sign/package checks remain revision-specific. No live Fiverr access or arbitrary race-safety claim is implied.
 
