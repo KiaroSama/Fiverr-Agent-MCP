@@ -1,8 +1,20 @@
 # Verification report
 
-Checked 2026-11-10. Evidence is revision-specific, not a certificate of complete Fiverr access. Older receipts below are historical and do not describe current maintenance changes.
+Checked 2026-11-11. Evidence is revision-specific, not a certificate of complete Fiverr access. All checkpoints below the current receipt are historical. A documentation revision is not a newer tested executable; packaging consumes these documents and requires its own exact-source acceptance.
 
-## Accepted maintenance delivery
+## Accepted local executor delivery
+
+Source `be0b21fe8cfbd44ba898163126fac9ce764a5fe2` passed [full native and signed-package run42934157639](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/42934157639). Native JSON case identities reconcile with each same-run discovery inventory: Windows250/250, Linux260/260, macOS ARM64 and Intel256/256 each, zero failed or ignored cases. Linux measured5778/6220 application lines (92.89389067524115%) and3188/3353 safety lines (95.07903370116314%). Both selected mutants were caught. Linux JUnit contains the later mutation selection; complete native JSON events and inventory are the full-suite evidence, not that JUnit.
+
+The shared per-workspace worker admits a FIFO queue of16, cancels work that has not started and lets started operations finish with a durable private receipt. After10seconds, an admitted operation can return pending with an operation ID for `fiverr_status`. Disconnect is not rollback. Unfinished receipts after restart report an unknown outcome and are never replayed automatically. Actual exclusive-SQLite HTTP authentication contention, runtime progress, queue saturation/cancellation, started-write completion after dropped waits, receipt refusal/recovery and owned shutdown regressions passed. Receipt metadata is local workspace evidence, not a remote Fiverr transaction journal.
+
+Windows signing, standalone-verifier negative checks and the extracted signed stdio/HTTP local draft roundtrip passed in CI. Independent installation verified222 corresponding-source members,506 payload hashes and both CMS signatures/PE content digests/owner certificate pins before and after replacement. Installed app SHA256: `96f320ec64c94dbe8c6a6192d8ff8880652695c1dc971a6d60d799088ff63d01`; verifier SHA256: `358ee38f72ccaac865822270ea05e5b18cf05072ec4d7f853686b2c2a5416eb2`. Configuration and private state were preserved. Trust remains self-signed/private, not public CA trust. No local Rust build, application execution or native test ran; no GitHub Release was published.
+
+Current native coverage also includes catchable Unix guardian SIGTERM on all three Unix targets, forced Windows Job closure with retained child handles, plain/TLS CONNECT proxies with independent proxy/origin trust and hostname negatives, and bootstrap resolver refusal for both proxy schemes. These are finite loopback/process fixtures, not universal OS containment, DNS-leak or arbitrary filesystem-race certification.
+
+Outstanding boundaries are controlled OS cleanup-denial injection; OS-enforced filesystem race/SID/hardlink assurance; broader coverage-guided fuzzing and mutation campaigns; actual assistant-client/loaded-extension profiles; other-platform final signing/notarization; and a permitted remote dispatch/postcondition adapter. Main-menu login/live-login acceptance was cancelled, not postponed. The optional PS7 launcher is retained by explicit exception; browser JavaScript/API glue and external workflow runtimes prevent a full Rust-only claim. These limits do not invalidate the accepted local executor or signed Windows installation.
+
+## Historical accepted maintenance delivery
 
 Source `969001799264c71665cb532128bf04009d5a60bd` passed [full native and signed-package run42775960939](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/42775960939): Windows231/231, Linux242/242 and both macOS238/238, zero failures or skipped cases. Linux source line coverage was5421/5840 application (92.82534%) and2845/2988 safety (95.21419%); both selected mutants were caught. Complete native JSON events reconcile same-run discovery and case identities. Linux JUnit contains the later four-case mutation selection, so it is not the full native report; the complete native JSON inventory remains available.
 

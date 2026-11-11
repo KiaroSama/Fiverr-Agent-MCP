@@ -1,39 +1,42 @@
 # Requirement and acceptance matrix
 
-Status below is authored versus outstanding, not executed evidence. Every named workflow has its own entry in capabilities.json. All test source runs in the native CI workspace bucket; tests that were only written are not green.
+Checked 2026-11-11. Executed evidence below belongs to source `be0b21fe8cfbd44ba898163126fac9ce764a5fe2` and [manual run42934157639](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/42934157639), not a newer documentation revision. Native cases: Windows250, Linux260, macOS ARM64/Intel256each, zero failed/ignored. Linux application5778/6220 (92.89389%), safety3188/3353 (95.07903%); two selected mutants caught. See the [verification report](../verification-report.md) for installation hashes and historical receipts. Linux native JSON events/inventory, not mutation-overwritten JUnit, establish the full suite.
 
-| Requirement | Code / artifact | Test seam | Outstanding acceptance |
-|---|---|---|---|
-| FR001,013,014 | server/, CLI HTTP configuration | protocol.rs, native package | Full legacy/modern client loading and progress/cancellation/extensions |
-| FR002,015 | bootstrap/, storage/root, logging/database | primitives/workspace/package | Complete ACL/race/IO-failure/log retention proof |
-| FR003,004 | network/profiles, RouteClient | network.rs, unit wire_tests | HTTPS/HTTP CONNECT/auth/redirect/TLS/DNS all-platform assurance |
-| FR005,006 | browser/observation, profile lease, fail-closed adapter gates | browser.rs, browser_runtime.rs | Main-menu login acceptance cancelled; permitted adapter/current selectors/strict routing remain conditional |
-| FR007,008 | capabilities.json, server/catalog, services | inventory validation, protocol | Dedicated unsupported platform workflows; catalog/local mappings are not live equivalents |
-| FR009,010 | local/productivity/portability, exact Money | productivity/workspace/primitives/analysis | Full retention/restore/quotas and all domain-local validators |
-| FR011,012,016 | actions/bindings, owner CLI | actions.rs/file primitives | Executing/unknown remote dispatch/reconciliation, all file/approval scope races |
-| FR017 | licensed analysis/helper/skill/locks/notices | analysis.rs literal goldens | Native runtime and actual host skill loading |
-| FR018,019 | plugin/client manifests, registration/CLI/launchers | manifest/package/CLI | Full launcher/menu/registration concurrent failure tests and actual client schemas/loading |
-| FR020,021 | native CI/xtask/release/source/license | four-native validation, signed Windows package/security | Source `db42d38` met90/95 line targets and caught two selected mutants; full coverage-guided fuzzing/mutation, other-platform signed packages and GitHub Release publication remain separate |
-| FR022,023 | public research/reference pins, local tracker routing | primary-source reads/static validation | Sources stay version-specific; local tracking not public issue generation |
-| FR024,025 | session/, owner CLI/menu, extension/native host | session credentials/HTML/wire/storage/CLI/PTY/JS fixtures | Live Fiverr compatibility, loaded-extension registration and platform permission remain unverified |
-| FR026 | public signing policy, Windows signing/package CI | pinned CMS/PE digest, tamper/revision/wrong-signer rejection, exact installed artifact | Windows private-trust delivery verified on `db42d38`; public CA trust and other-platform signing are not supplied |
+Implementation, executed fixtures and external acceptance are distinct. All122WF IDs remain individually mapped in capabilities.json:31advertised local/manual tools and91dedicated unsupported operations. A local alternative is not live account functionality.
 
-## Current amendments and maintenance
-
-| Requirement | Current disposition / seam | Acceptance limit |
+| Requirement | Implemented artifact / executed seam | Remaining acceptance or boundary |
 |---|---|---|
-| FR027–028 | No main-menu login; fresh Direct, optional proxy, saved routes/no fallback | Low-level session compatibility retained; no live-login requirement |
-| FR029 | Owned retained-response deadline and finite lifecycle fixtures | Exact accepted baseline, not current-source carryover |
-| FR030–031 | Rust core/tooling; PS7 exception; reviewed branch integration | Browser API glue/full migration parity unresolved; unique history preserved |
-| FR032–034 | Actual aggregate/individual/focused CI contexts and finite diagnostics | Focused success never full acceptance; no automatic initiator/retry |
-| FR035–036 | Rooted/system-temp examples; GPL-3.0-or-later original code | Persistent rooting/third-party terms preserved |
-| FR037 | Token/row/input/registration/root/process/environment/archive/release/capability repairs | Authored current changes await exact native verification; contention characterized, conditional redesign not claimed |
-| FR038 | Revision-scoped receipts, signed standalone verifier, dependency decisions,41historical task dispositions | OtherOS signing/actual host loading/races/broader campaigns remain separately bounded |
-| FR039 | Existing local action submenu and genuine terminal approval | No automatic commit or remote dispatch |
-| FR040 | Conditional immutable-attempt/recovery/no-replay contract | No permitted production dispatch/postcondition adapter; current manual_handoff unchanged |
-| FR041 | All reviewed sidebranch content merges into actual default | Final resulting-SHA CI/ancestry/cleanup proof pending |
-| FR042 | Keep latest verified installation and remove proven-obsolete task/project scratch, cache and versions after replacement checks | Preserve configuration/private state/recovery; no shared or unknown purge |
+| FR001,013,014 | server/; protocol and extracted stdio/HTTP draft roundtrip; HTTP guards/deadlines | Actual legacy/modern client loading and unadvertised protocol extensions are not proven |
+| FR002,015 | bootstrap/, storage/, rooted logs, transaction/restore/privacy fixtures | Arbitrary ACL, hardlink/replacement races and controlled OS-denial matrix remain incomplete |
+| FR003,004 | RouteClient; SOCKS5h, CONNECT/auth/refusal, plain/TLS proxy, independent proxy/origin trust/hostname, bootstrap DNS refusal fixtures on all four targets | Finite loopback proof is not universal network or process-wide browser containment |
+| FR005,006 | browser/profile leases, observation and fail-closed adapter gates | Main-menu live-login acceptance cancelled; permitted adapter/current selectors/strict routing remain conditional |
+| FR007,008 | capabilities.json, catalog and actual-effect semantic contract | Unsupported workflows stay explicitly unavailable, never empty-success stubs |
+| FR009,010 | local records/productivity/export/snapshot/Money; bounded history/empty-workspace restore/capacity fixtures | No arbitrary-database recovery or complete domain/platform validator claim |
+| FR011,012,016 | Prepared-action bindings, fresh human-terminal approval, immutable payload/file checks and no replay | Production remote executing/unknown dispatch/postcondition adapter and all scope races remain unverified |
+| FR017 | Licensed analysis/optimizer helpers, literal goldens, notices/locks | Actual assistant-host skill loading remains unverified; no live market input claimed |
+| FR018,019 | Client manifests/registration policy, native CLI/menu and optional PS7 launcher; signed Windows app/verifier installed with config/state preservation | Actual client/extension-profile loading remains unverified; main-menu login requirement cancelled |
+| FR020,021 | Four-native CI/dependency checks, unchanged90/95floors, two mutants, signed Windows extracted-package acceptance | Broader fuzz/mutation and other-platform final signatures absent; no GitHub Release publication |
+| FR022,023 | Version-specific public-source research and local requirement/task evidence | Research freshness is scoped; no mass public issue generation |
+| FR024,025 | Retained low-level session/extension/native-host compatibility and synthetic fixtures | Cookie presence is not authentication; live account/markup/permission and loaded-extension registration not verified |
+| FR026 | Pinned CMS/PE digest, tamper/revision/wrong-signer negatives and installed signed bytes | Windows owner trust is private/self-signed; no public CA trust or other-platform signing/notarization |
 
-Accepted baseline is `219ec3b`/manual41559809201, documented in [verification report](../verification-report.md). It supersedes older receipt examples above but does not verify current edits. All122WF IDs remain in the canonical registry with31implemented local/manual tools and91dedicated unsupported operations; a local alternative is not a live equivalent.
+## Amendments and maintenance
 
-SC001 requires actual native package/roundtrip evidence. SC002 requires honest dispositions, not every unsupported tool becoming a stub. SC003 requires zero prohibited operations in negative cases. SC004 binds actual runs/assets to exact source SHA. SC005 keeps human credentials private and fixtures separate from live data. Full completion remains blocked by unperformed required acceptance, even if an experimental local package passes CI.
+| Requirement | Current disposition / executed seam | Acceptance limit |
+|---|---|---|
+| FR027–028 | No main-menu login; fresh Direct, saved route preservation, explicit block and proxy no-fallback | Low-level session compatibility remains; cancelled login is not reopened |
+| FR029 | Retained-response capacity/lifetime and finite EOF/error/drop/stall/race/saturation/shutdown fixtures | Revision-scoped local behavior, not universal remote cancellation |
+| FR030–031 | Rust core/tooling/signing/ownership; PS7 exception; reviewed branch integration | Browser API glue/external workflow runtimes prevent complete Rust-only parity |
+| FR032–034 | Actual individual/aggregate/focused CI contexts and finite diagnostics | Focused success never full acceptance; no automatic initiator or hidden retry |
+| FR035–036 | Rooted/system-temp examples, persistent-root guards and GPL-3.0-or-later original code | Third-party terms and persistent-state rooting retained |
+| FR037 | Token/row/input/registration/root/process/environment/archive/release/capability repairs passed; real SQLite occupancy reproduced and executor subsequently accepted | Controlled OS cleanup-denial and broader filesystem assurance remain incomplete |
+| FR038 | Current/historical receipts, standalone signed verifier, reviewed dependency cohort and clause-level historical dispositions | OtherOS signers, actual host profiles, OS sandbox and broader campaigns remain distinct gates |
+| FR039 | Owner action list/review/approve/reject/back and genuine terminal consent | No self-approval, automatic commit or remote dispatch |
+| FR040 | Conditional immutable remote-attempt/recovery contract; production manual_handoff remains honest | No permitted dispatch/postcondition adapter; local operation receipts are not this remote engine |
+| FR041 | Accepted executor content is on actual default feature/fiverr-native at be0b21f | Branch disposal and newer delivery metadata need their own current checks; no unsafe dependency downgrade |
+| FR042 | Replacement-first exact owned-output cleanup; current installation/evidence/recovery preserved | No shared/unknown purge, research/history/private-state deletion or name-only disposability inference |
+| FR043 | Shared FIFO16 workspace worker; queued cancellation; started completion/private durable receipts;10s pending ID and fiverr_status; restart unknown/no replay; transport/auth/route integration | Accepted local operations only; a disconnected request never implies rollback and unknown outcomes are not replayed |
+
+SC001 has actual extracted native local workflow/both-transport evidence, not actual assistant-host loading. SC002 requires honest individual workflow dispositions, not unsupported stubs. SC003 is supported by the executed negative fixtures, not a universal security guarantee. SC004 binds each run/package/install to its exact revision. SC005 keeps human credentials private and synthetic fixtures separate from live results.
+
+Full project acceptance remains blocked by the named signer/host/sandbox/adapter and broader-campaign clauses. The accepted local package and Windows installation are verified within their stated scope; no blanket historical task completion is implied.
