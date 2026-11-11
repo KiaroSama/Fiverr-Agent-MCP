@@ -207,7 +207,11 @@ pub fn native(target: &str, sha: &str, validation_only: bool) -> Result<()> {
             "2",
         ],
     )?;
-    let binary = target_dir()?.join("release/fiverr-agent-mcp.exe");
+    let binary = target_dir()?.join(if cfg!(windows) {
+        "release/fiverr-agent-mcp.exe"
+    } else {
+        "release/fiverr-agent-mcp"
+    });
     fs::create_dir_all(root().join(".ci-work/privacy acceptance"))?;
     #[cfg(windows)]
     if !process::privacy_fixture(&binary, &root().join(".ci-work/privacy acceptance"))?
@@ -239,6 +243,20 @@ pub fn native(target: &str, sha: &str, validation_only: bool) -> Result<()> {
         // documented as verification-only and holds no signing adapters.
         crate::macos_signing::sign_and_verify(&[("application", &fiverr)])?;
         println!("macOS binaries signed and verified against the pinned owner identity.");
+    }
+    // Packaging is separate from signing so the archive signer always operates on
+    // finished artifacts. Windows signs inside `sign-package`, which then packages.
+    #[cfg(not(windows))]
+    {
+        crate::package::build(
+            &root(),
+            binary.to_str().ok_or("binary path")?,
+            root().join("dist").to_str().ok_or("dist path")?,
+            target,
+            sha,
+        )?;
+        crate::release_archive_signing::archives(sha)?;
+        println!("Non-Windows package built and archives signed against the pinned key.");
     }
     println!("Release compiled; protected signing and packaging follow.");
     Ok(())

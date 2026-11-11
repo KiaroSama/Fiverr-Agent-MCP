@@ -266,9 +266,7 @@ pub fn leaf_certificate(path: &Path, output: &Path) -> Result<PathBuf> {
 fn check_leaf(name: &str, path: &Path) -> Result<()> {
     let pin = MACOS_LEAF_PIN
         .split('"')
-        .find_map(|part| {
-            (part.len() == 64 && part.bytes().all(|b| b.is_ascii_hexdigit())).then_some(part)
-        })
+        .find(|part| part.len() == 64 && part.bytes().all(|b| b.is_ascii_hexdigit()))
         .ok_or("macOS leaf pin is missing from the signing policy")?;
     let directory = std::env::var_os("RUNNER_TEMP")
         .map(PathBuf::from)
