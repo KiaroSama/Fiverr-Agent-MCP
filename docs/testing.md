@@ -6,6 +6,10 @@ Manual windows_diagnostics=true adds exactly two explicitly counted narrow sampl
 
 Individual native/dependency legacy statuses derive from actual current-run job conclusions and link to each job. Full and focused runs remain distinct; unrun Release/Deep is not green. Explicit rooted/system/invalid temporary policy cases run through the actual native entrypoint, with persistent workspace/log assertions.
 
+## Current-token Windows privacy regression
+
+The manual `Windows token privacy regression` workflow runs only `windows_input_paths::private_windows_permissions_follow_token_not_username`. It starts the actual native status entrypoint with `USERNAME` absent and with a deliberately invalid identity, using isolated rooted temporary paths, one test worker, the existing ten-second child deadline and owned900s/180s runner bounds. It does not change process-global environment, use real credentials or imply race-free filesystem access. The test-first checkpoint intentionally precedes the permission repair; only the expected assertion failure is semantic RED, not a compiler/setup failure. Final acceptance still requires the complete native matrix and owner-only DACL checks.
+
 ## All-plan maintenance regression selection
 
 Deep validation `maintenance_only=true` selects only `http_token_lifecycle` and `persisted_identity`, with two workers, fail-on-zero discovery and the existing owned900s wall/180s idle bounds. The test-first revision leaves production source unchanged: established-token authentication must not require an UPDATE, malformed persisted authority must not reset, and valid JSON must agree with authoritative record/action columns before reads or transitions. This focused workload is not full native/signing acceptance. Setup/compile errors are not semantic red evidence; final repairs require the complete applicable native matrix.

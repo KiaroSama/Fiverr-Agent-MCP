@@ -1,0 +1,46 @@
+name: Windows token privacy regression
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  token-privacy:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Bind owned bootstrap
+        run: |
+          mkdir -p .ci-work
+          rustc +stable --edition 2024 scripts/ci-bootstrap.rs -o .ci-work/bootstrap
+          .ci-work/bootstrap
+          rustc +stable --edition 2024 scripts/ci-owner.rs -o .ci-work/owner
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          toolchain: 1.99.1
+      - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39
+        env:
+          USERPROFILE: ${{ env.HOME }}
+        with:
+          tool: cargo-nextest@0.9.151
+          fallback: none
+      - name: Run only current-token regression
+        run: |
+          .ci-work/owner cargo build --locked --package xtask --jobs 2
+          target/debug/xtask run --wall 900 --idle 180 -- cargo nextest run --locked --package fiverr-agent-mcp --test windows_input_paths --profile ci --test-threads 1 --no-tests fail --success-output immediate -E 'test(private_windows_permissions_follow_token_not_username)'
+      - name: Retain exact regression result
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: windows-token-privacy
+          include-hidden-files: true
+          path: |
+            target/nextest/ci/junit.xml
+            .ci-work/owner-*/*.bin
+          if-no-files-found: error
+          retention-days: 14

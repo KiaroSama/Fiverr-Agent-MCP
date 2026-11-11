@@ -11,6 +11,51 @@ use fiverr_agent_mcp::{
 };
 use std::{collections::VecDeque, path::PathBuf};
 
+#[tokio::test]
+async fn private_windows_permissions_follow_token_not_username() {
+    for username in [None, Some("Invalid:environment:identity")] {
+        let temp = tempfile::Builder::new()
+            .prefix("Token SID space-")
+            .tempdir()
+            .unwrap();
+        // Rooted temporary paths avoid a second child and process-global env edits.
+        let root = Root::explicit(temp.path()).unwrap();
+        let mut command = tokio::process::Command::new(env!("CARGO_BIN_EXE_fiverr-agent-mcp"));
+        command
+            .arg("--root")
+            .arg(dunce::simplified(root.path()))
+            .arg("status")
+            .envs(fiverr_agent_mcp::bootstrap::environment(&root))
+            .env_remove("USERNAME")
+            .stdin(std::process::Stdio::null())
+            .kill_on_drop(true);
+        if let Some(value) = username {
+            command.env("USERNAME", value);
+        }
+        command.creation_flags(0x08000000);
+        let output = tokio::time::timeout(std::time::Duration::from_secs(10), command.output())
+            .await
+            .expect("native status exceeded its existing deadline")
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "current-token storage must ignore USERNAME presence={}: {}",
+            username.is_some(),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert!(
+            value.is_object(),
+            "native status must return structured output"
+        );
+        assert!(
+            root.path()
+                .join(".state/workspace/workspace.sqlite3")
+                .is_file()
+        );
+    }
+}
+
 #[test]
 fn normal_and_verbatim_owned_paths_work_without_accepting_escape_or_traversal() {
     let temp = tempfile::Builder::new()
