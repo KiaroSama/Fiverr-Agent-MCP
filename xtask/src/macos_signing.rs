@@ -37,15 +37,51 @@ const TRUSTED_TOOLS: &[&str] = &["/usr/bin/codesign", "/usr/bin/security"];
 /// `config/signing-public.json`; a mismatch fails the run before signing.
 const MACOS_LEAF_PIN: &str = include_str!("../../config/signing-macos-public.json");
 
-/// Ephemeral keychain guard: removes the exact owned file on every exit path.
+/// Ephemeral keychain guard: restores the user keychain search list it changed, then
+/// removes the exact owned file on every exit path.
 struct EphemeralKeychain {
     path: PathBuf,
+    previous_search_list: Option<Vec<String>>,
 }
 
 impl Drop for EphemeralKeychain {
     fn drop(&mut self) {
+        if let Some(previous) = self.previous_search_list.take() {
+            let _ = set_search_list(&previous);
+        }
         let _ = fs::remove_file(&self.path);
     }
+}
+
+/// Reads the user keychain search list exactly as `security` reports it.
+fn search_list() -> Result<Vec<String>> {
+    let output = Command::new("/usr/bin/security")
+        .args(["list-keychains", "-d", "user"])
+        .stderr(Stdio::null())
+        .output()
+        .map_err(|_| "keychain search list read failed")?;
+    if !output.status.success() {
+        return Err("keychain search list read refused".into());
+    }
+    Ok(String::from_utf8(output.stdout)
+        .map_err(|_| "keychain search list is not valid UTF-8")?
+        .lines()
+        .map(|line| line.trim().trim_matches('"').to_owned())
+        .filter(|line| !line.is_empty())
+        .collect())
+}
+
+fn set_search_list(keychains: &[String]) -> Result<()> {
+    let status = Command::new("/usr/bin/security")
+        .args(["list-keychains", "-d", "user", "-s"])
+        .args(keychains)
+        .stderr(Stdio::null())
+        .status()
+        .map_err(|_| "keychain search list update failed")?;
+    if !status.success() {
+        return Err("keychain search list update refused".into());
+    }
+    Ok(())
 }
 
 /// Signs each final Mach-O binary with the owner identity, then verifies every result.
@@ -96,7 +132,10 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
     let keychain = options
         .create(&path)
         .map_err(|error| format!("ephemeral keychain creation failed: {error}"))?;
-    let guard = EphemeralKeychain { path: path.clone() };
+    let mut guard = EphemeralKeychain {
+        path: path.clone(),
+        previous_search_list: None,
+    };
     let outcome = (|| -> Result<()> {
         let mut items = SecItems::default();
         let mut import = ImportOptions::new();
@@ -109,11 +148,20 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
             .import(blob)
             .map_err(|error| format!("identity import failed: {error}"))?;
         grant_tool_access(&path, password.as_str())?;
+        // `codesign --keychain` only filters the user search list; a headless runner
+        // cannot reach an identity in a keychain that is not on that list (Apple TN2206).
+        let previous = search_list()?;
+        let display = path
+            .to_str()
+            .ok_or("ephemeral keychain path is not valid UTF-8")?
+            .to_owned();
+        let mut updated = vec![display];
+        updated.extend(previous.iter().cloned());
+        guard.previous_search_list = Some(previous);
+        set_search_list(&updated)?;
         Ok(())
     })();
-    if outcome.is_err() {
-        let _ = fs::remove_file(&path);
-    }
+    // On failure the guard restores any changed search list and removes the file.
     outcome.map(|()| guard)
 }
 
