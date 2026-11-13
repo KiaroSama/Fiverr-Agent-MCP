@@ -30,9 +30,6 @@ use zeroize::Zeroizing;
 /// secret: `codesign --sign` accepts either the identity common name or its SHA-1.
 const SIGNING_IDENTITY: &str = "Fiverr Agent MCP Owner";
 
-/// Tools allowed to use the imported private key without an interactive prompt.
-const TRUSTED_TOOLS: &[&str] = &["/usr/bin/codesign", "/usr/bin/security"];
-
 /// Code-signing identity leaf certificate SHA-256. Published in
 /// `config/signing-public.json`; a mismatch fails the run before signing.
 const MACOS_LEAF_PIN: &str = include_str!("../../config/signing-macos-public.json");
@@ -129,9 +126,14 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
     }
     let mut options = CreateOptions::new();
     options.password(password.as_str()).prompt_user(false);
-    let keychain = options
+    let mut keychain = options
         .create(&path)
         .map_err(|error| format!("ephemeral keychain creation failed: {error}"))?;
+    // Creation leaves the keychain unlocked, but an auto-lock race on a slow runner
+    // would surface as the same "item could not be found" failure during signing.
+    keychain
+        .unlock(Some(password.as_str()))
+        .map_err(|error| format!("ephemeral keychain unlock failed: {error}"))?;
     let mut guard = EphemeralKeychain {
         path: path.clone(),
         previous_search_list: None,
@@ -142,6 +144,11 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
         import
             .pkcs12()
             .passphrase(passphrase)
+            // `security import -A` equivalence: the keychain is ephemeral, its password is
+            // a per-run random value, and the file is deleted on every exit path, so the
+            // default per-application ACL adds nothing. Without it `codesign` is denied
+            // the key and reports it as absent from the keychain.
+            .no_access_control(true)
             .keychain(&keychain)
             .items(&mut items);
         import
@@ -188,8 +195,12 @@ fn grant_tool_access(keychain: &Path, password: &str) -> Result<()> {
         .stderr(Stdio::null())
         .spawn()
         .map_err(|_| "security partition-list launch failed")?;
-    let command =
-        format!("set-key-partition-list -S apple-tool:,apple: -s -k {password} '{display}'\n");
+    // `codesign:` must be present in the partition list. Without it the key is imported
+    // but `codesign` is denied non-interactive access and reports the item as missing
+    // from the keychain, which is the failure seen on both macOS runners.
+    let command = format!(
+        "set-key-partition-list -S apple-tool:,apple:,codesign: -s -k {password} '{display}'\n"
+    );
     let outcome = (|| -> Result<()> {
         let stdin = child
             .stdin
@@ -210,7 +221,6 @@ fn grant_tool_access(keychain: &Path, password: &str) -> Result<()> {
         return Err("security partition-list refused".into());
     }
     outcome?;
-    let _ = TRUSTED_TOOLS;
     Ok(())
 }
 
@@ -263,9 +273,39 @@ fn sign_one<'a>(
         .status()
         .map_err(|_| "codesign launch failed")?;
     if !status.success() {
-        return Err(format!("codesign failed for {name}").into());
+        // `codesign` collapses every keychain lookup problem into "the specified item
+        // could not be found", which cannot distinguish a missing identity from a denied
+        // one. Report what the keychain actually holds so the next failure is diagnosable.
+        let visible = visible_identities(&keychain.path);
+        return Err(format!(
+            "codesign failed for {name}; {visible} identity record(s) visible in {}",
+            keychain.path.display()
+        )
+        .into());
     }
     Ok((name, path.to_path_buf()))
+}
+
+/// Counts the code-signing identities reachable through one keychain.
+///
+/// The count is public metadata: no certificate name, key material or password is read.
+fn visible_identities(keychain: &Path) -> usize {
+    let output = Command::new("/usr/bin/security")
+        .arg("find-identity")
+        .arg("-v")
+        .arg("-p")
+        .arg("codesigning")
+        .arg(keychain)
+        .stderr(Stdio::null())
+        .output();
+    let Ok(output) = output else { return 0 };
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter(|line| {
+            let line = line.trim_start();
+            line.starts_with(|c: char| c.is_ascii_digit()) && line.contains(") ")
+        })
+        .count()
 }
 
 /// Verifies one signed binary strictly, across every architecture it contains.
