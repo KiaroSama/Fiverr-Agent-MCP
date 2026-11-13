@@ -39,12 +39,26 @@ const MACOS_LEAF_PIN: &str = include_str!("../../config/signing-macos-public.jso
 struct EphemeralKeychain {
     path: PathBuf,
     previous_search_list: Option<Vec<String>>,
+    // Trust is written to the machine-wide admin domain, so it outlives the keychain
+    // file and must be removed explicitly.
+    trusted_certificate: Option<PathBuf>,
 }
 
 impl Drop for EphemeralKeychain {
     fn drop(&mut self) {
         if let Some(previous) = self.previous_search_list.take() {
             let _ = set_search_list(&previous);
+        }
+        if let Some(certificate) = self.trusted_certificate.take() {
+            let _ = Command::new("/usr/bin/sudo")
+                .arg("-n")
+                .arg("/usr/bin/security")
+                .arg("remove-trusted-cert")
+                .arg("-d")
+                .arg(&certificate)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status();
         }
         let _ = fs::remove_file(&self.path);
     }
@@ -102,9 +116,10 @@ pub fn sign_and_verify(binaries: &[(&str, &Path)]) -> Result<()> {
     // so the decoded buffer is dropped as soon as the import returns.
     let blob = Zeroizing::new((*decoded).clone());
     let keychain = import_identity(&blob, passphrase.as_str())?;
+    let selector = identity_sha1(&keychain.path);
     let mut signed = Vec::new();
     for (name, path) in binaries {
-        signed.push(sign_one(name, path, &keychain)?);
+        signed.push(sign_one(name, path, &keychain, selector.as_deref())?);
     }
     for entry in &signed {
         verify_one(entry.0, &entry.1)?;
@@ -137,6 +152,7 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
     let mut guard = EphemeralKeychain {
         path: path.clone(),
         previous_search_list: None,
+        trusted_certificate: None,
     };
     let outcome = (|| -> Result<()> {
         let mut items = SecItems::default();
@@ -155,6 +171,7 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
             .import(blob)
             .map_err(|error| format!("identity import failed: {error}"))?;
         grant_tool_access(&path, password.as_str())?;
+        guard.trusted_certificate = Some(trust_for_code_signing(&path, &items)?);
         // `codesign --keychain` only filters the user search list; a headless runner
         // cannot reach an identity in a keychain that is not on that list (Apple TN2206).
         let previous = search_list()?;
@@ -250,6 +267,77 @@ fn random_bytes(bytes: &mut [u8]) -> bool {
     }
 }
 
+/// Marks the imported leaf certificate trusted for code signing.
+///
+/// `codesign` only uses an identity whose certificate is trusted for the code-signing
+/// policy. A freshly imported self-signed leaf is not, and the resulting failure is
+/// reported as the identity being absent from the keychain rather than as untrusted.
+/// The trust record is written to the ephemeral keychain and dies with it; only the
+/// signing policy is trusted, not TLS or any other purpose.
+///
+/// macOS answers a first-time trust write with an authorization prompt, which a headless
+/// runner cannot answer, so the write goes to the admin domain under passwordless `sudo`.
+/// Returns the certificate path left in place for the guard to remove on cleanup.
+fn trust_for_code_signing(keychain: &Path, items: &SecItems) -> Result<PathBuf> {
+    let leaf = items
+        .certificates
+        .first()
+        .ok_or("imported certificate bundle has no leaf certificate")?;
+    let display = keychain
+        .to_str()
+        .ok_or("ephemeral keychain path is not valid UTF-8")?;
+    let directory = std::env::var_os("RUNNER_TEMP")
+        .map(PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+    let cert_path = directory.join(format!("fiverr-trust-{}.pem", std::process::id()));
+    let der = leaf.to_der();
+    fs::write(&cert_path, pem_encode("CERTIFICATE", &der))?;
+    let outcome = (|| -> Result<()> {
+        // `-d` writes the admin trust domain, which needs root on a runner where no
+        // authorization prompt can be answered. `sudo -n` fails closed if passwordless
+        // escalation is unavailable instead of blocking on a prompt.
+        let status = Command::new("/usr/bin/sudo")
+            .arg("-n")
+            .arg("/usr/bin/security")
+            .arg("add-trusted-cert")
+            .arg("-d")
+            .arg("-r")
+            .arg("trustRoot")
+            .arg("-p")
+            .arg("codeSign")
+            .arg("-k")
+            .arg(display)
+            .arg(&cert_path)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .map_err(|_| "add-trusted-cert launch failed")?;
+        if !status.success() {
+            return Err("add-trusted-cert refused for the code-signing policy".into());
+        }
+        Ok(())
+    })();
+    match outcome {
+        Ok(()) => Ok(cert_path),
+        Err(error) => {
+            let _ = fs::remove_file(&cert_path);
+            Err(error)
+        }
+    }
+}
+
+/// Minimal PEM wrapper: 64-character base64 lines between the standard delimiters.
+fn pem_encode(label: &str, der: &[u8]) -> String {
+    let body = BASE64_STANDARD.encode(der);
+    let mut text = format!("-----BEGIN {label}-----\n");
+    for chunk in body.as_bytes().chunks(64) {
+        text.push_str(&String::from_utf8_lossy(chunk));
+        text.push('\n');
+    }
+    text.push_str(&format!("-----END {label}-----\n"));
+    text
+}
+
 /// Signs one final binary with the owner identity selected by common name.
 ///
 /// `--keychain` is passed so `codesign` never searches the runner login keychain:
@@ -259,11 +347,14 @@ fn sign_one<'a>(
     name: &'a str,
     path: &'a Path,
     keychain: &EphemeralKeychain,
+    selector: Option<&str>,
 ) -> Result<(&'a str, PathBuf)> {
     let status = Command::new("/usr/bin/codesign")
         .arg("--force")
         .arg("--sign")
-        .arg(SIGNING_IDENTITY)
+        // A SHA-1 fingerprint selects exactly one identity. The common name is only a
+        // display string and can match an unrelated certificate on the machine.
+        .arg(selector.unwrap_or(SIGNING_IDENTITY))
         .arg("--keychain")
         .arg(&keychain.path)
         .arg("--options")
@@ -284,6 +375,38 @@ fn sign_one<'a>(
         .into());
     }
     Ok((name, path.to_path_buf()))
+}
+
+/// Returns the SHA-1 fingerprint of the single code-signing identity in the keychain.
+///
+/// `security find-identity` prints the fingerprint in its `1) ABC…` column. Exactly one
+/// identity is expected; anything else is a signing-environment fault rather than a
+/// selector to guess at, so a missing or ambiguous result falls back to the common name.
+fn identity_sha1(keychain: &Path) -> Option<String> {
+    let output = Command::new("/usr/bin/security")
+        .arg("find-identity")
+        .arg("-p")
+        .arg("codesigning")
+        .arg(keychain)
+        .stderr(Stdio::null())
+        .output()
+        .ok()?;
+    let text = String::from_utf8_lossy(&output.stdout);
+    let mut found = Vec::new();
+    for line in text.lines() {
+        let line = line.trim();
+        let Some(rest) = line.split_once(") ").map(|(_, rest)| rest) else {
+            continue;
+        };
+        let candidate: String = rest.chars().take_while(|c| c.is_ascii_hexdigit()).collect();
+        if candidate.len() == 40 {
+            found.push(candidate);
+        }
+    }
+    match found.len() {
+        1 => found.pop(),
+        _ => None,
+    }
 }
 
 /// Counts the code-signing identities reachable through one keychain.
