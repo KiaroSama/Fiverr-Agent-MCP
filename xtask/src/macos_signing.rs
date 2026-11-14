@@ -595,13 +595,12 @@ fn verify_one(name: &str, path: &Path) -> Result<()> {
 /// `codesign --extract-certificates` writes the leaf as `<prefix>0`; the extracted
 /// file must be removed by the caller.
 pub fn leaf_certificate(path: &Path, output: &Path) -> Result<PathBuf> {
-    // `codesign --extract-certificates <prefix>` writes `<prefix>0`, so the caller's path is
-    // the prefix, not a directory to write into. It is already unique per binary; deriving a
-    // shared name here would make the two binaries overwrite each other's certificate.
+    // `codesign --extract-certificates <prefix>` writes its files inside `<prefix>`, so the
+    // prefix names a directory that must already exist. The caller's path is used as that
+    // directory: it is unique per binary, and deriving a shared name here would make the two
+    // binaries overwrite each other's certificate.
     let prefix = output.to_path_buf();
-    if let Some(parent) = prefix.parent() {
-        fs::create_dir_all(parent)?;
-    }
+    fs::create_dir_all(&prefix)?;
     let home = real_home().unwrap_or_else(|| PathBuf::from("/"));
     let extracted = crate::process::run_with_real_home(
         "/usr/bin/codesign",
@@ -630,11 +629,18 @@ pub fn leaf_certificate(path: &Path, output: &Path) -> Result<PathBuf> {
         )
         .into());
     }
-    let leaf = PathBuf::from(format!("{}.0", prefix.display()));
-    if !leaf.is_file() {
-        return Err("codesign did not produce a leaf certificate".into());
+    // `codesign` writes `<prefix>0` when the prefix looks like a file path and
+    // `directory/0` when it is a directory. Accept whichever it produced rather than
+    // depending on how it resolved the argument.
+    for candidate in [
+        prefix.join("0"),
+        PathBuf::from(format!("{}.0", prefix.display())),
+    ] {
+        if candidate.is_file() {
+            return Ok(candidate);
+        }
     }
-    Ok(leaf)
+    Err("codesign did not produce a leaf certificate".into())
 }
 
 /// Confirms the signing identity is the pinned owner certificate, not any other key
