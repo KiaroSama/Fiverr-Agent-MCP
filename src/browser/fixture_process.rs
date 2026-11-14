@@ -91,9 +91,22 @@ pub async fn launch(
                         started.elapsed().as_millis()
                     );
                 }
-                let text = root.read_bounded(&path, 4096)?;
-                let text = std::str::from_utf8(&text)
-                    .map_err(|_| invalid("Invalid browser readiness encoding."))?;
+                // The file appears before Chrome finishes writing it, so a read can
+                // catch an empty, partial or undecodable interim state. That is this
+                // loop's normal precondition, not a failure: keep polling. Run
+                // 43620080771 failed here as `StorageUnavailable` with
+                // readiness_seen=true and deadline=false.
+                let text = match root.read_bounded(&path, 4096) {
+                    Ok(bytes) => bytes,
+                    Err(_) => {
+                        ticks.tick().await;
+                        continue;
+                    }
+                };
+                let Ok(text) = std::str::from_utf8(&text) else {
+                    ticks.tick().await;
+                    continue;
+                };
                 let lines: Vec<_> = text.lines().collect();
                 if lines.len() == 2 && lines[1].starts_with("/devtools/browser/") {
                     let port: u16 = lines[0]
@@ -130,7 +143,12 @@ pub async fn launch(
                     });
                 }
             }
-            let bytes = root.read_bounded(&stderr_path, 16384)?;
+            // Chrome is still writing this file; an unreadable interim state means the
+            // endpoint is not there yet, not that the fixture is broken.
+            let Ok(bytes) = root.read_bounded(&stderr_path, 16384) else {
+                ticks.tick().await;
+                continue;
+            };
             if let Ok(text) = std::str::from_utf8(&bytes)
                 && let Some(endpoint) = text
                     .lines()

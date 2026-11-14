@@ -85,7 +85,10 @@ async fn run(root: &std::path::Path, arguments: &[&str], wrapper: bool) -> std::
         Arc::new(AtomicBool::new(false)),
     ));
     let mut exit_code = None;
-    let result = tokio::time::timeout(Duration::from_secs(10), async {
+    // `pwsh` cold start on a loaded Windows runner can exceed ten seconds; run
+    // 43620080771 hit that with no exit and no output on either stream. The bound still
+    // fails a genuine hang, just later.
+    let result = tokio::time::timeout(Duration::from_secs(60), async {
         let status = child.wait().await.unwrap();
         exit_code = Some(status.code());
         let (stdout, stderr) = tokio::join!(&mut out, &mut err);

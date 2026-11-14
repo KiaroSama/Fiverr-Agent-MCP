@@ -8,7 +8,10 @@ async fn output(command: &mut tokio::process::Command) -> std::process::Output {
         .stderr(Stdio::piped())
         .kill_on_drop(true);
     command.creation_flags(0x08000000);
-    tokio::time::timeout(Duration::from_secs(10), command.output())
+    // `pwsh` cold start on a loaded Windows runner can exceed ten seconds before the
+    // wrapper produces anything at all; run 43620080771 hit exactly that with no output
+    // on either stream. The bound still fails a genuine hang, just later.
+    tokio::time::timeout(Duration::from_secs(60), command.output())
         .await
         .expect("Owned launcher fixture exceeded its deadline")
         .unwrap()
