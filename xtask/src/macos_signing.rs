@@ -103,6 +103,27 @@ fn set_search_list(keychains: &[String]) -> Result<()> {
     Ok(())
 }
 
+/// Confirms the ephemeral keychain is readable through the search list.
+///
+/// `security list-keychains -d user` reports an empty list on a runner whose login
+/// keychain was never created, and a signing failure then looks identical to a missing
+/// identity. Reading the list back turns that into a named error at import time.
+fn confirm_search_list(keychain: &str) -> Result<()> {
+    let listed = search_list()?;
+    if !listed.iter().any(|entry| entry == keychain) {
+        return Err(format!(
+            "ephemeral keychain is not on the user search list (list: {})",
+            if listed.is_empty() {
+                "empty".to_owned()
+            } else {
+                listed.join(", ")
+            }
+        )
+        .into());
+    }
+    Ok(())
+}
+
 /// Signs each final Mach-O binary with the owner identity, then verifies every result.
 ///
 /// Both binaries must be signed before packaging because packaging reads the binaries
@@ -130,7 +151,7 @@ pub fn sign_and_verify(binaries: &[(&str, &Path)]) -> Result<()> {
     // passing the flag as well only re-adds the filter that has been failing.
     let mut signed = Vec::new();
     for (name, path) in binaries {
-        signed.push(sign_one(name, path, selector.as_deref())?);
+        signed.push(sign_one(name, path, &keychain, selector.as_deref())?);
     }
     for entry in &signed {
         verify_one(entry.0, &entry.1)?;
@@ -194,10 +215,13 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
             .to_str()
             .ok_or("ephemeral keychain path is not valid UTF-8")?
             .to_owned();
-        let mut updated = vec![display];
+        let mut updated = vec![display.clone()];
         updated.extend(previous.iter().cloned());
         guard.previous_search_list = Some(previous);
         set_search_list(&updated)?;
+        // The runner's user domain may report an empty list even after the update, in
+        // which case `codesign` never sees the identity however it is selected.
+        confirm_search_list(&display)?;
         Ok(())
     })();
     // On failure the guard restores any changed search list and removes the file.
@@ -369,12 +393,12 @@ fn pem_encode(label: &str, der: &[u8]) -> String {
 /// Signs one final binary with the owner identity.
 ///
 /// The identity is selected by its SHA-1 fingerprint, or by common name when the
-/// fingerprint could not be read. No `--keychain` filter is passed: the caller has
-/// already put the ephemeral keychain at the head of the user search list, and the filter
-/// resolves through that same list, so adding it only reintroduced the failure.
+/// fingerprint could not be read. `--keychain` names the ephemeral keychain so the only
+/// identity reachable is the owner one, and the search list is prepared before this runs.
 fn sign_one<'a>(
     name: &'a str,
     path: &'a Path,
+    keychain: &EphemeralKeychain,
     selector: Option<&str>,
 ) -> Result<(&'a str, PathBuf)> {
     // Bounded: a `codesign` that cannot reach the key is left waiting on a keychain
@@ -388,6 +412,12 @@ fn sign_one<'a>(
             // A SHA-1 fingerprint selects exactly one identity. The common name is only a
             // display string and can match an unrelated certificate on the machine.
             selector.unwrap_or(SIGNING_IDENTITY).to_owned(),
+            "--keychain".to_owned(),
+            keychain
+                .path
+                .to_str()
+                .ok_or("keychain path is not valid UTF-8")?
+                .to_owned(),
             "--options".to_owned(),
             "runtime".to_owned(),
             "--timestamp=none".to_owned(),
