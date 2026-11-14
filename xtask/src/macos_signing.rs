@@ -135,7 +135,11 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
     let directory = std::env::var_os("RUNNER_TEMP")
         .map(PathBuf::from)
         .unwrap_or_else(std::env::temp_dir);
-    let path = directory.join(format!("fiverr-signing-{}.keychain", std::process::id()));
+    // The `.keychain-db` suffix is what `security create-keychain` produces and what every
+    // working macOS CI signer uses. `SecKeychainCreate` accepts a bare `.keychain` path and
+    // writes the file, but the identity stored there is not reachable through the modern
+    // keychain database layout that `codesign` resolves a search-list entry against.
+    let path = directory.join(format!("fiverr-signing-{}.keychain-db", std::process::id()));
     if path.exists() {
         fs::remove_file(&path)?;
     }
@@ -411,14 +415,19 @@ fn sign_one<'a>(
 /// identity is expected; anything else is a signing-environment fault rather than a
 /// selector to guess at, so a missing or ambiguous result falls back to the common name.
 fn identity_sha1(keychain: &Path) -> Option<String> {
-    let output = Command::new("/usr/bin/security")
-        .arg("find-identity")
-        .arg("-p")
-        .arg("codesigning")
-        .arg(keychain)
-        .stderr(Stdio::null())
-        .output()
-        .ok()?;
+    let path = keychain.to_str()?;
+    let args: Vec<String> = ["find-identity", "-p", "codesigning", path]
+        .iter()
+        .map(|part| (*part).to_owned())
+        .collect();
+    let output = crate::process::run(
+        "/usr/bin/security",
+        &args,
+        keychain.parent().unwrap_or(Path::new("/")),
+        30,
+        15,
+    )
+    .ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
     let mut found = Vec::new();
     for line in text.lines() {
@@ -440,16 +449,26 @@ fn identity_sha1(keychain: &Path) -> Option<String> {
 /// Counts the code-signing identities reachable through one keychain.
 ///
 /// The count is public metadata: no certificate name, key material or password is read.
+/// Bounded like every other `security` call here: on a keychain whose certificate is not
+/// trusted, `find-identity` opens a keychain authorization prompt and otherwise waits for
+/// an answer that never comes.
 fn visible_identities(keychain: &Path) -> usize {
-    let output = Command::new("/usr/bin/security")
-        .arg("find-identity")
-        .arg("-v")
-        .arg("-p")
-        .arg("codesigning")
-        .arg(keychain)
-        .stderr(Stdio::null())
-        .output();
-    let Ok(output) = output else { return 0 };
+    let Some(path) = keychain.to_str() else {
+        return 0;
+    };
+    let args: Vec<String> = ["find-identity", "-v", "-p", "codesigning", path]
+        .iter()
+        .map(|part| (*part).to_owned())
+        .collect();
+    let Ok(output) = crate::process::run(
+        "/usr/bin/security",
+        &args,
+        keychain.parent().unwrap_or(Path::new("/")),
+        30,
+        15,
+    ) else {
+        return 0;
+    };
     String::from_utf8_lossy(&output.stdout)
         .lines()
         .filter(|line| {
@@ -461,13 +480,22 @@ fn visible_identities(keychain: &Path) -> usize {
 
 /// Verifies one signed binary strictly, across every architecture it contains.
 fn verify_one(name: &str, path: &Path) -> Result<()> {
-    let status = Command::new("/usr/bin/codesign")
-        .arg("--verify")
-        .arg("--strict")
-        .arg("--all-architectures")
-        .arg(path)
-        .status()
-        .map_err(|_| "codesign verify launch failed")?;
+    let status = crate::process::run(
+        "/usr/bin/codesign",
+        &[
+            "--verify".to_owned(),
+            "--strict".to_owned(),
+            "--all-architectures".to_owned(),
+            path.to_str()
+                .ok_or("binary path is not valid UTF-8")?
+                .to_owned(),
+        ],
+        path.parent().unwrap_or(Path::new("/")),
+        120,
+        60,
+    )
+    .map_err(|error| format!("codesign verification did not complete for {name}: {error}"))?
+    .status;
     if !status.success() {
         return Err(format!("codesign verification failed for {name}").into());
     }
