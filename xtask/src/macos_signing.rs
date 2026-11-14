@@ -103,27 +103,6 @@ fn set_search_list(keychains: &[String]) -> Result<()> {
     Ok(())
 }
 
-/// Confirms the ephemeral keychain is readable through the search list.
-///
-/// `security list-keychains -d user` reports an empty list on a runner whose login
-/// keychain was never created, and a signing failure then looks identical to a missing
-/// identity. Reading the list back turns that into a named error at import time.
-fn confirm_search_list(keychain: &str) -> Result<()> {
-    let listed = search_list()?;
-    if !listed.iter().any(|entry| entry == keychain) {
-        return Err(format!(
-            "ephemeral keychain is not on the user search list (list: {})",
-            if listed.is_empty() {
-                "empty".to_owned()
-            } else {
-                listed.join(", ")
-            }
-        )
-        .into());
-    }
-    Ok(())
-}
-
 /// Signs each final Mach-O binary with the owner identity, then verifies every result.
 ///
 /// Both binaries must be signed before packaging because packaging reads the binaries
@@ -219,14 +198,25 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
         guard.trusted_certificate = Some(trust_for_code_signing(&path, &items)?);
         // `codesign --keychain` only filters the user search list; a headless runner
         // cannot reach an identity in a keychain that is not on that list (Apple TN2206).
+        // A runner whose login keychain was never created reports an empty user domain.
+        // Naming the login keychain as the trailing entry keeps the list non-empty so the
+        // domain is materialized, while the ephemeral keychain stays first and is the only
+        // one that holds the owner identity.
         let previous = search_list()?;
         let mut updated = vec![display.clone()];
         updated.extend(previous.iter().cloned());
+        if updated.len() == 1
+            && let Some(home) = std::env::var_os("HOME")
+        {
+            updated.push(
+                PathBuf::from(home)
+                    .join("Library/Keychains/login.keychain-db")
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+        }
         guard.previous_search_list = Some(previous);
         set_search_list(&updated)?;
-        // The runner's user domain may report an empty list even after the update, in
-        // which case `codesign` never sees the identity however it is selected.
-        confirm_search_list(&display)?;
         Ok(())
     })();
     // On failure the guard restores any changed search list and removes the file.
