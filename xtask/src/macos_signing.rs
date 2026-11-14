@@ -140,6 +140,36 @@ pub fn sign_and_verify(binaries: &[(&str, &Path)]) -> Result<()> {
     Ok(())
 }
 
+/// Resolves the invoking user's home directory, ignoring a redirected `HOME`.
+///
+/// The workspace bootstrap sets `HOME` to a project-local directory to keep caches inside
+/// the checkout. The security daemon still resolves keychains against the real home, so a
+/// keychain written under the redirected `HOME` is invisible to `codesign` no matter what
+/// the search list says. `dscl` reads the account record the daemon itself uses.
+fn real_home() -> Option<PathBuf> {
+    if let Ok(user) = std::env::var("USER") {
+        let output = Command::new("/usr/bin/dscl")
+            .arg(".")
+            .arg("-read")
+            .arg(format!("/Users/{user}"))
+            .arg("NFSHomeDirectory")
+            .stderr(Stdio::null())
+            .output()
+            .ok()?;
+        if output.status.success() {
+            // `NFSHomeDirectory: /Users/runner`
+            let text = String::from_utf8_lossy(&output.stdout);
+            if let Some(rest) = text.split("NFSHomeDirectory:").nth(1) {
+                let path = rest.trim();
+                if path.starts_with('/') {
+                    return Some(PathBuf::from(path));
+                }
+            }
+        }
+    }
+    std::env::var_os("HOME").map(PathBuf::from)
+}
+
 /// Imports the PKCS#12 identity into an ephemeral keychain under the runner temp root.
 fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
     let password = Zeroizing::new(random_password()?);
@@ -151,12 +181,11 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
     // writes the file, but the identity stored there is not reachable through the modern
     // keychain database layout that `codesign` resolves a search-list entry against.
     let path = directory.join(format!("fiverr-signing-{}.keychain-db", std::process::id()));
-    // `security list-keychains -d user -s` does not persist on this runner: the domain reads
-    // back empty and `codesign` then reports the identity as missing entirely. A keychain in
-    // `~/Library/Keychains` is discovered by the security daemon itself, which is how the
-    // signers that work on hosted runners avoid depending on the search list at all.
-    let path = match std::env::var_os("HOME") {
-        Some(home) => PathBuf::from(home).join("Library/Keychains").join(
+    // The workspace bootstrap redirects `HOME` to a project-local `.ci-work/home`, so a
+    // `~/Library/Keychains` path here is not the user's keychain directory and the security
+    // daemon never sees it. The real home is the parent of the runner workspace instead.
+    let path = match real_home() {
+        Some(home) => home.join("Library/Keychains").join(
             path.file_name()
                 .ok_or("ephemeral keychain file name missing")?,
         ),
@@ -220,11 +249,10 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
         let mut updated = vec![display.clone()];
         updated.extend(previous.iter().cloned());
         if updated.len() == 1
-            && let Some(home) = std::env::var_os("HOME")
+            && let Some(home) = real_home()
         {
             updated.push(
-                PathBuf::from(home)
-                    .join("Library/Keychains/login.keychain-db")
+                home.join("Library/Keychains/login.keychain-db")
                     .to_string_lossy()
                     .into_owned(),
             );
