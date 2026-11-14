@@ -160,9 +160,14 @@ pub fn reconcile(root: &Path, target: &str, bytes: &[u8]) -> Result<Value> {
 }
 
 pub fn package_harness(root: &Path) -> Result<PathBuf> {
+    // `nextest list` compiles the target before it enumerates, so this needs the same
+    // deadline as the other compile-bearing cargo calls, not the 120 s smoke tier.
+    // Run 43611711204 spent the whole 120 s compiling on the Intel macOS runner and
+    // failed with `owned command wall/idle deadline exceeded` after the listing itself
+    // would have been instant.
     let output = crate::ci::owned(
-        120,
-        60,
+        900,
+        180,
         "cargo",
         &[
             "nextest",
