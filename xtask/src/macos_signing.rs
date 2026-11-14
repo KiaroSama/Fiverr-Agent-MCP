@@ -278,7 +278,7 @@ fn random_bytes(bytes: &mut [u8]) -> bool {
 /// macOS answers a first-time trust write with an authorization prompt, which a headless
 /// runner cannot answer, so the write goes to the admin domain under passwordless `sudo`.
 /// Returns the certificate path left in place for the guard to remove on cleanup.
-fn trust_for_code_signing(keychain: &Path, items: &SecItems) -> Result<PathBuf> {
+fn trust_for_code_signing(_keychain: &Path, items: &SecItems) -> Result<PathBuf> {
     // A PKCS#12 import reports its certificate as part of a `SecIdentity`, so the
     // standalone certificate list stays empty. Both shapes are accepted.
     let leaf = match items.certificates.first() {
@@ -290,9 +290,6 @@ fn trust_for_code_signing(keychain: &Path, items: &SecItems) -> Result<PathBuf> 
             .certificate()
             .map_err(|error| format!("identity certificate read failed: {error}"))?,
     };
-    let display = keychain
-        .to_str()
-        .ok_or("ephemeral keychain path is not valid UTF-8")?;
     let directory = std::env::var_os("RUNNER_TEMP")
         .map(PathBuf::from)
         .unwrap_or_else(std::env::temp_dir);
@@ -300,26 +297,35 @@ fn trust_for_code_signing(keychain: &Path, items: &SecItems) -> Result<PathBuf> 
     let der = leaf.to_der();
     fs::write(&cert_path, pem_encode("CERTIFICATE", &der))?;
     let outcome = (|| -> Result<()> {
-        // `-d` writes the admin trust domain, which needs root on a runner where no
-        // authorization prompt can be answered. `sudo -n` fails closed if passwordless
-        // escalation is unavailable instead of blocking on a prompt.
-        let status = Command::new("/usr/bin/sudo")
-            .arg("-n")
-            .arg("/usr/bin/security")
-            .arg("add-trusted-cert")
-            .arg("-d")
-            .arg("-r")
-            .arg("trustRoot")
-            .arg("-p")
-            .arg("codeSign")
-            .arg("-k")
-            .arg(display)
-            .arg(&cert_path)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map_err(|_| "add-trusted-cert launch failed")?;
-        if !status.success() {
+        // `-d` writes the admin trust domain; with `-d` the `-k` value names the system
+        // keychain that stores the record, not the ephemeral one. Pointing `-k` at a
+        // user keychain while writing the admin domain leaves `security` waiting on an
+        // authorization prompt that a headless runner can never answer. The call is
+        // bounded because that wait is otherwise indistinguishable from a slow runner.
+        let args: Vec<String> = [
+            "-n",
+            "/usr/bin/security",
+            "add-trusted-cert",
+            "-d",
+            "-r",
+            "trustRoot",
+            "-p",
+            "codeSign",
+            "-k",
+            "/Library/Keychains/System.keychain",
+        ]
+        .iter()
+        .map(|part| (*part).to_owned())
+        .chain(std::iter::once(
+            cert_path
+                .to_str()
+                .ok_or("trust path is not valid UTF-8")?
+                .to_owned(),
+        ))
+        .collect();
+        let output = crate::process::run("/usr/bin/sudo", &args, &directory, 60, 30)
+            .map_err(|error| format!("add-trusted-cert did not complete: {error}"))?;
+        if !output.status.success() {
             return Err("add-trusted-cert refused for the code-signing policy".into());
         }
         Ok(())
@@ -356,21 +362,36 @@ fn sign_one<'a>(
     keychain: &EphemeralKeychain,
     selector: Option<&str>,
 ) -> Result<(&'a str, PathBuf)> {
-    let status = Command::new("/usr/bin/codesign")
-        .arg("--force")
-        .arg("--sign")
-        // A SHA-1 fingerprint selects exactly one identity. The common name is only a
-        // display string and can match an unrelated certificate on the machine.
-        .arg(selector.unwrap_or(SIGNING_IDENTITY))
-        .arg("--keychain")
-        .arg(&keychain.path)
-        .arg("--options")
-        .arg("runtime")
-        .arg("--timestamp=none")
-        .arg(path)
-        .status()
-        .map_err(|_| "codesign launch failed")?;
-    if !status.success() {
+    // Bounded: a `codesign` that cannot reach the key is left waiting on a keychain
+    // authorization prompt, which on a headless runner never arrives. Without a bound
+    // that hang consumes the whole job timeout instead of reporting a failure.
+    let signed = crate::process::run(
+        "/usr/bin/codesign",
+        &[
+            "--force".to_owned(),
+            "--sign".to_owned(),
+            // A SHA-1 fingerprint selects exactly one identity. The common name is only a
+            // display string and can match an unrelated certificate on the machine.
+            selector.unwrap_or(SIGNING_IDENTITY).to_owned(),
+            "--keychain".to_owned(),
+            keychain
+                .path
+                .to_str()
+                .ok_or("keychain path is not valid UTF-8")?
+                .to_owned(),
+            "--options".to_owned(),
+            "runtime".to_owned(),
+            "--timestamp=none".to_owned(),
+            path.to_str()
+                .ok_or("binary path is not valid UTF-8")?
+                .to_owned(),
+        ],
+        path.parent().unwrap_or(Path::new("/")),
+        120,
+        60,
+    )
+    .map_err(|error| format!("codesign did not complete for {name}: {error}"))?;
+    if !signed.status.success() {
         // `codesign` collapses every keychain lookup problem into "the specified item
         // could not be found", which cannot distinguish a missing identity from a denied
         // one. Report what the keychain actually holds so the next failure is diagnosable.
