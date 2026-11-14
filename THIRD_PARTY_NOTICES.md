@@ -18,6 +18,8 @@ The selectors0.38.0 and0.41.0 packages declare MPL-2.0 but omits the license tex
 
 The application uses the official modelcontextprotocol/rust-sdk (Apache-2.0 with retained upstream MIT transition notices), reqwest (MIT OR Apache-2.0), chromiumoxide (MIT OR Apache-2.0), Tokio (MIT), rusqlite (MIT), serde (MIT OR Apache-2.0), Axum (MIT) and their locked dependencies. SQLite is bundled by libsqlite3-sys and retains the applicable upstream notices. Final package inventories, not this illustrative list, identify resolved versions/licenses.
 
+Release signature verification in `xtask` links `ssh-key` (Apache-2.0 OR MIT) at an exact pin, together with its locked `ed25519-dalek` and `curve25519-dalek` (BSD-3-Clause), `signature`, `ssh-encoding` and `sha2 0.10` (Apache-2.0 OR MIT) dependencies. These crates verify the SSHSIG archive signatures described in docs/verification-report.md; they are build/CI tooling and are not part of the shipped application binary. `ssh-key` pins `sha2 0.10` while `xtask` also pins `sha2 0.11` directly, so `cargo deny` reports a multiple-versions warning for that crate; both lines are on the allow list and no single crate mixes them.
+
 ## References versus redistributed material
 
 Owner Upwork/Agensi projects and the other Fiverr projects listed in references.lock.json informed route, native packaging, schema and access-boundary design. They are not bundled account backends. Scrapers, arbitrary JavaScript bridges, anti-detection code, unsupported APIs and secret-bearing configurations were not copied.

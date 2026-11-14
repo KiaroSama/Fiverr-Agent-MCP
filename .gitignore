@@ -51,3 +51,6 @@ node_modules/
 !/.env.sample
 !/.env.template
 !/.env.dist
+
+# Local browser-MCP scratch
+/.playwright-mcp/

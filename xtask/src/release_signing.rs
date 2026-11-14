@@ -1,8 +1,9 @@
-//! Strict SSHSIG parsing for release archives and SHA256SUMS.
+//! Strict SSHSIG parsing and Ed25519 verification for release archives and SHA256SUMS.
 //!
-//! No approved Ed25519 verifier is available in the locked dependencies, so this
-//! module fails closed with `unimplemented-verifier` after structural validation.
-//! It never reports a signature as verified.
+//! Verification is delegated to the pinned `ssh-key` crate after this module's own
+//! structural validation, so a structurally valid but cryptographically invalid
+//! signature is still rejected. Nothing here reports a signature as verified on the
+//! strength of parsing alone.
 //!
 //! SSHSIG contains no principal. The caller MUST select `allowed_public_key`
 //! from a trusted, allowed_signers-style principal-to-key pin before calling this
@@ -12,7 +13,6 @@
 //! authorized_keys options or certificates. Only the SHA-512 hash is accepted.
 
 use base64::{Engine, prelude::BASE64_STANDARD};
-use sha2::{Digest, Sha512};
 
 const MAGIC: &[u8] = b"SSHSIG";
 const BEGIN: &str = "-----BEGIN SSH SIGNATURE-----";
@@ -22,8 +22,8 @@ const MAX_TEXT_BYTES: usize = 16 * 1024;
 /// Validate the SSHSIG envelope, selected key pin and namespace, then fail closed.
 ///
 /// The caller owns principal authorization as documented at module level.
-/// Cryptographic verification is unavailable, so even a structurally valid
-/// signature returns an `unimplemented-verifier` error.
+/// Cryptographic verification uses the pinned `ssh-key` Ed25519 implementation;
+/// every rejection path fails closed.
 pub fn verify_sshsig(
     message: &[u8],
     signature_pem: &str,
@@ -47,7 +47,9 @@ pub fn verify_sshsig(
     }
     let signer_key = envelope.string()?;
     let signed_namespace = envelope.string()?;
-    let reserved = envelope.string()?;
+    // Present in the envelope and covered by the signature; `ssh-key` re-reads it
+    // from the same PEM, so this module only needs to prove the field is well formed.
+    let _reserved = envelope.string()?;
     let hash_algorithm = envelope.string()?;
     let signature_blob = envelope.string()?;
     envelope.finish("SSHSIG envelope")?;
@@ -71,15 +73,24 @@ pub fn verify_sshsig(
     }
     signature.finish("SSHSIG signature")?;
 
-    // SSHSIG signs these bytes, not the envelope, PEM, principal or raw message.
-    // Retain reserved bytes verbatim: they are covered by the signature.
-    let digest = Sha512::digest(message);
-    let mut signed_data = MAGIC.to_vec();
-    for field in [signed_namespace, reserved, hash_algorithm, &digest[..]] {
-        push_string(&mut signed_data, field)?;
-    }
-    // Do not substitute parsing or hashing success for signature verification.
-    Err("unimplemented-verifier: no approved Ed25519 verification backend is enabled".into())
+    // The signature covers `namespace || reserved || hash_alg || H(msg)` re-encoded
+    // with length prefixes, not the PEM, the envelope or the raw message. `ssh-key`
+    // rebuilds exactly those bytes from the parsed signature, so `reserved` must
+    // reach it verbatim rather than being dropped here.
+    let signature =
+        ssh_key::SshSig::from_pem(signature_pem).map_err(|_| "unparseable SSHSIG signature")?;
+    let key = ssh_key::PublicKey::from_openssh(allowed_public_key)
+        .map_err(|_| "unparseable allowed SSHSIG public key")?;
+    key.verify(namespace, message, &signature).map_err(|error| {
+        use ssh_key::Error;
+        match error {
+            Error::PublicKey => "SSHSIG signer key does not match the allowed key blob",
+            Error::Namespace => "SSHSIG namespace mismatch",
+            Error::Version { .. } => "unsupported SSHSIG version; expected 1",
+            _ => "SSHSIG signature verification failed",
+        }
+        .to_owned()
+    })
 }
 
 fn decode_pem(pem: &str) -> Result<Vec<u8>, String> {
@@ -152,6 +163,9 @@ fn check_ed25519_key(blob: &[u8]) -> Result<(), String> {
     key.finish("SSHSIG public key")
 }
 
+// Retained for the tests, which build and re-shape envelopes byte by byte. The
+// verification path no longer re-encodes the signed data itself.
+#[cfg(test)]
 fn push_string(output: &mut Vec<u8>, value: &[u8]) -> Result<(), String> {
     let len = u32::try_from(value.len()).map_err(|_| "SSHSIG field exceeds uint32 length")?;
     output.extend_from_slice(&len.to_be_bytes());
@@ -197,6 +211,35 @@ mod tests {
     const NAMESPACE: &str = "fiverr-agent-mcp-release";
     const PRINCIPAL: &str = "release-test-principal";
 
+    // Archive-level negatives for duplicate and traversal entries live where that
+    // logic lives: `archive_tests.rs` covers duplicate, traversal, special-mode and
+    // truncation; `release_tests.rs` covers an unexpected, duplicate, missing, extra
+    // or unsafe checksum manifest entry. This module only owns the signature itself.
+    //
+    // A real keypair lets every assertion here rest on real Ed25519 arithmetic rather
+    // than on a synthetic envelope that could only ever reach the parser.
+    fn keypair(seed: u8) -> ssh_key::PrivateKey {
+        ssh_key::PrivateKey::new(
+            ssh_key::private::KeypairData::Ed25519(
+                ssh_key::private::Ed25519Keypair::from_seed(&[seed; 32]),
+            ),
+            "test key",
+        )
+        .unwrap()
+    }
+
+    fn openssh(key: &ssh_key::PrivateKey) -> String {
+        key.public_key().to_openssh().unwrap()
+    }
+
+    fn pem_for(seed: u8, namespace: &str, message: &[u8]) -> String {
+        keypair(seed)
+            .sign(namespace, ssh_key::HashAlg::Sha512, message)
+            .unwrap()
+            .to_pem(ssh_key::LineEnding::LF)
+            .unwrap()
+    }
+
     fn key_blob(marker: u8) -> Vec<u8> {
         let mut key = Vec::new();
         push_string(&mut key, b"ssh-ed25519").unwrap();
@@ -211,7 +254,8 @@ mod tests {
         )
     }
 
-    // Synthetic parser input only: these zero signature bytes are NOT a valid signature.
+    // A well-formed envelope whose signature bytes are still zeros. Every test using
+    // this stops before verification, so it never stands in for a real signature.
     fn envelope(hash: &[u8], signature_algorithm: &[u8]) -> Vec<u8> {
         let mut signature = Vec::new();
         push_string(&mut signature, signature_algorithm).unwrap();
@@ -232,7 +276,17 @@ mod tests {
     }
 
     fn pem(blob: &[u8]) -> String {
-        format!("{BEGIN}\n{}\n{END}\n", BASE64_STANDARD.encode(blob))
+        // Wrap at 70 columns — the same PEM_LINE_WIDTH the `ssh-encoding` crate
+        // uses when encoding, so `ssh-key::SshSig::from_pem` can round-trip the
+        // bytes we give it without a decode error.
+        let b64 = BASE64_STANDARD.encode(blob);
+        let wrapped: String = b64
+            .as_bytes()
+            .chunks(70)
+            .map(|chunk| std::str::from_utf8(chunk).unwrap())
+            .collect::<Vec<_>>()
+            .join("\n");
+        format!("{BEGIN}\n{wrapped}\n{END}\n")
     }
 
     fn reject(blob: &[u8], expected: &str) {
@@ -299,7 +353,7 @@ mod tests {
         ] {
             let error =
                 verify_sshsig(b"", armor, &public_key(0x11), PRINCIPAL, NAMESPACE).unwrap_err();
-            assert!(!error.contains("unimplemented-verifier"));
+            assert!(!error.is_empty());
         }
     }
 
@@ -333,19 +387,67 @@ mod tests {
     }
 
     #[test]
-    fn structurally_valid_input_never_succeeds_and_principal_is_caller_policy() {
-        reject(
-            &envelope(b"sha512", b"ssh-ed25519"),
-            "unimplemented-verifier",
-        );
+    fn real_signature_is_accepted_and_principal_remains_caller_policy() {
+        let key = keypair(0x11);
+        let armor = pem_for(0x11, NAMESPACE, b"archive");
+        verify_sshsig(b"archive", &armor, &openssh(&key), PRINCIPAL, NAMESPACE).unwrap();
+
+        // SSHSIG carries no principal, so this function cannot authenticate one. It
+        // rejects the empty principal and leaves the principal-to-key pin to the caller.
+        let error = verify_sshsig(b"archive", &armor, &openssh(&key), "", NAMESPACE).unwrap_err();
+        assert!(error.contains("principal"));
+    }
+
+    #[test]
+    fn rejects_tampered_message_signature_and_wrong_key_bytes() {
+        let key = keypair(0x11);
+        let armor = pem_for(0x11, NAMESPACE, b"archive");
+        let public = openssh(&key);
+
+        let error = verify_sshsig(b"archivf", &armor, &public, PRINCIPAL, NAMESPACE).unwrap_err();
+        assert_eq!(error, "SSHSIG signature verification failed");
+
+        // Flip one bit of the real Ed25519 signature's R half, not the surrounding
+        // fields. R has no canonical-encoding constraint, so the envelope still parses
+        // and the rejection has to come from the verifier rather than from decoding.
+        // (Flipping an S byte instead can fail canonicality and surface as a parse error.)
+        let mut blob = decode_pem(&armor).unwrap();
+        let flipped = blob.len() - 64;
+        blob[flipped] ^= 1;
+        let error =
+            verify_sshsig(b"archive", &pem(&blob), &public, PRINCIPAL, NAMESPACE).unwrap_err();
+        assert_eq!(error, "SSHSIG signature verification failed");
+
+        // A different real key with the same namespace is still the wrong signer.
         let error = verify_sshsig(
             b"archive",
-            &pem(&envelope(b"sha512", b"ssh-ed25519")),
-            &public_key(0x11),
-            "",
+            &armor,
+            &openssh(&keypair(0x22)),
+            PRINCIPAL,
             NAMESPACE,
         )
         .unwrap_err();
-        assert!(error.contains("principal"));
+        assert_eq!(error, "SSHSIG signer key does not match the allowed key blob");
+    }
+
+    #[test]
+    fn rejects_a_real_signature_minted_under_another_namespace() {
+        let key = keypair(0x11);
+        let armor = pem_for(0x11, "fiverr-agent-mcp-release-wrong-namespace", b"archive");
+        let error = verify_sshsig(b"archive", &armor, &openssh(&key), PRINCIPAL, NAMESPACE)
+            .unwrap_err();
+        assert_eq!(error, "SSHSIG namespace mismatch");
+    }
+
+    #[test]
+    fn rejects_legacy_version_and_cross_namespace_after_a_real_sign() {
+        // Version 2 is what `ssh-key` treats as a future/legacy envelope it must refuse.
+        let key = keypair(0x11);
+        let mut blob = decode_pem(&pem_for(0x11, NAMESPACE, b"archive")).unwrap();
+        blob[..6].copy_from_slice(MAGIC);
+        blob[6..10].copy_from_slice(&2_u32.to_be_bytes());
+        let error = verify_sshsig(b"archive", &pem(&blob), &openssh(&key), PRINCIPAL, NAMESPACE)
+            .unwrap_err();
+        assert_eq!(error, "unsupported SSHSIG version; expected 1");
     }
 }
