@@ -21,7 +21,7 @@
 use crate::Result;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use security_framework::os::macos::import_export::{ImportOptions, SecItems};
-use security_framework::os::macos::keychain::CreateOptions;
+use security_framework::os::macos::keychain::SecKeychain;
 use std::path::{Path, PathBuf};
 use std::{fs, io::Write, process::Command, process::Stdio};
 use zeroize::Zeroizing;
@@ -175,21 +175,30 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
     if path.exists() {
         fs::remove_file(&path)?;
     }
-    let mut options = CreateOptions::new();
-    options.password(password.as_str()).prompt_user(false);
-    let mut keychain = options
-        .create(&path)
-        .map_err(|error| format!("ephemeral keychain creation failed: {error}"))?;
-    // Creation leaves the keychain unlocked, but an auto-lock race on a slow runner
-    // would surface as the same "item could not be found" failure during signing.
-    keychain
-        .unlock(Some(password.as_str()))
-        .map_err(|error| format!("ephemeral keychain unlock failed: {error}"))?;
+    let display = path
+        .to_str()
+        .ok_or("ephemeral keychain path is not valid UTF-8")?
+        .to_owned();
+    // The path is single-quoted inside the interactive command, so a quote in it could
+    // split the command. Runner temp paths contain none; reject rather than escape.
+    if display.contains('\'') {
+        return Err("ephemeral keychain path contains a single quote".into());
+    }
+    // Create through `security -i -q` for the same reason the partition list does: the CLI
+    // `-p` form would place the keychain password in the argument vector. The command
+    // arrives on private stdin. Both commands mirror what `security create-keychain` and
+    // `security unlock-keychain` do, which is the pair every working macOS CI signer uses.
+    run_security_commands(&[
+        format!("create-keychain -p {} '{display}'", password.as_str()),
+        format!("unlock-keychain -p {} '{display}'", password.as_str()),
+    ])?;
     let mut guard = EphemeralKeychain {
         path: path.clone(),
         previous_search_list: None,
         trusted_certificate: None,
     };
+    let keychain = SecKeychain::open(&path)
+        .map_err(|error| format!("ephemeral keychain open failed: {error}"))?;
     let outcome = (|| -> Result<()> {
         let mut items = SecItems::default();
         let mut import = ImportOptions::new();
@@ -211,10 +220,6 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
         // `codesign --keychain` only filters the user search list; a headless runner
         // cannot reach an identity in a keychain that is not on that list (Apple TN2206).
         let previous = search_list()?;
-        let display = path
-            .to_str()
-            .ok_or("ephemeral keychain path is not valid UTF-8")?
-            .to_owned();
         let mut updated = vec![display.clone()];
         updated.extend(previous.iter().cloned());
         guard.previous_search_list = Some(previous);
@@ -240,43 +245,58 @@ fn grant_tool_access(keychain: &Path, password: &str) -> Result<()> {
     let display = keychain
         .to_str()
         .ok_or("ephemeral keychain path is not valid UTF-8")?;
-    if display.contains('\'') {
-        return Err("ephemeral keychain path contains a single quote".into());
-    }
-    let mut child = Command::new("/usr/bin/security")
-        .arg("-i")
-        .arg("-q")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|_| "security partition-list launch failed")?;
     // `codesign:` must be present in the partition list. Without it the key is imported
     // but `codesign` is denied non-interactive access and reports the item as missing
-    // from the keychain, which is the failure seen on both macOS runners.
-    let command = format!(
-        "set-key-partition-list -S apple-tool:,apple:,codesign: -s -k {password} '{display}'\n"
-    );
-    let outcome = (|| -> Result<()> {
-        let stdin = child
-            .stdin
-            .as_mut()
-            .ok_or("security partition-list stdin unavailable")?;
-        stdin
-            .write_all(command.as_bytes())
-            .map_err(|_| "security partition-list stdin write failed")?;
-        Ok(())
-    })();
-    // Closing stdin before waiting lets the single command reach EOF and the exit
-    // status to reflect that command alone.
-    drop(child.stdin.take());
-    let status = child
-        .wait()
-        .map_err(|_| "security partition-list wait failed")?;
-    if !status.success() {
-        return Err("security partition-list refused".into());
+    // from the keychain.
+    run_security_commands(&[format!(
+        "set-key-partition-list -S apple-tool:,apple:,codesign: -s -k {password} '{display}'"
+    )])
+}
+
+/// Runs `security` interactive commands on private stdin.
+///
+/// Apple's interactive mode is used instead of the `-p` / `-k` command forms because those
+/// place the password in the process argument vector, where any local process can read it.
+/// Callers must reject an unquotable keychain path before formatting a command; the
+/// `display` binding in `import_identity` does that. Verbose mode is never enabled:
+/// Apple's interactive mode echoes command arguments when `-v` is passed.
+fn run_security_commands(commands: &[String]) -> Result<()> {
+    for command in commands {
+        let mut child = Command::new("/usr/bin/security")
+            .arg("-i")
+            .arg("-q")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|_| "security interactive launch failed")?;
+        let outcome = (|| -> Result<()> {
+            let stdin = child
+                .stdin
+                .as_mut()
+                .ok_or("security interactive stdin unavailable")?;
+            stdin
+                .write_all(command.as_bytes())
+                .and_then(|()| {
+                    stdin.write_all(
+                        b"
+",
+                    )
+                })
+                .map_err(|_| "security interactive stdin write failed")?;
+            Ok(())
+        })();
+        // Closing stdin before waiting lets the single command reach EOF and the exit
+        // status to reflect that command alone.
+        drop(child.stdin.take());
+        let status = child
+            .wait()
+            .map_err(|_| "security interactive wait failed")?;
+        if !status.success() {
+            return Err("security interactive command refused".into());
+        }
+        outcome?;
     }
-    outcome?;
     Ok(())
 }
 
