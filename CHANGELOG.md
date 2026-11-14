@@ -2,7 +2,7 @@
 
 ## Unreleased — 2026-11-14
 
-Fixed the native macOS Intel timeout: `cargo nextest list` now runs under a compile-sized 900 s / 180 s budget. Source `a529870` passed full CI on all four native targets, with every macOS binary and archive signed and verified against the pinned owner key.
+Fixed the native macOS Intel timeout: `cargo nextest list` now runs under a compile-sized 900 s / 180 s budget. Fixed a Windows browser-fixture failure where an interim `DevToolsActivePort` read was reported as `StorageUnavailable`, and raised the cold-start bounds on the fixture browser and the PowerShell launcher fixtures. Source `baaad8b` passed full CI on all four native targets, with every macOS binary and archive signed and verified against the pinned owner key.
 
 ## Unreleased — 2026-11-11
 

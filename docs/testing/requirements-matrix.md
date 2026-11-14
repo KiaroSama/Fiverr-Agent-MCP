@@ -1,6 +1,6 @@
 # Requirement and acceptance matrix
 
-Checked 2026-11-11. Latest full baseline belongs to source `7620e80d3eb68c2755466421441979eea4b14318` and [manual run43077882092](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43077882092), not a newer documentation revision. Native cases: Windows252, Linux264, macOS ARM64/Intel257each, zero failed/ignored. Linux application5778/6220 (92.89389%), safety3188/3353 (95.07903%); six selected mutants caught. See the [verification report](../verification-report.md) for installation hashes and historical receipts. Linux native JSON events/inventory, not mutation-overwritten JUnit, establish the full suite.
+Checked 2026-11-14. Latest full native baseline belongs to source `baaad8bfffc0f6fc419ece4187508efa40e3c126` and [manual run 43631874912](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43631874912): Windows260, Linux276, macOS ARM64/Intel269 each, zero failed/skipped. macOS binaries and all non-Windows archives are signed against the pinned owner identity; see the [verification report](../verification-report.md).
 
 Implementation, executed fixtures and external acceptance are distinct. All122WF IDs remain individually mapped in capabilities.json:31advertised local/manual tools and91dedicated unsupported operations. A local alternative is not live account functionality.
 
