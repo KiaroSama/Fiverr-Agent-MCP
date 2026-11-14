@@ -214,7 +214,7 @@ document.querySelector('[data-fiverr-fixture]').textContent = JSON.stringify({{r
         axum::serve(listener, app).await.unwrap();
     }));
     let observed = tokio::time::timeout(
-        Duration::from_secs(30),
+        Duration::from_secs(90),
         browser::fixture_observe(
             &root,
             std::path::Path::new(&browser),

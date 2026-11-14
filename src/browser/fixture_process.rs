@@ -189,7 +189,10 @@ pub async fn launch(
             ticks.tick().await;
         }
     };
-    match tokio::time::timeout(Duration::from_secs(20), ready).await {
+    // Chrome writes nothing for the first stretch on a cold Windows runner; run
+    // 43629626324 saw 20 s of silence with the child alive, while the same test
+    // takes 6 to 7 s when warm. The bound still fails a browser that never starts.
+    match tokio::time::timeout(Duration::from_secs(60), ready).await {
         Ok(Ok((browser, handler))) => {
             eprintln!(
                 "fixture_browser phase=connected elapsed_ms={}",
