@@ -59,7 +59,10 @@ pub fn reconcile(root: &Path, target: &str, bytes: &[u8]) -> Result<Value> {
                         Some(pending.remove(position))
                     })
                     .ok_or("suite completion before discovery")?;
-                if active.get(&prefix).is_some_and(|pending| pending.is_empty()) {
+                if active
+                    .get(&prefix)
+                    .is_some_and(|pending| pending.is_empty())
+                {
                     active.remove(&prefix);
                 }
                 let suite = suites.get_mut(&qualified).ok_or("suite missing")?;
