@@ -72,9 +72,24 @@ impl Drop for EphemeralKeychain {
     }
 }
 
+/// Builds a `security` invocation that resolves the same user domain `codesign` does.
+///
+/// `security list-keychains -d user` reads the search list out of `$HOME/Library/Preferences`
+/// while `codesign` asks the security daemon, which resolves the account record instead. The
+/// workspace bootstrap redirects `HOME` into the checkout, so the two disagree: the list this
+/// process writes is not the list `codesign` consults, and it reports every identity as
+/// missing. Pointing `HOME` at the real account home makes both read the same file.
+fn security_command() -> Command {
+    let mut command = Command::new("/usr/bin/security");
+    if let Some(home) = real_home() {
+        command.env("HOME", home);
+    }
+    command
+}
+
 /// Reads the user keychain search list exactly as `security` reports it.
 fn search_list() -> Result<Vec<String>> {
-    let output = Command::new("/usr/bin/security")
+    let output = security_command()
         .args(["list-keychains", "-d", "user"])
         .stderr(Stdio::null())
         .output()
@@ -91,7 +106,7 @@ fn search_list() -> Result<Vec<String>> {
 }
 
 fn set_search_list(keychains: &[String]) -> Result<()> {
-    let status = Command::new("/usr/bin/security")
+    let status = security_command()
         .args(["list-keychains", "-d", "user", "-s"])
         .args(keychains)
         .stderr(Stdio::null())
@@ -257,8 +272,19 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
                     .into_owned(),
             );
         }
-        guard.previous_search_list = Some(previous);
+        guard.previous_search_list = Some(previous.clone());
         set_search_list(&updated)?;
+        // `list-keychains -s` reports success even when nothing is stored, so the read back
+        // is the only evidence the signer will see this keychain at all.
+        let applied = search_list()?;
+        if applied.first() != updated.first() {
+            return Err(format!(
+                "keychain search list did not take effect; wanted {}, read back {}",
+                updated.first().map(String::as_str).unwrap_or("none"),
+                applied.first().map(String::as_str).unwrap_or("none")
+            )
+            .into());
+        }
         Ok(())
     })();
     // On failure the guard restores any changed search list and removes the file.
