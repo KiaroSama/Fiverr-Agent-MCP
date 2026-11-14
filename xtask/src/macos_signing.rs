@@ -50,15 +50,23 @@ impl Drop for EphemeralKeychain {
             let _ = set_search_list(&previous);
         }
         if let Some(certificate) = self.trusted_certificate.take() {
-            let _ = Command::new("/usr/bin/sudo")
-                .arg("-n")
-                .arg("/usr/bin/security")
-                .arg("remove-trusted-cert")
-                .arg("-d")
-                .arg(&certificate)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status();
+            // Bounded: this runs while unwinding a failure, and an unbounded wait here
+            // turns one signing error into a job timeout with no diagnostic at all.
+            if let Some(path) = certificate.to_str() {
+                let args: Vec<String> = ["-n", "/usr/bin/security", "remove-trusted-cert", "-d"]
+                    .iter()
+                    .map(|part| (*part).to_owned())
+                    .chain(std::iter::once(path.to_owned()))
+                    .collect();
+                let _ = crate::process::run(
+                    "/usr/bin/sudo",
+                    &args,
+                    certificate.parent().unwrap_or(Path::new("/")),
+                    30,
+                    15,
+                );
+            }
+            let _ = fs::remove_file(&certificate);
         }
         let _ = fs::remove_file(&self.path);
     }
@@ -117,9 +125,12 @@ pub fn sign_and_verify(binaries: &[(&str, &Path)]) -> Result<()> {
     let blob = Zeroizing::new((*decoded).clone());
     let keychain = import_identity(&blob, passphrase.as_str())?;
     let selector = identity_sha1(&keychain.path);
+    // `codesign --keychain` narrows the search list to this keychain but still resolves the
+    // identity through the user domain. The ephemeral keychain is first on that list, so
+    // passing the flag as well only re-adds the filter that has been failing.
     let mut signed = Vec::new();
     for (name, path) in binaries {
-        signed.push(sign_one(name, path, &keychain, selector.as_deref())?);
+        signed.push(sign_one(name, path, selector.as_deref())?);
     }
     for entry in &signed {
         verify_one(entry.0, &entry.1)?;
@@ -355,15 +366,15 @@ fn pem_encode(label: &str, der: &[u8]) -> String {
     text
 }
 
-/// Signs one final binary with the owner identity selected by common name.
+/// Signs one final binary with the owner identity.
 ///
-/// `--keychain` is passed so `codesign` never searches the runner login keychain:
-/// the only identity it can reach is the ephemeral one, which cannot collide with an
-/// unrelated developer identity installed on the machine.
+/// The identity is selected by its SHA-1 fingerprint, or by common name when the
+/// fingerprint could not be read. No `--keychain` filter is passed: the caller has
+/// already put the ephemeral keychain at the head of the user search list, and the filter
+/// resolves through that same list, so adding it only reintroduced the failure.
 fn sign_one<'a>(
     name: &'a str,
     path: &'a Path,
-    keychain: &EphemeralKeychain,
     selector: Option<&str>,
 ) -> Result<(&'a str, PathBuf)> {
     // Bounded: a `codesign` that cannot reach the key is left waiting on a keychain
@@ -377,12 +388,6 @@ fn sign_one<'a>(
             // A SHA-1 fingerprint selects exactly one identity. The common name is only a
             // display string and can match an unrelated certificate on the machine.
             selector.unwrap_or(SIGNING_IDENTITY).to_owned(),
-            "--keychain".to_owned(),
-            keychain
-                .path
-                .to_str()
-                .ok_or("keychain path is not valid UTF-8")?
-                .to_owned(),
             "--options".to_owned(),
             "runtime".to_owned(),
             "--timestamp=none".to_owned(),
@@ -398,11 +403,13 @@ fn sign_one<'a>(
     if !signed.status.success() {
         // `codesign` collapses every keychain lookup problem into "the specified item
         // could not be found", which cannot distinguish a missing identity from a denied
-        // one. Report what the keychain actually holds so the next failure is diagnosable.
-        let visible = visible_identities(&keychain.path);
+        // one. Report what the search list resolves so the next failure is diagnosable.
         return Err(format!(
-            "codesign failed for {name}; {visible} identity record(s) visible in {}",
-            keychain.path.display()
+            "codesign failed for {name}; search list {}; stderr {}",
+            search_list()
+                .map(|list| list.join(", "))
+                .unwrap_or_else(|_| "unreadable".to_owned()),
+            String::from_utf8_lossy(&signed.stderr).trim()
         )
         .into());
     }
@@ -444,38 +451,6 @@ fn identity_sha1(keychain: &Path) -> Option<String> {
         1 => found.pop(),
         _ => None,
     }
-}
-
-/// Counts the code-signing identities reachable through one keychain.
-///
-/// The count is public metadata: no certificate name, key material or password is read.
-/// Bounded like every other `security` call here: on a keychain whose certificate is not
-/// trusted, `find-identity` opens a keychain authorization prompt and otherwise waits for
-/// an answer that never comes.
-fn visible_identities(keychain: &Path) -> usize {
-    let Some(path) = keychain.to_str() else {
-        return 0;
-    };
-    let args: Vec<String> = ["find-identity", "-v", "-p", "codesigning", path]
-        .iter()
-        .map(|part| (*part).to_owned())
-        .collect();
-    let Ok(output) = crate::process::run(
-        "/usr/bin/security",
-        &args,
-        keychain.parent().unwrap_or(Path::new("/")),
-        30,
-        15,
-    ) else {
-        return 0;
-    };
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .filter(|line| {
-            let line = line.trim_start();
-            line.starts_with(|c: char| c.is_ascii_digit()) && line.contains(") ")
-        })
-        .count()
 }
 
 /// Verifies one signed binary strictly, across every architecture it contains.
