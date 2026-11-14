@@ -595,43 +595,59 @@ fn verify_one(name: &str, path: &Path) -> Result<()> {
 /// `codesign --extract-certificates` writes the leaf as `<prefix>0`; the extracted
 /// file must be removed by the caller.
 pub fn leaf_certificate(path: &Path, output: &Path) -> Result<PathBuf> {
-    // `codesign --extract-certificates <prefix>` writes its files inside `<prefix>`, so the
-    // prefix names a directory that must already exist. The caller's path is used as that
-    // directory: it is unique per binary, and deriving a shared name here would make the two
-    // binaries overwrite each other's certificate.
+    // The prefix must be attached with `=` (`--extract-certificates=<prefix>`). Given as a
+    // separate argument, `codesign` does not consume it and treats the prefix itself as the
+    // path to display, which fails with "bundle format unrecognized".
     let prefix = output.to_path_buf();
-    fs::create_dir_all(&prefix)?;
-    let home = real_home().unwrap_or_else(|| PathBuf::from("/"));
-    let extracted = crate::process::run_with_real_home(
-        "/usr/bin/codesign",
-        &[
-            "--display".to_owned(),
-            "--extract-certificates".to_owned(),
-            prefix
-                .to_str()
-                .ok_or("certificate prefix is not valid UTF-8")?
-                .to_owned(),
-            path.to_str()
-                .ok_or("binary path is not valid UTF-8")?
-                .to_owned(),
-        ],
-        path.parent().unwrap_or(Path::new("/")),
-        60,
-        30,
-        &home,
-    )
-    .map_err(|error| format!("codesign certificate extraction did not complete: {error}"))?;
-    if !extracted.status.success() {
-        // The report is on stderr; without it a failure here is unactionable.
-        return Err(format!(
-            "codesign certificate extraction failed: {}",
-            String::from_utf8_lossy(&extracted.stderr).trim()
-        )
-        .into());
+    if let Some(parent) = prefix.parent() {
+        fs::create_dir_all(parent)?;
     }
-    // `codesign` writes `<prefix>0` when the prefix looks like a file path and
-    // `directory/0` when it is a directory. Accept whichever it produced rather than
-    // depending on how it resolved the argument.
+    let prefix_text = prefix
+        .to_str()
+        .ok_or("certificate prefix is not valid UTF-8")?
+        .to_owned();
+    let binary = path
+        .to_str()
+        .ok_or("binary path is not valid UTF-8")?
+        .to_owned();
+    let home = real_home().unwrap_or_else(|| PathBuf::from("/"));
+    let mut failures = Vec::new();
+    for flag in [
+        format!("--extract-certificates={prefix_text}"),
+        "--extract-certificates".to_owned(),
+    ] {
+        let mut args = vec!["--display".to_owned(), flag];
+        if !args[1].contains('=') {
+            args.push(prefix_text.clone());
+        }
+        args.push(binary.clone());
+        let extracted = crate::process::run_with_real_home(
+            "/usr/bin/codesign",
+            &args,
+            path.parent().unwrap_or(Path::new("/")),
+            60,
+            30,
+            &home,
+        )
+        .map_err(|error| format!("codesign certificate extraction did not complete: {error}"))?;
+        if extracted.status.success() {
+            return leaf_from(&prefix);
+        }
+        // The report is on stderr; without it a failure here is unactionable.
+        failures.push(String::from_utf8_lossy(&extracted.stderr).trim().to_owned());
+    }
+    Err(format!(
+        "codesign certificate extraction failed: {}",
+        failures.join(" | ")
+    )
+    .into())
+}
+
+/// Returns the certificate file `codesign` left behind for `prefix`.
+///
+/// `codesign` writes `<prefix>0`; some versions create a directory instead. Both shapes are
+/// accepted rather than depending on which one this host produces.
+fn leaf_from(prefix: &Path) -> Result<PathBuf> {
     for candidate in [
         prefix.join("0"),
         PathBuf::from(format!("{}.0", prefix.display())),
