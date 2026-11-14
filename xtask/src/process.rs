@@ -92,6 +92,33 @@ pub fn run(executable: &str, args: &[String], cwd: &Path, wall: u64, idle: u64) 
     run_inner(executable, args, cwd, wall, idle, false, &[])
 }
 
+/// Runs a command with the invoking user's real home directory in `HOME`.
+///
+/// The workspace bootstrap redirects `HOME` into the checkout, and the security daemon is
+/// the one component that resolves keychains against the account record instead. Anything
+/// that must agree with the daemon — `codesign` above all — has to start with the home the
+/// daemon uses, or it looks for the keychain under the redirected directory and reports
+/// every identity as missing.
+#[cfg(target_os = "macos")]
+pub fn run_with_real_home(
+    executable: &str,
+    args: &[String],
+    cwd: &Path,
+    wall: u64,
+    idle: u64,
+    home: &Path,
+) -> Result<Output> {
+    run_inner(
+        executable,
+        args,
+        cwd,
+        wall,
+        idle,
+        false,
+        &[("HOME", home.as_os_str())],
+    )
+}
+
 pub fn smoke(executable: &str, args: &[String], cwd: &Path) -> Result<Output> {
     run_inner(executable, args, cwd, 15, 10, true, &[])
 }

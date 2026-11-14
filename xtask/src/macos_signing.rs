@@ -482,7 +482,11 @@ fn sign_one<'a>(
     // Bounded: a `codesign` that cannot reach the key is left waiting on a keychain
     // authorization prompt, which on a headless runner never arrives. Without a bound
     // that hang consumes the whole job timeout instead of reporting a failure.
-    let signed = crate::process::run(
+    // `HOME` is the real account home for the same reason as `security_command`: the
+    // security daemon resolves keychains there, and a redirected `HOME` makes `codesign`
+    // look somewhere the daemon never looks.
+    let home = real_home().unwrap_or_else(|| PathBuf::from("/"));
+    let signed = crate::process::run_with_real_home(
         "/usr/bin/codesign",
         &[
             "--force".to_owned(),
@@ -506,6 +510,7 @@ fn sign_one<'a>(
         path.parent().unwrap_or(Path::new("/")),
         120,
         60,
+        &home,
     )
     .map_err(|error| format!("codesign did not complete for {name}: {error}"))?;
     if !signed.status.success() {
