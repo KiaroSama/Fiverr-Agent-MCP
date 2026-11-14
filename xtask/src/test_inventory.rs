@@ -9,7 +9,7 @@ use std::{
 // Pinned nextest 0.9.151 libtest-json-plus 0.1; schema drift fails closed.
 pub fn reconcile(root: &Path, target: &str, bytes: &[u8]) -> Result<Value> {
     let mut suites = BTreeMap::<String, (u64, BTreeMap<String, String>, bool)>::new();
-    let mut active = BTreeMap::new();
+    let mut active = BTreeMap::<String, Vec<String>>::new();
     let mut executed_targets = BTreeSet::new();
     for line in std::str::from_utf8(bytes)?
         .lines()
@@ -20,13 +20,19 @@ pub fn reconcile(root: &Path, target: &str, bytes: &[u8]) -> Result<Value> {
         let state = event["event"].as_str().ok_or("test event state missing")?;
         if kind == "suite" {
             let metadata = &event["nextest"];
-            let name = format!(
+            // A crate can expose one binary name for more than one kind, `xtask` among them
+            // with a `lib` and a `bin` suite. Test identities carry only `crate::binary`, so
+            // the suites are tracked as a list under that shared prefix and resolved by kind
+            // when the result arrives. Keying on the binary alone failed the run as a
+            // duplicate after every test had already passed.
+            let prefix = format!(
                 "{}::{}",
                 metadata["crate"].as_str().ok_or("suite crate missing")?,
                 metadata["test_binary"]
                     .as_str()
                     .ok_or("suite binary missing")?
             );
+            let name = format!("{prefix}::{}", metadata["kind"].as_str().unwrap_or("test"));
             if state == "started" {
                 let count = event["test_count"].as_u64().ok_or("suite count missing")?;
                 let suite_kind = metadata["kind"].as_str().unwrap_or("test");
@@ -38,20 +44,24 @@ pub fn reconcile(root: &Path, target: &str, bytes: &[u8]) -> Result<Value> {
                             .to_owned(),
                     );
                 }
-                let qualified = format!("{name}::{suite_kind}");
-                if active.insert(name.clone(), qualified.clone()).is_some() {
-                    return Err("duplicate active test suite".into());
-                }
+                active.entry(prefix).or_default().push(name.clone());
                 if suites
-                    .insert(qualified, (count, BTreeMap::new(), false))
+                    .insert(name, (count, BTreeMap::new(), false))
                     .is_some()
                 {
                     return Err("duplicate test suite".into());
                 }
             } else {
                 let qualified = active
-                    .remove(&name)
+                    .get_mut(&prefix)
+                    .and_then(|pending| {
+                        let position = pending.iter().position(|entry| *entry == name)?;
+                        Some(pending.remove(position))
+                    })
                     .ok_or("suite completion before discovery")?;
+                if active.get(&prefix).is_some_and(|pending| pending.is_empty()) {
+                    active.remove(&prefix);
+                }
                 let suite = suites.get_mut(&qualified).ok_or("suite missing")?;
                 if suite.2 || !["ok", "failed"].contains(&state) {
                     return Err("invalid suite completion".into());
@@ -79,9 +89,21 @@ pub fn reconcile(root: &Path, target: &str, bytes: &[u8]) -> Result<Value> {
             let (suite_name, name) = identity
                 .split_once('$')
                 .ok_or("test identity format changed")?;
-            let qualified = active.get(suite_name).ok_or("test without active suite")?;
+            // A `lib` and a `bin` suite share one prefix; attribute the test to the
+            // first candidate that has not already recorded it.
+            let qualified = active
+                .get(suite_name)
+                .and_then(|pending| {
+                    pending.iter().find(|candidate| {
+                        suites
+                            .get(*candidate)
+                            .is_some_and(|suite| !suite.1.contains_key(name))
+                    })
+                })
+                .cloned()
+                .ok_or("test without active suite")?;
             let suite = suites
-                .get_mut(qualified)
+                .get_mut(&qualified)
                 .ok_or("test without discovered suite")?;
             if !["ok", "failed"].contains(&state)
                 || suite.1.insert(name.into(), state.into()).is_some()
@@ -189,6 +211,34 @@ mod tests {
             json!({"type":"suite","event":"ok","passed":1,"failed":0,"ignored":0,"measured":0,"filtered_out":0,"nextest":{"crate":"fiverr-agent-mcp","test_binary":"sample"}}),
         ]
     }
+    // `xtask` exposes a `lib` and a `bin` suite under one binary name, and nextest
+    // reports test identities without the kind. This used to fail the whole run as a
+    // duplicate suite after every test had already passed.
+    #[test]
+    fn inventory_separates_lib_and_bin_suites_sharing_a_binary_name() {
+        let root = crate::root()
+            .join(".ci-work")
+            .join(format!("inventory-kinds-{}", std::process::id()));
+        fs::create_dir_all(root.join("tests")).unwrap();
+        let bytes = [
+            json!({"type":"suite","event":"started","test_count":1,"nextest":{"crate":"xtask","test_binary":"xtask","kind":"lib"}}),
+            json!({"type":"test","event":"ok","name":"xtask::xtask$lib_case"}),
+            json!({"type":"suite","event":"ok","passed":1,"failed":0,"ignored":0,"measured":0,"filtered_out":0,"nextest":{"crate":"xtask","test_binary":"xtask","kind":"lib"}}),
+            json!({"type":"suite","event":"started","test_count":1,"nextest":{"crate":"xtask","test_binary":"xtask","kind":"bin"}}),
+            json!({"type":"test","event":"ok","name":"xtask::xtask$bin_case"}),
+            json!({"type":"suite","event":"ok","passed":1,"failed":0,"ignored":0,"measured":0,"filtered_out":0,"nextest":{"crate":"xtask","test_binary":"xtask","kind":"bin"}}),
+        ]
+        .iter()
+        .map(Value::to_string)
+        .collect::<Vec<_>>()
+        .join("\n");
+        let outcome = reconcile(&root, "x86_64-unknown-linux-gnu", bytes.as_bytes());
+        fs::remove_dir_all(&root).unwrap();
+        let outcome = outcome.expect("lib and bin suites must not collide");
+        assert_eq!(outcome["cases"], 2);
+        assert_eq!(outcome["suites"].as_array().unwrap().len(), 2);
+    }
+
     #[test]
     fn inventory_accepts_exact_case_count_and_rejects_missing_result() {
         let root = crate::root()
