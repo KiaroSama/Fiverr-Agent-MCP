@@ -151,6 +151,20 @@ fn import_identity(blob: &[u8], passphrase: &str) -> Result<EphemeralKeychain> {
     // writes the file, but the identity stored there is not reachable through the modern
     // keychain database layout that `codesign` resolves a search-list entry against.
     let path = directory.join(format!("fiverr-signing-{}.keychain-db", std::process::id()));
+    // `security list-keychains -d user -s` does not persist on this runner: the domain reads
+    // back empty and `codesign` then reports the identity as missing entirely. A keychain in
+    // `~/Library/Keychains` is discovered by the security daemon itself, which is how the
+    // signers that work on hosted runners avoid depending on the search list at all.
+    let path = match std::env::var_os("HOME") {
+        Some(home) => PathBuf::from(home).join("Library/Keychains").join(
+            path.file_name()
+                .ok_or("ephemeral keychain file name missing")?,
+        ),
+        None => path,
+    };
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
     if path.exists() {
         fs::remove_file(&path)?;
     }
