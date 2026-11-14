@@ -204,7 +204,10 @@ fn public_policy(workspace: &Path) -> Result<(String, String)> {
         return Err("release signing policy public key fingerprint mismatch".into());
     }
     match env::var("FIVERR_RELEASE_SIGNING_PUBLIC_KEY") {
-        Ok(value) if value.trim_end_matches(['\r', '\n']) != key => {
+        // A secret the job's environment does not hold arrives as an empty string, not as
+        // an unset variable. That is "not provisioned on this host", not a mismatch: the
+        // pinned policy file has already verified itself above.
+        Ok(value) if !value.trim().is_empty() && value.trim_end_matches(['\r', '\n']) != key => {
             return Err(
                 "release signing public key environment differs from the pinned policy".into(),
             );
