@@ -648,9 +648,12 @@ pub fn leaf_certificate(path: &Path, output: &Path) -> Result<PathBuf> {
 /// `codesign` writes `<prefix>0`; some versions create a directory instead. Both shapes are
 /// accepted rather than depending on which one this host produces.
 fn leaf_from(prefix: &Path) -> Result<PathBuf> {
+    // `codesign` appends the ordinal directly to the prefix (`<prefix>0`), not after a dot.
+    // Confirmed by run 43597040563: the file was `fiverr-leaf-3615-application0`.
     for candidate in [
-        prefix.join("0"),
+        PathBuf::from(format!("{}0", prefix.display())),
         PathBuf::from(format!("{}.0", prefix.display())),
+        prefix.join("0"),
     ] {
         if candidate.is_file() {
             return Ok(candidate);
@@ -703,6 +706,7 @@ fn check_leaf(name: &str, path: &Path) -> Result<()> {
         }
         Ok(())
     })();
+    let _ = fs::remove_file(format!("{}0", scratch.display()));
     let _ = fs::remove_file(format!("{}.0", scratch.display()));
     let _ = fs::remove_dir_all(&scratch);
     outcome
