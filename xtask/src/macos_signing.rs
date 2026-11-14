@@ -656,7 +656,32 @@ fn leaf_from(prefix: &Path) -> Result<PathBuf> {
             return Ok(candidate);
         }
     }
-    Err("codesign did not produce a leaf certificate".into())
+    // Report what is actually there: a silent miss costs a full CI round trip to find.
+    let directory = prefix.parent().unwrap_or(Path::new("/"));
+    let stem = prefix
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let mut nearby: Vec<String> = fs::read_dir(directory)
+        .map(|entries| {
+            entries
+                .flatten()
+                .map(|entry| entry.file_name().to_string_lossy().into_owned())
+                .filter(|name| name.starts_with(&stem))
+                .collect()
+        })
+        .unwrap_or_default();
+    nearby.sort();
+    Err(format!(
+        "codesign did not produce a leaf certificate; prefix {stem}, entries [{}, {}]",
+        nearby.join(", "),
+        if prefix.is_dir() {
+            "directory"
+        } else {
+            "not a directory"
+        }
+    )
+    .into())
 }
 
 /// Confirms the signing identity is the pinned owner certificate, not any other key
