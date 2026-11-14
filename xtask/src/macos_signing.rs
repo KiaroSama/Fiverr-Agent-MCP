@@ -279,10 +279,17 @@ fn random_bytes(bytes: &mut [u8]) -> bool {
 /// runner cannot answer, so the write goes to the admin domain under passwordless `sudo`.
 /// Returns the certificate path left in place for the guard to remove on cleanup.
 fn trust_for_code_signing(keychain: &Path, items: &SecItems) -> Result<PathBuf> {
-    let leaf = items
-        .certificates
-        .first()
-        .ok_or("imported certificate bundle has no leaf certificate")?;
+    // A PKCS#12 import reports its certificate as part of a `SecIdentity`, so the
+    // standalone certificate list stays empty. Both shapes are accepted.
+    let leaf = match items.certificates.first() {
+        Some(certificate) => certificate.clone(),
+        None => items
+            .identities
+            .first()
+            .ok_or("imported bundle contains no identity or certificate")?
+            .certificate()
+            .map_err(|error| format!("identity certificate read failed: {error}"))?,
+    };
     let display = keychain
         .to_str()
         .ok_or("ephemeral keychain path is not valid UTF-8")?;
