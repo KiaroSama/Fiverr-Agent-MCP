@@ -595,19 +595,40 @@ fn verify_one(name: &str, path: &Path) -> Result<()> {
 /// `codesign --extract-certificates` writes the leaf as `<prefix>0`; the extracted
 /// file must be removed by the caller.
 pub fn leaf_certificate(path: &Path, output: &Path) -> Result<PathBuf> {
-    let prefix = output
-        .parent()
-        .ok_or("certificate output directory missing")?
-        .join("leaf");
-    let status = Command::new("/usr/bin/codesign")
-        .arg("--display")
-        .arg("--extract-certificates")
-        .arg(&prefix)
-        .arg(path)
-        .status()
-        .map_err(|_| "codesign certificate extraction failed")?;
-    if !status.success() {
-        return Err("codesign certificate extraction failed".into());
+    // `codesign --extract-certificates <prefix>` writes `<prefix>0`, so the caller's path is
+    // the prefix, not a directory to write into. It is already unique per binary; deriving a
+    // shared name here would make the two binaries overwrite each other's certificate.
+    let prefix = output.to_path_buf();
+    if let Some(parent) = prefix.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let home = real_home().unwrap_or_else(|| PathBuf::from("/"));
+    let extracted = crate::process::run_with_real_home(
+        "/usr/bin/codesign",
+        &[
+            "--display".to_owned(),
+            "--extract-certificates".to_owned(),
+            prefix
+                .to_str()
+                .ok_or("certificate prefix is not valid UTF-8")?
+                .to_owned(),
+            path.to_str()
+                .ok_or("binary path is not valid UTF-8")?
+                .to_owned(),
+        ],
+        path.parent().unwrap_or(Path::new("/")),
+        60,
+        30,
+        &home,
+    )
+    .map_err(|error| format!("codesign certificate extraction did not complete: {error}"))?;
+    if !extracted.status.success() {
+        // The report is on stderr; without it a failure here is unactionable.
+        return Err(format!(
+            "codesign certificate extraction failed: {}",
+            String::from_utf8_lossy(&extracted.stderr).trim()
+        )
+        .into());
     }
     let leaf = PathBuf::from(format!("{}.0", prefix.display()));
     if !leaf.is_file() {
@@ -635,6 +656,7 @@ fn check_leaf(name: &str, path: &Path) -> Result<()> {
         }
         Ok(())
     })();
+    let _ = fs::remove_file(format!("{}.0", scratch.display()));
     let _ = fs::remove_dir_all(&scratch);
     outcome
 }
