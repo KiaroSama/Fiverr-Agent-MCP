@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — 2026-11-14
+
+Fixed the native macOS Intel timeout: `cargo nextest list` now runs under a compile-sized 900 s / 180 s budget. Source `a529870` passed full CI on all four native targets, with every macOS binary and archive signed and verified against the pinned owner key.
+
 ## Unreleased — 2026-11-11
 
 Added owner self-signed distribution signing for macOS and Linux. Full CI runs now package every native target. macOS binaries are signed with `codesign` using an owner identity imported into an ephemeral keychain through Security.framework, then strictly verified and compared against the published leaf pin in `config/signing-macos-public.json`. Non-Windows tar.gz archives and checksum files receive detached OpenSSH signatures in the `fiverr-agent-mcp-release` namespace, verified against the pinned key in `config/signing-release-public.json` with wrong-namespace and wrong-signer negatives. Both identities are self-signed and not publicly trusted. Gatekeeper will still treat the macOS binary as coming from an unidentified developer, and it is not notarized. Exact-source acceptance is pending.

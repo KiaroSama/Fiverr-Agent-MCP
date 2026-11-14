@@ -1,6 +1,16 @@
 # Verification report
 
-Checked 2026-11-11. Evidence is revision-specific, not a certificate of complete Fiverr access. All checkpoints below the current receipt are historical. A documentation revision is not a newer tested executable; packaging consumes these documents and requires its own exact-source acceptance.
+Checked 2026-11-14. Evidence is revision-specific, not a certificate of complete Fiverr access. All checkpoints below the current receipt are historical. A documentation revision is not a newer tested executable; packaging consumes these documents and requires its own exact-source acceptance.
+
+## macOS and release signing acceptance
+
+Source `a529870ae9b085567424e5f2e8f95d80bbee1324` passed [full native/sign/package run43615758693](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43615758693): Windows260, Linux276, macOS ARM64269 and macOS Intel269 cases, zero failed or skipped, with the dependency/security job green. Linux measured application92.89% and safety95.08% on the same source.
+
+Both macOS jobs signed every shipped Mach-O with the pinned owner identity and reported `macOS binaries signed and verified against the pinned owner identity.` Each non-Windows job then signed its archives and per-target SHA256SUMS with the owner Ed25519 key under namespace `fiverr-agent-mcp-release`, verified them against the pinned `allowed_signers` before reading checksum contents, and rejected the wrong-namespace and wrong-signer controls (`release signing verified targets=[...] files=3`).
+
+The signed Windows package was independently verified and installed. Executable SHA256 `b0a0e086cd3c93171894f5d0e9c45cc9d30365c0905de035846252ac87110d29`, verifier SHA256 `9a48aea56cbd5ceb8ed5c64e1f0c971571c9378a057d65ede9c90931c7cecfd3`; the embedded verifier reported `signature_valid:true` against certificate pin `9835215651f13b7bf0649f9aecc186e4171a76ba31a298471942fb002a57ade9`, which matches `config/signing-public.json`. Client configuration and private state were preserved; the proxy profile and active route survived the replacement.
+
+The macOS signature identifies the owner and is self-signed, so it is not a CA trust anchor and Gatekeeper still classifies it as unidentified. It is not notarized.
 
 ## Bounded coverage-guided campaign
 
