@@ -92,8 +92,12 @@ pub fn reconcile(root: &Path, target: &str, bytes: &[u8]) -> Result<Value> {
             let (suite_name, name) = identity
                 .split_once('$')
                 .ok_or("test identity format changed")?;
-            // A `lib` and a `bin` suite share one prefix; attribute the test to the
-            // first candidate that has not already recorded it.
+            // Two suites can share one prefix only when both targets compile to the same
+            // binary name. `xtask` names its lib apart from the package for exactly that
+            // reason (see xtask/Cargo.toml), so in the current workspace at most one
+            // candidate is ever open. Attribute to the first candidate that has not
+            // already recorded the case; a second suite under one prefix is still handled,
+            // and a mis-filed case is caught by the per-suite count check below.
             let qualified = active
                 .get(suite_name)
                 .and_then(|pending| {

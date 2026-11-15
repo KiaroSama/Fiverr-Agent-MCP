@@ -6,6 +6,16 @@ rust-version = "1.99.1"
 license = "GPL-3.0-or-later"
 publish = false
 
+# The lib target is deliberately named apart from the package. With no hyphen in
+# the package name, the default lib and bin names are both `xtask`, so the two
+# targets compile to one test binary name and nextest reports their cases
+# identically: run 43658418728 could not tell the suites apart and mis-filed two
+# bin-only cases under the lib suite after every test had passed. A distinct lib
+# name keeps the suites separable; the bin target and the `target/debug/xtask`
+# path the workflows invoke are unchanged.
+[lib]
+name = "xtask_verify"
+
 [dependencies]
 serde_json = "=1.0.154"
 sha2 = "=0.11.1"

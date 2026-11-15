@@ -5,7 +5,7 @@ use base64::{Engine, prelude::BASE64_STANDARD};
 use serde_json::{Value, json};
 use std::{fs, mem::size_of, os::windows::ffi::OsStrExt, path::Path};
 use windows_sys::Win32::Security::Cryptography::*;
-use xtask::{
+use xtask_verify::{
     pe_signature,
     windows_verification::{Certificate, certificate_matches, embedded_policy, verify},
 };

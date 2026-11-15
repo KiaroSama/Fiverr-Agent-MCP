@@ -522,10 +522,10 @@ pub fn verify(root: &Path, archive: &str, target: &str, sha: &str) -> Result<()>
         #[cfg(windows)]
         if target.contains("windows") {
             let utility = scratch.join("bin/fiverr-verify.exe");
-            let policy = xtask::windows_verification::embedded_policy()?;
+            let policy = xtask_verify::windows_verification::embedded_policy()?;
             // The parent independently verifies the utility before trusting its output.
-            xtask::windows_verification::verify(&utility, &policy)?;
-            xtask::windows_verification::verify(&executable, &policy)?;
+            xtask_verify::windows_verification::verify(&utility, &policy)?;
+            xtask_verify::windows_verification::verify(&executable, &policy)?;
             crate::windows_signing::verifier_acceptance(&utility, &executable, &scratch)?;
         }
         for args in [
