@@ -2,7 +2,21 @@
 
 Checked 2026-11-15. Evidence is revision-specific, not a certificate of complete Fiverr access. All checkpoints below the current receipt are historical. A documentation revision is not a newer tested executable; packaging consumes these documents and requires its own exact-source acceptance.
 
-## Four-platform signed package acceptance
+## Four-platform signed package acceptance — 8572d09
+
+Source `8572d0927bade378c529e6fb5b8611808363b6e1` passed [full native/sign/package run 43752475959](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43752475959) with `validation_only: false`: Windows, Linux x64, macOS ARM64 and macOS Intel all native jobs succeeded, zero failed and zero skipped, with the dependency/security job green.
+
+This run adds no behavioral change: the diff from `b455a92` to `8572d09` is documentation-only — the README license section now carries the user's exact second sentence and the badge block was corrected to 16 badges with the missing mandatory Platform badge and distinct per-badge hex colors.
+
+The Windows artifact (`artifact 14177626296`, 7,383,559 bytes) was downloaded and its native zip hash verified against `SHA256SUMS-x86_64-pc-windows-msvc.txt` before extraction. The 586-entry manifest (`release-x86_64-pc-windows-msvc.json`) was bound to the accepted source: all 56 tracked repository members hashed identically to `git show 8572d09:<path>` with zero mismatches; the remaining 530 are build-generated (528 dependency license files plus the two executables). `source_sha` in the manifest equals `8572d0927bade378c529e6fb5b8611808363b6e1`.
+
+The Windows signing receipt confirms `certificate_sha256: 9835215651f13b7bf0649f9aecc186e4171a76ba31a298471942fb002a57ade9`, which matches `config/signing-public.json`, with `signature_valid: true` and `publicly_trusted: false` / `trust: self_signed_private` for `bin/fiverr-agent-mcp.exe` (SHA-256 `1c5f3beb1fd8c80c3829e5b72fae92edf9098dea6fb6f9aa34ca16f60d3eb899`). The packaged `bin/fiverr-verify.exe` was run against the extracted `bin/fiverr-agent-mcp.exe` and confirmed `signature_valid: true` against the same certificate pin.
+
+Both verified binaries were installed into `bin/`, with the previous pair backed up as `*.exe.prev-8572d09` and then all prior backup pairs (`*.prev-b0a0e08`, `*.prev-b455a92`, `*.prev-9a48aea`) removed after installation was confirmed. The installed executable answers `--version` (`fiverr-agent-mcp 0.1.0`) and `status` with the saved proxy route and all five proxy profiles intact. Release `v0.1.0` was then published via [release run 43756615030](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43756615030).
+
+Boundaries: certificate chain is self-signed and not publicly CA-trusted; `Get-AuthenticodeSignature` returns `UnknownError` on Windows for that reason. The macOS binaries carry the same owner codesign identity from the prior source and are not notarized. The four live MCP server processes from the prior build continue running their in-memory image until their clients restart.
+
+## Four-platform signed package acceptance — b455a92 (previous)
 
 Source `b455a92cf0258a4937a91cbe296ea18adb2a5a3a` passed [full native/sign/package run 43664227824](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43664227824) with `validation_only: false`: Windows 263, Linux 279, macOS ARM64 272 and macOS Intel 272 cases, zero failed and zero skipped, with the dependency/security job green. The revision renames the `xtask` library target to `xtask_verify` so it no longer collides with the `xtask` binary target in the nextest inventory; the preceding runs failed reconciliation after every test had already passed, so this is a harness repair, not a behavioural change to the shipped product.
 
