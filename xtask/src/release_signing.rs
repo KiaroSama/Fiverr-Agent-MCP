@@ -220,9 +220,9 @@ mod tests {
     // than on a synthetic envelope that could only ever reach the parser.
     fn keypair(seed: u8) -> ssh_key::PrivateKey {
         ssh_key::PrivateKey::new(
-            ssh_key::private::KeypairData::Ed25519(
-                ssh_key::private::Ed25519Keypair::from_seed(&[seed; 32]),
-            ),
+            ssh_key::private::KeypairData::Ed25519(ssh_key::private::Ed25519Keypair::from_seed(
+                &[seed; 32],
+            )),
             "test key",
         )
         .unwrap()
@@ -427,15 +427,18 @@ mod tests {
             NAMESPACE,
         )
         .unwrap_err();
-        assert_eq!(error, "SSHSIG signer key does not match the allowed key blob");
+        assert_eq!(
+            error,
+            "SSHSIG signer key does not match the allowed key blob"
+        );
     }
 
     #[test]
     fn rejects_a_real_signature_minted_under_another_namespace() {
         let key = keypair(0x11);
         let armor = pem_for(0x11, "fiverr-agent-mcp-release-wrong-namespace", b"archive");
-        let error = verify_sshsig(b"archive", &armor, &openssh(&key), PRINCIPAL, NAMESPACE)
-            .unwrap_err();
+        let error =
+            verify_sshsig(b"archive", &armor, &openssh(&key), PRINCIPAL, NAMESPACE).unwrap_err();
         assert_eq!(error, "SSHSIG namespace mismatch");
     }
 
@@ -446,8 +449,14 @@ mod tests {
         let mut blob = decode_pem(&pem_for(0x11, NAMESPACE, b"archive")).unwrap();
         blob[..6].copy_from_slice(MAGIC);
         blob[6..10].copy_from_slice(&2_u32.to_be_bytes());
-        let error = verify_sshsig(b"archive", &pem(&blob), &openssh(&key), PRINCIPAL, NAMESPACE)
-            .unwrap_err();
+        let error = verify_sshsig(
+            b"archive",
+            &pem(&blob),
+            &openssh(&key),
+            PRINCIPAL,
+            NAMESPACE,
+        )
+        .unwrap_err();
         assert_eq!(error, "unsupported SSHSIG version; expected 1");
     }
 }

@@ -1,0 +1,25 @@
+# cargo-audit advisory config for this workspace.
+#
+# Two RUSTSEC advisories apply to crates that are present in Cargo.lock but in
+# NO build graph. `ssh-key` is pinned at =0.6.7 with
+# `default-features = false, features = ["ed25519", "std"]`; `rsa` (and, via
+# `elliptic-curve`, `crypto-bigint`) are only reachable through ssh-key's
+# `rsa`/`ecdsa` features, which are not enabled. `cargo tree -p xtask -e all
+# --target all` and `cargo tree -e all --target all` both report zero
+# occurrences of `rsa`, `crypto-bigint` and `elliptic-curve`, so no binary,
+# test or build script in this workspace compiles the affected code.
+#
+# Patches exist (rsa >=0.10.0 for RUSTSEC-2023-0071, crypto-bigint >=0.7.6 for
+# RUSTSEC-2026-0387), but ssh-key 0.6.7 requires the older lines, so the locked
+# graph cannot reach a patched version without moving off the stable 0.6.7 pin
+# (the next release is 0.7.0-rc, a release candidate this release path avoids).
+#
+# Both advisories are timing side channels in code this workspace never links,
+# so the ignore is scoped to the exact locked, uncompiled crates. If the
+# enabled features of ssh-key ever change to include `rsa` or `ecdsa`, remove
+# the matching entry below and re-audit before release.
+[advisories]
+ignore = [
+    "RUSTSEC-2023-0071",
+    "RUSTSEC-2026-0387",
+]
