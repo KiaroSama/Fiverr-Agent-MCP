@@ -8,7 +8,7 @@ Implementation, executed fixtures and external acceptance are distinct. All122WF
 |---|---|---|
 | FR001,013,014 | server/; protocol and extracted stdio/HTTP draft roundtrip; HTTP guards/deadlines | Actual legacy/modern client loading and unadvertised protocol extensions are not proven |
 | FR002,015 | bootstrap/, storage/, rooted logs, transaction/restore/privacy fixtures; current-token identity focused regression and actual sandboxed Linux cleanup EPERM passed | Arbitrary ACL, hardlink/replacement races and other OS-denial scenarios remain unverified |
-| FR003,004 | RouteClient; SOCKS5h, CONNECT/auth/refusal, plain/TLS proxy, independent proxy/origin trust/hostname, bootstrap DNS refusal fixtures on all four targets | Finite loopback proof is not universal network or process-wide browser containment |
+| FR003,004 | RouteClient; SOCKS5h, CONNECT/auth/refusal, plain/TLS proxy, independent proxy/origin trust/hostname, bootstrap DNS refusal fixtures on all four targets | Finite loopback proof is not universal network or process-wide browser containment. 2026-11-15 live check: proxy (GB) and direct (DE) both reach fiverr.com over TLS and receive the site's HTTP 403 human challenge |
 | FR005,006 | browser/profile leases, observation and fail-closed adapter gates | Main-menu live-login acceptance cancelled; permitted adapter/current selectors/strict routing remain conditional |
 | FR007,008 | capabilities.json, catalog and actual-effect semantic contract | Unsupported workflows stay explicitly unavailable, never empty-success stubs |
 | FR009,010 | local records/productivity/export/snapshot/Money; bounded history/empty-workspace restore/capacity fixtures | No arbitrary-database recovery or complete domain/platform validator claim |

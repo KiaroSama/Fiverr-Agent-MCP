@@ -194,7 +194,7 @@ This task's builds/tests/packages run only in GitHub CI. The required native tar
 
 ## License
 
-Original application: GPL-3.0-or-later, Copyright (C) 2026 KiaroSama, no warranty. Reviewed upstream helper MIT notices and independently adapted CC-BY-4.0 instructions remain separate.
+GPL-3.0-or-later, Copyright (C) 2026 KiaroSama. Bundled third-party parts keep their own licenses.
 
 ## Donate
 
