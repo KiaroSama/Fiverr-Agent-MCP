@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — 2026-11-15
+
+Release archive signatures are now verified with real cryptography instead of a structural check: `xtask` pins `ssh-key` =0.6.7 and validates each owner Ed25519 SSHSIG over `SHA256SUMS`, the source tarball and the platform archive, rejecting a signature minted under a different namespace or by a different key. The `xtask` library target is renamed `xtask_verify` because a library and a binary of the same name collided in the nextest inventory, which made full CI fail reconciliation after every test had already passed. Source `b455a92` passed full CI on all four native targets (Windows 263, Linux 279, macOS ARM64/Intel 272; zero failed or skipped, Linux application coverage 92.82%, safety coverage 95.08%, six of six mutants caught), and the signed Windows package from that run was installed with configuration, exports and the install marker preserved. Certificate trust stays owner-pinned and self-signed; this is not a CA trust or notarization claim.
+
 ## Unreleased — 2026-11-14
 
 Fixed the native macOS Intel timeout: `cargo nextest list` now runs under a compile-sized 900 s / 180 s budget. Fixed a Windows browser-fixture failure where an interim `DevToolsActivePort` read was reported as `StorageUnavailable`, and raised the cold-start bounds on the fixture browser and the PowerShell launcher fixtures. Source `baaad8b` passed full CI on all four native targets, with every macOS binary and archive signed and verified against the pinned owner key.
