@@ -1,7 +1,7 @@
 {
   "name":"fiverr-agent-mcp",
   "version":"0.1.0",
-  "description":"Reviewed adapted third-party Fiverr optimizer; runtime registration and account sign-in are separate.",
+  "description":"Reviewed adapted third-party Fiverr optimizer; local workspace needs no account sign-in and runtime registration is separate.",
   "author":{"name":"KiaroSama"},
   "repository":"https://github.com/KiaroSama/Fiverr-Agent-MCP",
   "license":"GPL-3.0-or-later AND MIT AND CC-BY-4.0"

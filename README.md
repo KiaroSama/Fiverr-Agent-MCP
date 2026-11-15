@@ -10,6 +10,7 @@
 [![License GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue)](LICENSE)
 [![Source version 0.1.0](https://img.shields.io/badge/Source-0.1.0-orange)](Cargo.toml)
 [![Rust 1.99.1](https://img.shields.io/badge/Rust-1.99.1-black?logo=rust)](rust-toolchain.toml)
+[![Repo size 1.13 MB](https://img.shields.io/badge/Repo%20size-1.13%20MB-lightgrey)](https://github.com/KiaroSama/Fiverr-Agent-MCP)
 [![Documentation](https://img.shields.io/badge/Docs-installation-blue)](docs/installation.md)
 [![MCP SDK rmcp](https://img.shields.io/badge/MCP-rmcp-5c4ee5)](Cargo.toml)
 [![HTTP Axum](https://img.shields.io/badge/HTTP-Axum-5c4ee5)](Cargo.toml)
