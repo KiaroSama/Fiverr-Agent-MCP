@@ -154,7 +154,7 @@ fn result(screen: &mut impl Console, value: &Value) -> Result<()> {
             Style::Warning,
         );
     }
-    if data.get("live_authenticated").is_some() || data.get("live_verified").is_some() {
+    if data.get("workspace_account").is_some() || data.get("live_verified").is_some() {
         let observed = data
             .get("session")
             .is_some_and(|s| s["account_observed"] == true);

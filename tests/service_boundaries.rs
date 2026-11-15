@@ -232,10 +232,13 @@ fn shared_dispatch_reports_handoffs_and_rejects_unimplemented_or_hostile_input()
         "direct"
     );
     for name in ["fiverr_account_get", "fiverr_session_status"] {
-        assert_eq!(
-            service::dispatch(&store, name, json!({})).unwrap()["data"]["live_authenticated"],
-            false
-        );
+        let data = &service::dispatch(&store, name, json!({})).unwrap()["data"];
+        // The local workspace needs no login, so the status carries no sign-in
+        // requirement; the stored-session adapter detail stays under `session`.
+        assert_eq!(data["session"]["live_authenticated"], false);
+        assert!(data.get("human_sign_in_required").is_none());
+        assert!(data.get("permission_required").is_none());
+        assert!(data.get("live_authenticated").is_none());
     }
     assert_eq!(
         service::dispatch(&store, "fiverr_auth_start", json!({})).unwrap()["data"]["completed"],

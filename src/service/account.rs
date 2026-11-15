@@ -8,7 +8,7 @@ pub fn status(store: &Store) -> Result<Value> {
     let settings = Settings::load(store)?;
     let session = crate::session::status(store)?;
     Ok(envelope(
-        json!({"workspace_account":settings.account_id,"live_authenticated":session["live_authenticated"],"session":session,"browser_configured":settings.browser_executable.is_some(),"roles":"unknown","mira_eligibility":"unknown","human_sign_in_required":true,"permission_required":true,"route_assurance":"not_verified"}),
+        json!({"workspace_account":settings.account_id,"session":session,"browser_configured":settings.browser_executable.is_some(),"roles":"unknown","mira_eligibility":"unknown","route_assurance":"not_verified"}),
         json!({"source":"local_session_status","live_verified":false}),
     ))
 }
@@ -25,6 +25,6 @@ pub fn handoff(operation: &str, args: &Value) -> Result<Value> {
 pub fn require_live() -> Result<Value> {
     Err(error(
         ErrorCode::PermissionDenied,
-        "No permitted account interface and strict browser-route assurance have been verified. Use manual sign-in/handoff; do not treat a local draft or fixture as a live result.",
+        "No permitted account interface and strict browser-route assurance have been verified. Use the manual handoff; do not treat a local draft or fixture as a live result.",
     ))
 }

@@ -2,7 +2,7 @@
 
 ## No-login launcher and compatibility commands
 
-The local workspace needs no login. Launcher option 6 shows account status; login, session setup and logout actions and the PowerShell `-SignIn` shortcut have been removed. Existing private session data is preserved, not automatically forgotten. Direct networking is the fresh-install default and proxy use is optional; neither grants account access. Local MCP HTTP token authentication is unchanged.
+The local workspace needs no login. Launcher option 6 shows account status; login, session setup and logout actions and the PowerShell `-SignIn` shortcut have been removed. Because no sign-in is required, the account status carries no `human_sign_in_required` or `permission_required` field and no top-level `live_authenticated`; the stored-session adapter detail, including `session.live_authenticated`, remains under `session`. Existing private session data is preserved, not automatically forgotten. Direct networking is the fresh-install default and proxy use is optional; neither grants account access. Local MCP HTTP token authentication is unchanged.
 
 ## Optional compatibility session methods
 

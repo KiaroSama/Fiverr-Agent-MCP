@@ -237,7 +237,7 @@ async fn owner_management_commands_preserve_other_state_and_refuse_model_consent
                 command: Auth::Status
             }
         )
-        .await["data"]["live_authenticated"],
+        .await["data"]["session"]["live_authenticated"],
         false
     );
     assert_eq!(

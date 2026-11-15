@@ -2,6 +2,8 @@
 
 ## Unreleased — 2026-11-15
 
+The account status (`fiverr_account_get`, `fiverr_session_status`, `auth status`, resource `fiverr://account`) no longer reports `human_sign_in_required`, `permission_required` or a top-level `live_authenticated`, because the local workspace needs no login. The stored-session detail remains under `session`, including `session.live_authenticated`. The README license section is reduced to the project's own license statement; third-party terms stay in THIRD_PARTY_NOTICES.md.
+
 Release archive signatures are now verified with real cryptography instead of a structural check: `xtask` pins `ssh-key` =0.6.7 and validates each owner Ed25519 SSHSIG over `SHA256SUMS`, the source tarball and the platform archive, rejecting a signature minted under a different namespace or by a different key. The `xtask` library target is renamed `xtask_verify` because a library and a binary of the same name collided in the nextest inventory, which made full CI fail reconciliation after every test had already passed. Source `b455a92` passed full CI on all four native targets (Windows 263, Linux 279, macOS ARM64/Intel 272; zero failed or skipped, Linux application coverage 92.82%, safety coverage 95.08%, six of six mutants caught), and the signed Windows package from that run was installed with configuration, exports and the install marker preserved. Certificate trust stays owner-pinned and self-signed; this is not a CA trust or notarization claim.
 
 ## Unreleased — 2026-11-14
