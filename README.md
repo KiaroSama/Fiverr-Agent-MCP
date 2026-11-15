@@ -7,18 +7,16 @@
 [![Secret scanning](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/gitleaks.yml/badge.svg?branch=feature%2Ffiverr-native)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/gitleaks.yml)
 [![Deep validation](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/deep.yml/badge.svg?branch=feature%2Ffiverr-native)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/deep.yml)
 [![Release](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/release.yml/badge.svg?branch=feature%2Ffiverr-native)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/release.yml)
-[![License GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue)](LICENSE)
-[![Source version 0.1.0](https://img.shields.io/badge/Source-0.1.0-orange)](Cargo.toml)
-[![Rust 1.99.1](https://img.shields.io/badge/Rust-1.99.1-black?logo=rust)](rust-toolchain.toml)
-[![Repo size 1.13 MB](https://img.shields.io/badge/Repo%20size-1.13%20MB-lightgrey)](https://github.com/KiaroSama/Fiverr-Agent-MCP)
-[![Documentation](https://img.shields.io/badge/Docs-installation-blue)](docs/installation.md)
+[![License GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-1d4ed8)](LICENSE)
+[![Source version 0.1.0](https://img.shields.io/badge/Source-0.1.0-ea580c)](Cargo.toml)
+[![Rust 1.99.1](https://img.shields.io/badge/Rust-1.99.1-8b5cf6?logo=rust)](rust-toolchain.toml)
+[![Platforms Windows x64, Linux x64, macOS ARM64 and macOS x64](https://img.shields.io/badge/Platforms-Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-0891b2)](.github/workflows/ci.yml)
+[![Documentation](https://img.shields.io/badge/Docs-installation-0f766e)](docs/installation.md)
+[![Repo size 1.65 MB measured from the tracked working tree](https://img.shields.io/badge/Repo%20size-1.65%20MB%20tree-ca8a04)](https://github.com/KiaroSama/Fiverr-Agent-MCP)
 [![MCP SDK rmcp](https://img.shields.io/badge/MCP-rmcp-5c4ee5)](Cargo.toml)
-[![HTTP Axum](https://img.shields.io/badge/HTTP-Axum-5c4ee5)](Cargo.toml)
-[![Async Tokio](https://img.shields.io/badge/Async-Tokio-5c4ee5)](Cargo.toml)
+[![HTTP Axum](https://img.shields.io/badge/HTTP-Axum-7e22ce)](Cargo.toml)
 [![Storage SQLite](https://img.shields.io/badge/Storage-SQLite-003b57?logo=sqlite)](docs/architecture.md)
-[![TLS rustls](https://img.shields.io/badge/TLS-rustls-blue)](Cargo.toml)
-[![Serialization serde](https://img.shields.io/badge/Serialization-serde-blue)](Cargo.toml)
-[![Browser chromiumoxide](https://img.shields.io/badge/Browser-chromiumoxide-orange)](docs/authentication.md)
+[![Browser chromiumoxide](https://img.shields.io/badge/Browser-chromiumoxide-b45309)](docs/authentication.md)
 [![Support donations](https://img.shields.io/badge/Support-donations-d04a9a)](#donate)
 
 </div>
@@ -196,7 +194,7 @@ This task's builds/tests/packages run only in GitHub CI. The required native tar
 
 ## License
 
-GPL-3.0-or-later, Copyright (C) 2026 KiaroSama, no warranty. See [LICENSE](LICENSE) and the [third-party notices](THIRD_PARTY_NOTICES.md).
+Original application: GPL-3.0-or-later, Copyright (C) 2026 KiaroSama, no warranty. Reviewed upstream helper MIT notices and independently adapted CC-BY-4.0 instructions remain separate.
 
 ## Donate
 
