@@ -8,7 +8,7 @@
 [![Deep validation](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/deep.yml/badge.svg?branch=feature%2Ffiverr-native)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/deep.yml)
 [![Release](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/release.yml/badge.svg?branch=feature%2Ffiverr-native)](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/release.yml)
 [![License GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-1d4ed8)](LICENSE)
-[![Source version 0.1.0](https://img.shields.io/badge/Source-0.1.0-ea580c)](Cargo.toml)
+[![Latest release v0.1.0](https://img.shields.io/badge/Release-v0.1.0-ea580c)](https://github.com/KiaroSama/Fiverr-Agent-MCP/releases/latest)
 [![Rust 1.99.1](https://img.shields.io/badge/Rust-1.99.1-8b5cf6?logo=rust)](rust-toolchain.toml)
 [![Platforms Windows x64, Linux x64, macOS ARM64 and macOS x64](https://img.shields.io/badge/Platforms-Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-0891b2)](.github/workflows/ci.yml)
 [![Documentation](https://img.shields.io/badge/Docs-installation-0f766e)](docs/installation.md)
@@ -31,9 +31,9 @@ This community project is not affiliated with Fiverr. Local workspace operations
 
 Windows x64 is the established signed binary distribution. Full CI runs also produce owner self-signed Linux x64 and macOS ARM64/Intel packages: macOS binaries carry an owner `codesign` signature (not notarized), and each non-Windows archive has a detached OpenSSH `.sig` checkable with `ssh-keygen -Y verify` against `config/signing-release-public.json`. The instructions below cover Windows.
 
-Open [CI](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml), select a successful **full** run for the intended source revision, and download `fiverr-x86_64-pc-windows-msvc` under **Artifacts**. GitHub may require signing in. Validation-only runs have no distribution. Artifacts expire; [Releases](https://github.com/KiaroSama/Fiverr-Agent-MCP/releases) is an alternative only when an actual matching release exists. **Code → Download ZIP** downloads source, not an installed application.
+Download the latest release from [Releases](https://github.com/KiaroSama/Fiverr-Agent-MCP/releases/latest) (currently `v0.1.0`): get `fiverr-agent-mcp-0.1.0-x86_64-pc-windows-msvc.zip`, `SHA256SUMS-x86_64-pc-windows-msvc.txt`, `release-x86_64-pc-windows-msvc.json` and `windows-signing-receipt.json`. Builds of a newer unreleased revision are available as the `fiverr-x86_64-pc-windows-msvc` artifact of a successful **full** [CI](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/workflows/ci.yml) run; artifacts expire and GitHub may require signing in. **Code → Download ZIP** downloads source, not an installed application.
 
-Extract the artifact wrapper first. It contains a native ZIP, source/plugin archives, `SHA256SUMS-x86_64-pc-windows-msvc.txt` and release metadata. Compare the native ZIP hash with its entry in that checksum file using PowerShell 7:
+A CI artifact is a wrapper; extract it first. Release and artifact both provide a native ZIP, source/plugin archives, `SHA256SUMS-x86_64-pc-windows-msvc.txt` and release metadata. Compare the native ZIP hash with its entry in that checksum file using PowerShell 7:
 
 ```powershell
 Get-FileHash -Algorithm SHA256 -LiteralPath './fiverr-agent-mcp-0.1.0-x86_64-pc-windows-msvc.zip'

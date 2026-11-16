@@ -1,12 +1,17 @@
 # Changelog
 
-## Unreleased — 2026-11-15
+## 0.1.0 — 2026-11-16
+
+First stable release, published on GitHub as the latest release `v0.1.0` from source `8572d09`. It ships the owner-signed Windows x64 package plus source and plugin archives; Linux and macOS pass the same CI and ship as source. The certificate is self-signed, so Windows SmartScreen may warn, and macOS builds are not notarized. Signed-in Fiverr automation is not part of this release claim.
+
+### Changes since the 2026-11-14 build
+
 
 The account status (`fiverr_account_get`, `fiverr_session_status`, `auth status`, resource `fiverr://account`) no longer reports `human_sign_in_required`, `permission_required` or a top-level `live_authenticated`, because the local workspace needs no login. The stored-session detail remains under `session`, including `session.live_authenticated`.
 
 The README license section is reduced to its essentials: "GPL-3.0-or-later, Copyright (C) 2026 KiaroSama. Bundled third-party parts keep their own licenses." Full terms stay in `LICENSE` and `THIRD_PARTY_NOTICES.md`. The badge block was brought inside the project's own badge budget and given the missing mandatory platform badge: it now carries sixteen badges, including `Platforms Windows · Linux · macOS` measured from the four-target CI matrix and `Repo size 1.65 MB tree` measured from the tracked working tree (1,648,501 bytes). Three build-only badges (Async Tokio, TLS rustls, Serialization serde) were dropped to make room, and every badge now carries its own distinct hex colour where previously three shared one.
 
-The signed Windows package from [CI run 43752475959](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43752475959) on source `8572d09` was verified and installed (SHA-256 `1c5f3beb1fd8c80c3829e5b72fae92edf9098dea6fb6f9aa34ca16f60d3eb899`; certificate pin `9835215651f13b7bf0649f9aecc186e4171a76ba31a298471942fb002a57ade9` unchanged; `signature_valid: true`). The 586-entry manifest bound 56 tracked members to the accepted source with zero mismatches. `--version` returns `0.1.0`; `status` confirms the saved proxy route and all five proxy profiles intact. Release `v0.1.0` was published as a prerelease via [release run 43756615030](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43756615030).
+The signed Windows package from [CI run 43752475959](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43752475959) on source `8572d09` was verified and installed (SHA-256 `1c5f3beb1fd8c80c3829e5b72fae92edf9098dea6fb6f9aa34ca16f60d3eb899`; certificate pin `9835215651f13b7bf0649f9aecc186e4171a76ba31a298471942fb002a57ade9` unchanged; `signature_valid: true`). The 586-entry manifest bound 56 tracked members to the accepted source with zero mismatches. `--version` returns `0.1.0`; `status` confirms the saved proxy route and all five proxy profiles intact. Release `v0.1.0` was published via [release run 43756615030](https://github.com/KiaroSama/Fiverr-Agent-MCP/actions/runs/43756615030).
 
 A live reachability check on 2026-11-15 reached `https://www.fiverr.com/` over TLS both through the saved UK 1 SOCKS5h proxy (egress GB) and directly (egress DE). Both routes received HTTP 403 with Fiverr's PerimeterX human challenge, and a real headless Chrome on the direct route got the same "It needs a human touch" page. Network routing works on both paths; anonymous automated page access is refused by the site, and the application does not attempt to bypass it.
 
@@ -56,6 +61,6 @@ Removed login/session/logout choices from the launcher and the PowerShell SignIn
 
 Added explicit private cookie-file import/selected-route verification and a user-gesture Chromium extension/native account-observation bridge, with session menu/CLI/status/forget and account/route/revision fencing. Native validation and signed Windows packaging passed on source `db42d38` in CI38841816625; the exact signed Windows executable was verified and installed with configuration/private state preserved. Live Fiverr and loaded-extension registration remain unverified. Owner-authorized project signing key and protected Windows signing inputs are provisioned. Windows full CI signs and verifies the pinned self-signed identity before packaging; public OS trust is not claimed. Other platforms passed native source validation only; their final signed distributions remain unavailable.
 
-## 0.1.0 — experimental source, 2026-10-12
+## Initial experimental source — 2026-10-12
 
 Initial Rust-native local workspace, MCP stdio/Streamable HTTP adapters, explicit route policy, prepared manual handoffs and reviewed existing optimizer adaptation. Native release and account readiness require executed evidence. No live full-access or universal security/coverage claim.

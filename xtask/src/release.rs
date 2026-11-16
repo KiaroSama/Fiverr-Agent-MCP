@@ -64,6 +64,7 @@ pub fn publish(sha: &str) -> Result<()> {
         serde_json::from_slice(&validate::regular(&root(), "config/signing-public.json")?)?;
     let assets = assets::validate_assets(&directory, sha, &policy)?;
     let tag = format!("v{}", crate::VERSION);
+    let title = format!("Fiverr Agent MCP {}", crate::VERSION);
     let tags = api(&format!("repos/{}/tags?per_page=100", env::var("GH_REPO")?))?;
     if tags
         .as_array()
@@ -84,11 +85,11 @@ pub fn publish(sha: &str) -> Result<()> {
         "--target",
         sha,
         "--draft",
-        "--prerelease",
+        "--latest",
         "--title",
-        "Fiverr Agent MCP 0.1.0 (experimental)",
+        &title,
         "--notes",
-        "Experimental owner-signed Windows package. Other targets are native source validation only; self-signed identity is not public trust.",
+        "Owner-signed Windows package. Other targets ship as source; the self-signed identity is not public trust.",
     ];
     args.extend(paths);
     owned(180, 60, "gh", &args)?;
